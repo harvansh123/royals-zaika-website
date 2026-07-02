@@ -172,11 +172,11 @@ export default function OwnerDashboard() {
   }
 
   return (
-    <div className="p-5 md:p-8 max-w-5xl">
+    <div className="p-4 sm:p-5 md:p-8 max-w-5xl">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
-          <h1 className="font-bold text-2xl md:text-3xl" style={{ fontFamily: "'Outfit', sans-serif", color: "var(--text-primary)" }}>
+          <h1 className="font-bold text-xl sm:text-2xl md:text-3xl" style={{ fontFamily: "'Outfit', sans-serif", color: "var(--text-primary)" }}>
             Dashboard 👋
           </h1>
           <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
@@ -185,7 +185,7 @@ export default function OwnerDashboard() {
         </div>
         {stats.pendingOrders > 0 && (
           <Link href="/owner/orders"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold animate-pulse"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold animate-pulse shrink-0"
             style={{ background: "rgba(249,115,22,0.12)", color: "#f97316", border: "1px solid rgba(249,115,22,0.3)" }}>
             <Bell size={16} /> {stats.pendingOrders} Pending
           </Link>
@@ -193,12 +193,12 @@ export default function OwnerDashboard() {
       </div>
 
       {/* Restaurant Online/Offline Toggle */}
-      <div className="mb-6 rounded-2xl p-4 flex items-center justify-between"
+      <div className="mb-6 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3"
         style={{
           background: isOpen ? "rgba(34,197,94,0.07)" : "rgba(239,68,68,0.07)",
           border: `1px solid ${isOpen ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`,
         }}>
-        <div>
+        <div className="min-w-0">
           <p className="font-bold text-base flex items-center gap-2"
             style={{ color: isOpen ? "#22c55e" : "#ef4444" }}>
             {isOpen ? <Wifi size={18} /> : <WifiOff size={18} />}
@@ -206,13 +206,13 @@ export default function OwnerDashboard() {
           </p>
           <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
             {isOpen
-              ? "Customers can browse and place orders normally."
-              : "Customers cannot place new orders. Existing orders are unaffected."}
+              ? "Customers can place orders normally."
+              : "Customers cannot place new orders."}
           </p>
         </div>
         <button onClick={toggleRestaurantStatus} disabled={togglingStatus}
           className={cn(
-            "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-60",
+            "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-60 shrink-0",
             isOpen
               ? "bg-red-500 text-white hover:bg-red-600"
               : "bg-green-500 text-white hover:bg-green-600"

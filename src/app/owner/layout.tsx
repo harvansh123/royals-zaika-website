@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { LayoutDashboard, ShoppingBag, UtensilsCrossed, LogOut, UserCircle, HelpCircle, MapPin, Users, Tag, Bell, BellOff } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, UtensilsCrossed, LogOut, UserCircle, HelpCircle, MapPin, Users, Tag, Bell, BellOff, Star } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -19,6 +19,7 @@ const tabs = [
   { href: "/owner/menu",     icon: UtensilsCrossed, label: "Menu"      },
   { href: "/owner/offers",   icon: Tag,             label: "Offers"    },
   { href: "/owner/riders",   icon: Users,           label: "Riders"    },
+  { href: "/owner/reviews",  icon: Star,            label: "Reviews"   },
   { href: "/owner/support",  icon: HelpCircle,      label: "Support"   },
   { href: "/owner/delivery-settings", icon: MapPin, label: "Delivery"  },
   { href: "/owner/profile",  icon: UserCircle,      label: "Profile"   },
@@ -112,7 +113,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
       ─────────────────────────────────────────────────────────────── */}
       {newOrderNums.length > 0 && (
         <div
-          className="fixed top-14 left-0 right-0 z-[60] flex items-center justify-between gap-4 px-5 py-3"
+          className="fixed top-14 left-0 right-0 z-[60] flex items-center justify-between gap-2 px-3 sm:px-5 py-2.5"
           style={{
             background:   "linear-gradient(135deg, #dc2626, #b91c1c)",
             boxShadow:    "0 4px 24px rgba(220,38,38,0.5)",
@@ -120,35 +121,35 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
           }}
         >
           {/* Pulsing bell icon */}
-          <div className="flex items-center gap-3">
-            <span className="text-2xl" style={{ animation: "bounce 0.5s infinite alternate" }}>🔔</span>
-            <div>
-              <p className="font-black text-white text-sm md:text-base">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-xl shrink-0" style={{ animation: "bounce 0.5s infinite alternate" }}>🔔</span>
+            <div className="min-w-0">
+              <p className="font-black text-white text-xs sm:text-sm leading-tight">
                 {newOrderNums.length === 1
-                  ? `New Order ${newOrderNums[0]}!`
-                  : `${newOrderNums.length} New Orders!`} — Needs Your Action
+                  ? `Order ${newOrderNums[0]}!`
+                  : `${newOrderNums.length} New Orders!`} — Action needed
               </p>
               {newOrderNums.length > 1 && (
-                <p className="text-red-200 text-xs">{newOrderNums.join(", ")}</p>
+                <p className="text-red-200 text-[10px] truncate max-w-[180px] sm:max-w-none">{newOrderNums.join(", ")}</p>
               )}
             </div>
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={() => { router.push("/owner/orders"); dismissAlarm(); }}
-              className="px-4 py-2 rounded-xl text-sm font-bold text-red-700 transition-all hover:opacity-90"
+              className="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold text-red-700 transition-all hover:opacity-90 whitespace-nowrap"
               style={{ background: "white" }}
             >
-              View Orders
+              View
             </button>
             <button
               onClick={dismissAlarm}
               title="Dismiss alarm"
-              className="p-2 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-all"
+              className="p-1.5 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-all"
             >
-              <BellOff size={18} />
+              <BellOff size={16} />
             </button>
           </div>
         </div>
@@ -238,18 +239,20 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
 
       {/* ── Mobile Bottom Tab Bar ─────────────────────────────────────── */}
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 flex z-50"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex overflow-x-auto no-scrollbar"
         style={{ background: "var(--nav-bg)", borderTop: "1px solid var(--border)", backdropFilter: "blur(12px)" }}
       >
         {tabs.map(({ href, icon: Icon, label }) => {
           const active = pathname === href;
           return (
-            <Link key={href} href={href} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 transition-all relative">
-              <Icon size={22} style={{ color: active ? "#f97316" : "var(--text-muted)" }} />
-              <span className="text-[10px] font-medium" style={{ color: active ? "#f97316" : "var(--text-muted)" }}>{label}</span>
+            <Link key={href} href={href}
+              className="flex-shrink-0 flex flex-col items-center justify-center py-2.5 px-3 gap-0.5 transition-all relative min-w-[52px]"
+            >
+              <Icon size={20} style={{ color: active ? "#f97316" : "var(--text-muted)" }} />
+              <span className="text-[9px] font-medium whitespace-nowrap" style={{ color: active ? "#f97316" : "var(--text-muted)" }}>{label}</span>
               {/* Red dot on Orders tab */}
               {label === "Orders" && newOrderNums.length > 0 && (
-                <span className="absolute top-2 right-1/4 w-2 h-2 rounded-full bg-red-500" />
+                <span className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-red-500" />
               )}
             </Link>
           );

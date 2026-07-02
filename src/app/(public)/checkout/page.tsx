@@ -325,15 +325,15 @@ export default function CheckoutPage() {
       </div>
 
       {/* Step indicator */}
-      <div className="flex items-center gap-2 mb-8">
+      <div className="flex items-center gap-1.5 mb-8 overflow-x-auto no-scrollbar pb-1">
         {["Menu", "Cart", "Address", "Payment"].map((step, i) => (
-          <div key={step} className="flex items-center gap-2">
-            <div className={cn("flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full",
+          <div key={step} className="flex items-center gap-1.5 shrink-0">
+            <div className={cn("flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap",
               i < 3 ? "bg-green-500/15 text-green-400" : "bg-orange-500 text-white")}>
               {i < 3 ? <Check size={11} /> : null}
               {step}
             </div>
-            {i < 3 && <div className="w-5 h-px bg-white/10" />}
+            {i < 3 && <div className="w-4 h-px bg-white/10 shrink-0" />}
           </div>
         ))}
       </div>

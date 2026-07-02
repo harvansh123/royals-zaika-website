@@ -290,10 +290,10 @@ export default function ProfilePage() {
       )}
 
       {/* ── Tabs ── */}
-      <div className="flex gap-1 p-1 rounded-xl mb-5" style={{ background: "var(--bg-secondary)" }}>
+      <div className="flex gap-1 p-1 rounded-xl mb-5 overflow-x-auto no-scrollbar" style={{ background: "var(--bg-secondary)" }}>
         {tabs.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all"
+            className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap min-w-[60px]"
             style={tab === t.id
               ? { background: "var(--card-bg)", color: "#f97316", boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }
               : { color: "var(--text-muted)" }}>
@@ -304,7 +304,7 @@ export default function ProfilePage() {
 
       {/* ══════════════════════════════════════════ TAB: PROFILE ══ */}
       {tab === "profile" && (
-        <div className="rounded-2xl p-6 space-y-4" style={{ background: "var(--card-bg)", border: "1px solid var(--border)" }}>
+        <div className="rounded-2xl p-4 sm:p-6 space-y-4" style={{ background: "var(--card-bg)", border: "1px solid var(--border)" }}>
           <h3 className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>Personal Details</h3>
 
           <div>

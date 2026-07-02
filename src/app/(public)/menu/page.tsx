@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo, useCallback, Suspense, memo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { Search, X, ShoppingCart, Flame, Leaf, Star, Zap } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { MenuItem, Category } from "@/lib/database.types";
@@ -87,15 +88,24 @@ const FoodCard = memo(function FoodCard({ item }: { item: MenuItem }) {
           )}
         </div>
 
-        {/* Rating + time */}
-        {item.rating > 0 && (
-          <div className="flex items-center gap-3 mb-2">
+        {/* Rating + time + reviews */}
+        <div className="flex items-center gap-3 mb-2 flex-wrap">
+          {item.rating > 0 && (
             <span className="flex items-center gap-1 text-xs text-yellow-400">
               <Star size={11} fill="currentColor" />{item.rating.toFixed(1)}
             </span>
-            <span className="text-xs text-gray-500">{item.preparation_time} mins</span>
-          </div>
-        )}
+          )}
+          <span className="text-xs text-gray-500">{item.preparation_time} mins</span>
+          {item.review_count > 0 && (
+            <Link
+              href={`/reviews/${item.id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="text-xs text-orange-400 hover:text-orange-300 hover:underline transition-colors"
+            >
+              {item.review_count} review{item.review_count !== 1 ? "s" : ""}
+            </Link>
+          )}
+        </div>
 
         {item.description && (
           <p className="text-gray-500 text-sm leading-relaxed line-clamp-2">{item.description}</p>

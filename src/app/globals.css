@@ -104,6 +104,8 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 body {
@@ -111,6 +113,8 @@ body {
   color: var(--text-primary);
   font-family: 'Inter', system-ui, sans-serif;
   min-height: 100vh;
+  overflow-x: hidden;
+  max-width: 100vw;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
@@ -379,6 +383,84 @@ body {
    ============================================================ */
 .pb-safe { padding-bottom: env(safe-area-inset-bottom, 1rem); }
 .mb-safe { margin-bottom: env(safe-area-inset-bottom, 1rem); }
+
+/* ============================================================
+   RESPONSIVE TABLE CONTAINER
+   ============================================================ */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 0.75rem;
+}
+.table-responsive table {
+  min-width: 560px;
+  width: 100%;
+}
+
+/* ============================================================
+   RESPONSIVE MODAL / POPUP
+   ============================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15,23,42,0.55);
+  backdrop-filter: blur(4px);
+}
+.modal-box {
+  width: 100%;
+  max-width: 28rem;
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  border-radius: 1.25rem;
+}
+
+/* ============================================================
+   WORD BREAK — prevents text overflow on small screens
+   ============================================================ */
+.word-break { word-break: break-word; overflow-wrap: break-word; }
+
+/* ============================================================
+   RESPONSIVE HELPERS
+   ============================================================ */
+/* Shrink text gracefully on very small screens */
+@media (max-width: 360px) {
+  .text-2xl  { font-size: 1.25rem !important; }
+  .text-3xl  { font-size: 1.5rem !important; }
+  .section-heading { font-size: 1.25rem !important; }
+  .btn-primary, .btn-outline {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    font-size: 0.875rem !important;
+  }
+}
+
+/* Full-width containers never exceed viewport */
+.max-w-sm, .max-w-md, .max-w-lg, .max-w-xl,
+.max-w-2xl, .max-w-3xl, .max-w-4xl, .max-w-5xl, .max-w-6xl {
+  max-width: min(100%, var(--tw-max-w-width, 100%));
+}
+
+/* Cards should never overflow their parent */
+.card, .card-flat, .owner-stat-card {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Fix image overflow inside cards */
+img { max-width: 100%; }
+
+/* Flex rows that might overflow — allow wrapping on small screens */
+@media (max-width: 480px) {
+  .flex-nowrap-safe {
+    flex-wrap: wrap;
+  }
+}
 
 /* ============================================================
    TOAST — Light theme

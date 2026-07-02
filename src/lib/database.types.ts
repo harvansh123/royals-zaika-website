@@ -219,6 +219,53 @@ export interface Database {
         Insert: Omit<Database["public"]["Tables"]["notifications"]["Row"], "id" | "created_at" | "is_read">;
         Update: Partial<Database["public"]["Tables"]["notifications"]["Insert"]>;
       };
+      order_reviews: {
+        Row: {
+          id: string;
+          user_id: string;
+          order_id: string;
+          overall_rating: number;
+          food_quality_rating: number | null;
+          taste_rating: number | null;
+          packaging_rating: number | null;
+          delivery_rating: number | null;
+          comment: string | null;
+          photos: string[];
+          owner_reply: string | null;
+          owner_replied_at: string | null;
+          is_edited: boolean;
+          edited_at: string | null;
+          helpful_count: number;
+          not_helpful_count: number;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["order_reviews"]["Row"], "id" | "created_at" | "helpful_count" | "not_helpful_count" | "is_edited">;
+        Update: Partial<Database["public"]["Tables"]["order_reviews"]["Insert"]>;
+      };
+      review_item_ratings: {
+        Row: {
+          id: string;
+          review_id: string;
+          menu_item_id: string;
+          order_item_id: string | null;
+          rating: number;
+          comment: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["review_item_ratings"]["Row"], "id" | "created_at">;
+        Update: Partial<Database["public"]["Tables"]["review_item_ratings"]["Insert"]>;
+      };
+      review_helpful: {
+        Row: {
+          id: string;
+          review_id: string;
+          user_id: string;
+          is_helpful: boolean;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["review_helpful"]["Row"], "id" | "created_at">;
+        Update: Partial<Database["public"]["Tables"]["review_helpful"]["Insert"]>;
+      };
     };
   };
 }
@@ -238,6 +285,9 @@ export type DeliveryPartner = Database["public"]["Tables"]["delivery_partners"][
 export type DeliveryTracking = Database["public"]["Tables"]["delivery_tracking"]["Row"];
 export type Review        = Database["public"]["Tables"]["reviews"]["Row"];
 export type Notification  = Database["public"]["Tables"]["notifications"]["Row"];
+export type OrderReview       = Database["public"]["Tables"]["order_reviews"]["Row"];
+export type ReviewItemRating  = Database["public"]["Tables"]["review_item_ratings"]["Row"];
+export type ReviewHelpful     = Database["public"]["Tables"]["review_helpful"]["Row"];
 
 export type OrderWithItems = Order & {
   order_items: (OrderItem & { menu_items: MenuItem | null })[];

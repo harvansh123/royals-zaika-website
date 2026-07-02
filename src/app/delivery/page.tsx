@@ -364,26 +364,26 @@ export default function DeliveryDashboard() {
       ─────────────────────────────────────────────────────────────── */}
       {riderAlarmActive && (
         <div
-          className="mb-4 rounded-2xl flex items-center justify-between gap-3 px-5 py-4"
+          className="mb-4 rounded-2xl flex items-center justify-between gap-2 px-4 py-3"
           style={{
             background:  "linear-gradient(135deg, #b91c1c, #dc2626)",
             boxShadow:   "0 4px 20px rgba(220,38,38,0.45)",
             animation:   "pulse 0.8s ease-in-out infinite",
           }}
         >
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">📦</span>
-            <div>
-              <p className="font-black text-white text-base">New Order Assigned!</p>
-              <p className="text-red-200 text-sm">Pick up the order to stop this alarm</p>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-2xl shrink-0">📦</span>
+            <div className="min-w-0">
+              <p className="font-black text-white text-sm">New Order Assigned!</p>
+              <p className="text-red-200 text-xs">Pick up the order to stop this alarm</p>
             </div>
           </div>
           <button
             onClick={dismissRiderAlarm}
             title="Dismiss alarm"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold text-white/80 hover:text-white hover:bg-white/10 transition-all shrink-0"
+            className="flex items-center gap-1 px-2.5 py-2 rounded-xl text-sm font-bold text-white/80 hover:text-white hover:bg-white/10 transition-all shrink-0"
           >
-            <BellOff size={16} /> Dismiss
+            <BellOff size={15} />
           </button>
         </div>
       )}
@@ -392,31 +392,29 @@ export default function DeliveryDashboard() {
       {accountBanner}
 
       {/* ── Header ── */}
-      <div className="rounded-2xl p-5 mb-6 flex items-center gap-4"
-
+      <div className="rounded-2xl p-4 sm:p-5 mb-5 flex items-center gap-3 sm:gap-4"
         style={{ background: "linear-gradient(135deg,rgba(249,115,22,0.08),rgba(220,38,38,0.04))", border: "1px solid rgba(249,115,22,0.18)" }}>
-        <div className="w-12 h-12 gradient-brand rounded-xl flex items-center justify-center text-2xl shadow-brand shrink-0">🛵</div>
-        <div className="flex-1">
-          <h1 className="font-bold text-xl" style={{ fontFamily: "'Outfit', sans-serif", color: "var(--text-primary)" }}>
+        <div className="w-10 h-10 sm:w-12 sm:h-12 gradient-brand rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-brand shrink-0">🛵</div>
+        <div className="flex-1 min-w-0">
+          <h1 className="font-bold text-lg sm:text-xl" style={{ fontFamily: "'Outfit', sans-serif", color: "var(--text-primary)" }}>
             Delivery Dashboard
           </h1>
-          <p className="text-orange-500 text-sm">{user?.name}</p>
+          <p className="text-orange-500 text-sm truncate">{user?.name}</p>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          {/* Online/Offline badge — reflects actual delivery_partners.is_available */}
-          <div className={`flex items-center gap-1.5 text-sm font-medium ${isOnline ? "text-green-600" : "text-slate-500"}`}>
+        <div className="flex flex-col items-end gap-1.5 sm:gap-2 shrink-0">
+          <div className={`flex items-center gap-1.5 text-xs sm:text-sm font-medium ${isOnline ? "text-green-600" : "text-slate-500"}`}>
             <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-green-500 animate-pulse" : "bg-slate-400"}`} />
             {isOnline ? "Online" : "Offline"}
           </div>
-          <p className="text-xs" style={{ color: "var(--text-muted)" }}>{todayCount} delivered today</p>
-          <div className="flex items-center gap-3">
+          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>{todayCount} today</p>
+          <div className="flex items-center gap-2">
             <Link href="/delivery/profile"
-              className="flex items-center gap-1.5 text-xs text-orange-500 hover:text-orange-600 transition-colors font-medium">
-              <User size={12} /> Profile
+              className="flex items-center gap-1 text-[10px] sm:text-xs text-orange-500 hover:text-orange-600 transition-colors font-medium">
+              <User size={11} /> Profile
             </Link>
             <button onClick={handleSignOut} disabled={signingOut}
-              className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600 transition-colors font-medium disabled:opacity-50">
-              {signingOut ? <Loader2 size={12} className="animate-spin" /> : <LogOut size={12} />}
+              className="flex items-center gap-1 text-[10px] sm:text-xs text-red-500 hover:text-red-600 transition-colors font-medium disabled:opacity-50">
+              {signingOut ? <Loader2 size={11} className="animate-spin" /> : <LogOut size={11} />}
               {signingOut ? "..." : "Sign Out"}
             </button>
           </div>
@@ -424,18 +422,17 @@ export default function DeliveryDashboard() {
       </div>
 
       {/* Stats Bar */}
-      <div className="grid grid-cols-4 gap-2 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
         {[
           { label: "Active",   value: orders.length,                            color: "text-orange-600", icon: "📦" },
           { label: "Today",    value: todayCount,                               color: "text-green-600",  icon: "✅" },
           { label: "Distance", value: todayKm !== null ? `${todayKm} km` : "—", color: "text-blue-600",   icon: "📍" },
-          // Actual online status from delivery_partners.is_available
           { label: "Status",   value: isOnline ? "Online" : "Offline",          color: isOnline ? "text-teal-600" : "text-slate-500", icon: isOnline ? "🟢" : "🔴" },
         ].map(({ label, value, color, icon }) => (
-          <div key={label} className="rounded-xl p-3 text-center"
+          <div key={label} className="rounded-xl p-2.5 text-center"
             style={{ background: "var(--card-bg)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}>
-            <p className="text-lg mb-0.5">{icon}</p>
-            <p className={cn("font-bold text-lg", color)}>{value}</p>
+            <p className="text-base mb-0.5">{icon}</p>
+            <p className={cn("font-bold text-base", color)}>{value}</p>
             <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>{label}</p>
           </div>
         ))}

@@ -74,7 +74,7 @@ export default function AuthPage() {
   // ── Step 1: Role Selection ──────────────────────────────────────────
   if (!role) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ background: "var(--bg-primary)" }}>
+      <div className="min-h-screen flex items-center justify-center px-3 sm:px-4 py-10 sm:py-12" style={{ background: "var(--bg-primary)" }}>
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/8 rounded-full blur-[120px]" />
           <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-red-500/6 rounded-full blur-[100px]" />
@@ -82,10 +82,10 @@ export default function AuthPage() {
 
         <div className="relative w-full max-w-md text-center">
           {/* Logo */}
-          <div className="w-20 h-20 gradient-brand rounded-3xl flex items-center justify-center text-4xl mx-auto mb-6 shadow-brand">
+          <div className="w-16 sm:w-20 h-16 sm:h-20 gradient-brand rounded-3xl flex items-center justify-center text-3xl sm:text-4xl mx-auto mb-5 sm:mb-6 shadow-brand">
             🍱
           </div>
-          <h1 className="font-bold text-3xl mb-2" style={{ fontFamily: "'Outfit', sans-serif", color: "var(--text-primary)" }}>
+          <h1 className="font-bold text-2xl sm:text-3xl mb-2" style={{ fontFamily: "'Outfit', sans-serif", color: "var(--text-primary)" }}>
             Chaurasia Ji
           </h1>
           <p className="mb-10" style={{ color: "var(--text-secondary)" }}>Authentic Indian Cuisine — Who are you?</p>
@@ -149,21 +149,21 @@ export default function AuthPage() {
 
   // ── Step 2: Auth Form ───────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ background: "var(--bg-primary)" }}>
+    <div className="min-h-screen flex items-center justify-center px-3 sm:px-4 py-10 sm:py-12" style={{ background: "var(--bg-primary)" }}>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-96 h-96 bg-orange-500/8 rounded-full blur-[120px]" />
       </div>
 
       <div className="relative w-full max-w-md">
         {/* Back + Logo */}
-        <div className="text-center mb-8">
-          <button onClick={() => setRole(null)} className="text-sm mb-6 flex items-center gap-1 mx-auto transition-colors" style={{ color: "var(--text-secondary)" }}>
+        <div className="text-center mb-6 sm:mb-8">
+          <button onClick={() => setRole(null)} className="text-sm mb-5 sm:mb-6 flex items-center gap-1 mx-auto transition-colors" style={{ color: "var(--text-secondary)" }}>
             ← Back
           </button>
-          <div className="w-16 h-16 gradient-brand rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow-brand">
+          <div className="w-14 sm:w-16 h-14 sm:h-16 gradient-brand rounded-2xl flex items-center justify-center text-2xl sm:text-3xl mx-auto mb-3 sm:mb-4 shadow-brand">
             {role === "owner" ? "👨‍🍳" : role === "rider" ? "🛵" : "🍱"}
           </div>
-          <h1 className="font-bold text-2xl" style={{ fontFamily: "'Outfit', sans-serif", color: "var(--text-primary)" }}>
+          <h1 className="font-bold text-xl sm:text-2xl" style={{ fontFamily: "'Outfit', sans-serif", color: "var(--text-primary)" }}>
             {role === "owner" ? "Restaurant Owner Login" : role === "rider" ? "Delivery Partner Login" : "Welcome Back!"}
           </h1>
           <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
@@ -171,7 +171,7 @@ export default function AuthPage() {
           </p>
         </div>
 
-        <div className="rounded-3xl p-7" style={{ background: "var(--bg-glass)", border: "1px solid var(--border)", backdropFilter: "blur(12px)" }}>
+        <div className="rounded-3xl p-5 sm:p-7" style={{ background: "var(--bg-glass)", border: "1px solid var(--border)", backdropFilter: "blur(12px)" }}>
           {/* Mode Tabs — customers get signup/login; owners & riders get login only */}
           {role === "customer" && (
             <div className="flex gap-1 p-1 rounded-xl mb-6" style={{ background: "var(--bg-glass)" }}>

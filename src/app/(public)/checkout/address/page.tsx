@@ -508,28 +508,28 @@ export default function CheckoutAddressPage() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 pb-10">
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => router.push("/cart")}
-          className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
+          className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-colors shrink-0">
           <ChevronLeft size={20} />
         </button>
-        <div>
-          <h1 className="font-bold text-2xl text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>
+        <div className="min-w-0">
+          <h1 className="font-bold text-xl sm:text-2xl text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>
             Delivery Address
           </h1>
           <p className="text-gray-500 text-sm">Step 2 of 3 — Where should we deliver?</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 mb-7">
+      <div className="flex items-center gap-1.5 mb-7 overflow-x-auto no-scrollbar pb-1">
         {["Menu", "Cart", "Address", "Payment"].map((step, i) => (
-          <div key={step} className="flex items-center gap-2">
-            <div className={cn("flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full",
+          <div key={step} className="flex items-center gap-1.5 shrink-0">
+            <div className={cn("flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap",
               i < 2  ? "bg-green-500/15 text-green-400" :
               i === 2 ? "bg-orange-500 text-white" :
                         "bg-white/5 text-gray-600")}>
               {i < 2 && <Check size={10} />}
               {step}
             </div>
-            {i < 3 && <div className="w-5 h-px bg-white/10" />}
+            {i < 3 && <div className="w-4 h-px bg-white/10 shrink-0" />}
           </div>
         ))}
       </div>
