@@ -133,39 +133,52 @@ export default function AuthPage() {
     }
   }
 
-  // ── Step 1: Role Selection ──────────────────────────────────────────
   if (!role) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-3 sm:px-4 py-10 sm:py-12" style={{ background: "var(--bg-primary)" }}>
+      <div className="min-h-screen flex items-center justify-center px-4 py-10 sm:py-14"
+        style={{ background: "var(--bg-primary)" }}>
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/8 rounded-full blur-[120px]" />
           <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-red-500/6 rounded-full blur-[100px]" />
         </div>
 
-        <div className="relative w-full max-w-md text-center">
+        {/* Container: narrower on mobile, wider on sm+ so 3 cols have breathing room */}
+        <div className="relative w-full max-w-sm sm:max-w-xl text-center">
+
           {/* Logo */}
           <div className="w-16 sm:w-20 h-16 sm:h-20 gradient-brand rounded-3xl flex items-center justify-center text-3xl sm:text-4xl mx-auto mb-5 sm:mb-6 shadow-brand">
             🍱
           </div>
-          <h1 className="font-bold text-2xl sm:text-3xl mb-2" style={{ fontFamily: "'Outfit', sans-serif", color: "var(--text-primary)" }}>
+          <h1 className="font-bold text-2xl sm:text-3xl mb-2"
+            style={{ fontFamily: "'Outfit', sans-serif", color: "var(--text-primary)" }}>
             Chaurasia Ji
           </h1>
-          <p className="mb-10" style={{ color: "var(--text-secondary)" }}>Authentic Indian Cuisine — Who are you?</p>
+          <p className="mb-8 sm:mb-10" style={{ color: "var(--text-secondary)" }}>
+            Authentic Indian Cuisine — Who are you?
+          </p>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* ── Three equal role cards ─────────────────────────────────────
+               Mobile  : 1 column — each card is full-width, stacked
+               sm (640px+): 3 equal columns side by side
+               All cards share identical padding, icon size, text, hover/active
+          ─────────────────────────────────────────────────────────────── */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
             {/* Customer Card */}
             <button
               onClick={() => setRole("customer")}
               className="group relative overflow-hidden rounded-2xl p-6 text-left transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
               style={{ background: "var(--bg-glass)", border: "1px solid var(--border)" }}
             >
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: "rgba(249,115,22,0.04)" }} />
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ background: "rgba(249,115,22,0.04)" }} />
               <div className="w-12 h-12 bg-orange-500/15 rounded-2xl flex items-center justify-center mb-4">
                 <ShoppingBag size={24} className="text-orange-500" />
               </div>
-              <p className="font-bold text-lg mb-1" style={{ color: "var(--text-primary)" }}>I'm a Customer</p>
+              <p className="font-bold text-base mb-1" style={{ color: "var(--text-primary)" }}>I'm a Customer</p>
               <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Order food online</p>
-              <div className="absolute bottom-4 right-4 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all" style={{ background: "#f97316" }}>
+              <div className="absolute bottom-4 right-4 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                style={{ background: "#f97316" }}>
                 <ArrowRight size={12} className="text-white" />
               </div>
             </button>
@@ -176,34 +189,39 @@ export default function AuthPage() {
               className="group relative overflow-hidden rounded-2xl p-6 text-left transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
               style={{ background: "var(--bg-glass)", border: "1px solid var(--border)" }}
             >
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: "rgba(249,115,22,0.04)" }} />
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ background: "rgba(249,115,22,0.04)" }} />
               <div className="w-12 h-12 bg-orange-500/15 rounded-2xl flex items-center justify-center mb-4">
                 <ChefHat size={24} className="text-orange-500" />
               </div>
-              <p className="font-bold text-lg mb-1" style={{ color: "var(--text-primary)" }}>Restaurant Owner</p>
+              <p className="font-bold text-base mb-1" style={{ color: "var(--text-primary)" }}>Restaurant Owner</p>
               <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Manage your restaurant</p>
-              <div className="absolute bottom-4 right-4 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all" style={{ background: "#f97316" }}>
+              <div className="absolute bottom-4 right-4 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                style={{ background: "#f97316" }}>
                 <ArrowRight size={12} className="text-white" />
               </div>
             </button>
-          </div>
 
-          {/* Rider Card — full width below */}
-          <button
-            onClick={() => setRole("rider")}
-            className="group relative overflow-hidden rounded-2xl p-5 text-left transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] flex items-center gap-4 mt-1"
-            style={{ background: "var(--bg-glass)", border: "1px solid var(--border)" }}
-          >
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: "rgba(249,115,22,0.04)" }} />
-            <div className="w-12 h-12 bg-blue-500/15 rounded-2xl flex items-center justify-center flex-shrink-0 text-2xl">🛵</div>
-            <div>
-              <p className="font-bold text-lg mb-0.5" style={{ color: "var(--text-primary)" }}>Delivery Partner</p>
+            {/* Rider Card — now identical structure to the two above */}
+            <button
+              onClick={() => setRole("rider")}
+              className="group relative overflow-hidden rounded-2xl p-6 text-left transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+              style={{ background: "var(--bg-glass)", border: "1px solid var(--border)" }}
+            >
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ background: "rgba(249,115,22,0.04)" }} />
+              <div className="w-12 h-12 bg-blue-500/15 rounded-2xl flex items-center justify-center mb-4 text-2xl leading-none">
+                🛵
+              </div>
+              <p className="font-bold text-base mb-1" style={{ color: "var(--text-primary)" }}>Delivery Partner</p>
               <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Pick up &amp; deliver orders</p>
-            </div>
-            <div className="ml-auto w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all" style={{ background: "#f97316" }}>
-              <ArrowRight size={12} className="text-white" />
-            </div>
-          </button>
+              <div className="absolute bottom-4 right-4 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                style={{ background: "#f97316" }}>
+                <ArrowRight size={12} className="text-white" />
+              </div>
+            </button>
+
+          </div>
         </div>
       </div>
     );

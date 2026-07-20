@@ -82,7 +82,7 @@ export default function HeroStatusWidget({ initialSettings }: Props) {
         </span>
       </div>
 
-      {/* ── CTA Button — green when open, red when closed ─────────────── */}
+      {/* ── CTA Button — changes label based on open/closed state ────── */}
       <div className="flex flex-col sm:flex-row gap-4">
         <Link
           href="/menu"
@@ -100,15 +100,8 @@ export default function HeroStatusWidget({ initialSettings }: Props) {
             <>View Menu <ArrowRight size={18} /></>
           )}
         </Link>
-        {!isOpen && (
-          <div
-            className="inline-flex items-center justify-center gap-2 text-sm py-3.5 px-6 rounded-xl font-medium"
-            style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171" }}
-          >
-            🔴 Restaurant is currently closed
-          </div>
-        )}
       </div>
+
     </>
   );
 }
