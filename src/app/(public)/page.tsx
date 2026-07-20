@@ -211,10 +211,10 @@ export default async function HomePage() {
               <ul className="space-y-4">
                 {[
                   { emoji: "🌿", title: "Farm-Fresh Ingredients",   desc: "Sourced fresh every morning from local farms and markets." },
-                  { emoji: "👨‍🍳", title: "Master Chefs",              desc: "2```Z+ years of expertise in authentic North Indian cooking." },
-                  { emoji: "🏺", title: "Traditional Recipes",      desc: "Original recipes unchanged since our founding in 2010." },
+                  { emoji: "👨‍🍳", title: "Master Chefs",              desc: "2+ years of expertise in authentic North Indian cooking." },
+                  { emoji: "🏺", title: "Traditional Recipes",      desc: "Original recipes unchanged since our founding in 2025." },
                   { emoji: "✨", title: "Hygienic Kitchen",          desc: "FSSAI certified. Clean, safe, and transparent food preparation." },
-                  { emoji: "🥔", title: "Famous Shahi Paneer ",      desc: "Our signature Shahi Paneer is freshly prepared every day with authentic flavors and quality ingredients, making it a favorite among students and families." },
+                  { emoji: "🥘", title: "Famous Shahi Paneer ",      desc: "Our signature Shahi Paneer is freshly prepared every day with authentic flavors and quality ingredients, making it a favorite among students and families." },
                 ].map(({ emoji, title, desc }) => (
                   <li key={title} className="flex items-start gap-4">
                     <span className="text-2xl shrink-0 mt-0.5">{emoji}</span>
