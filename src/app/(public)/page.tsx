@@ -6,9 +6,9 @@ import HeroStatusWidget from "@/components/restaurant/HeroStatusWidget";
 import type { RestaurantTimingSettings } from "@/hooks/useRestaurantStatus";
 
 export const metadata: Metadata = {
-  title: "Chaurasia's Restaurant — Authentic Indian Cuisine, Prayagraj",
+  title: "Royal Zaika – The Taste of Kings, Prayagraj",
   description:
-    "Fresh Pizza, Burger, Aloo Paratha & Delicious Fast Food. Tasty food, quality ingredients, and quick service at affordable prices.",
+    "Fresh Pizza, Burger, Shahi Paneer & Delicious Fast Food. Tasty food, quality ingredients, and quick service at affordable prices.",
 };
 
 async function getTopRatedItems() {
@@ -32,8 +32,8 @@ async function getTopRatedItems() {
 
 async function getRestaurantSettings(): Promise<RestaurantTimingSettings> {
   const defaults: RestaurantTimingSettings = {
-    opening_time: "09:00",
-    closing_time: "23:00",
+    opening_time: "11:00",
+    closing_time: "24:00",
     status_mode: "auto",
     is_open: true,
     updated_at: new Date().toISOString(),
@@ -56,7 +56,7 @@ async function getRestaurantSettings(): Promise<RestaurantTimingSettings> {
 const STATS = [
   { icon: Star,  value: "4.3★",   label: "Customer Rating"     },
   { icon: Users, value: "5,000+", label: "Happy Customers"     },
-  { icon: Award, value: "43+",    label: "Years of Excellence" },
+  { icon: Award, value: "1+",    label: "Years of Excellence" },
   { icon: Leaf,  value: "100%",   label: "Fresh Ingredients"   },
 ];
 
@@ -202,7 +202,7 @@ export default async function HomePage() {
             <div>
               <p className="text-sm font-semibold tracking-widest uppercase mb-3" style={{ color: "#FBBF24" }}>Our Promise</p>
               <h2 className="font-black text-3xl sm:text-4xl mb-6 leading-tight" style={{ fontFamily: "'Outfit', sans-serif", color: "#FFF8F0" }}>
-                Why Families Choose<br />Chaurasia Ji
+                Why Families Choose<br />Royal Zaika
               </h2>
               <p className="leading-relaxed mb-8" style={{ color: "#9ca3af" }}>
                 For over a decade, we've remained committed to one simple belief: great food
@@ -211,10 +211,10 @@ export default async function HomePage() {
               <ul className="space-y-4">
                 {[
                   { emoji: "🌿", title: "Farm-Fresh Ingredients",   desc: "Sourced fresh every morning from local farms and markets." },
-                  { emoji: "👨‍🍳", title: "Master Chefs",              desc: "20+ years of expertise in authentic North Indian cooking." },
+                  { emoji: "👨‍🍳", title: "Master Chefs",              desc: "2```Z+ years of expertise in authentic North Indian cooking." },
                   { emoji: "🏺", title: "Traditional Recipes",      desc: "Original recipes unchanged since our founding in 2010." },
                   { emoji: "✨", title: "Hygienic Kitchen",          desc: "FSSAI certified. Clean, safe, and transparent food preparation." },
-                  { emoji: "🥔", title: "Famous Aloo Paratha",      desc: "Our signature Aloo Paratha is freshly prepared every day with authentic flavors and quality ingredients, making it a favorite among students and families." },
+                  { emoji: "🥔", title: "Famous Shahi Paneer ",      desc: "Our signature Shahi Paneer is freshly prepared every day with authentic flavors and quality ingredients, making it a favorite among students and families." },
                 ].map(({ emoji, title, desc }) => (
                   <li key={title} className="flex items-start gap-4">
                     <span className="text-2xl shrink-0 mt-0.5">{emoji}</span>
@@ -283,21 +283,21 @@ export default async function HomePage() {
           </h2>
           <p className="max-w-lg mx-auto mb-8" style={{ color: "#d1bfa8" }}>
             Come and experience the warmth of our kitchen. Whether it is a family gathering,
-            a date, or a solo meal — Chaurasia Ji welcomes you with open arms.
+            a date, or a solo meal — Royal Zaika welcomes you with open arms.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="https://maps.google.com/?q=Mahewa,Prayagraj" target="_blank" rel="noreferrer"
+            <a href="https://maps.google.com/?q=Naini Station,Prayagraj" target="_blank" rel="noreferrer"
               className="btn-primary inline-flex items-center justify-center gap-2 text-base py-3.5 px-8">
               <MapPin size={18} /> Get Directions
             </a>
-            <a href="tel:+917268076747"
+            <a href="tel:+917379294659"
               className="inline-flex items-center justify-center gap-2 text-base py-3.5 px-8 rounded-xl font-semibold transition-all hover:bg-white/10"
               style={{ border: "1px solid rgba(255,255,255,0.2)", color: "#FFF8F0", background: "rgba(255,255,255,0.06)" }}>
-              <Phone size={18} /> +91 72680 76747
+              <Phone size={18} /> +91 73792 94659
             </a>
           </div>
           <p className="text-sm mt-8" style={{ color: "#6B7280" }}>
-            📍 123 Food Street, Mahewa, Prayagraj, Uttar Pradesh 221007
+            📍 Chak Raghunath, Naini Station, Prayagraj, Uttar Pradesh 221008
           </p>
         </div>
       </section>
