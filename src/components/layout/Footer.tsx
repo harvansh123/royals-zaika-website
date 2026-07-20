@@ -16,21 +16,21 @@ export function Footer() {
               </div>
               <div className="leading-none">
                 <p className="font-bold text-white text-lg" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                  Chaurasia Ji
+                  Royal Zaika
                 </p>
                 <p className="text-xs text-orange-400 mt-0.5">Authentic Indian Cuisine</p>
               </div>
             </div>
             <p className="text-gray-500 text-sm leading-relaxed">
-              Serving authentic North Indian flavours since 2010. Every dish crafted
-              with love and traditional spices from the heart of Varanasi.
+              Serving authentic North Indian flavours since 2025. Every dish crafted
+              with love and traditional spices from the heart of Prayagraj.
             </p>
             {/* Social Links */}
             <div className="flex gap-3 pt-1">
               {[
                 { icon: Instagram,      href: "#",                          label: "Instagram" },
                 { icon: Facebook,       href: "#",                          label: "Facebook"  },
-                { icon: MessageCircle,  href: "https://wa.me/919876543210", label: "WhatsApp"  },
+                { icon: MessageCircle,  href: "https://wa.me/917379294659", label: "WhatsApp"  },
               ].map(({ icon: Icon, href, label }) => (
                 <a key={label} href={href} target="_blank" rel="noreferrer" aria-label={label}
                   className="w-9 h-9 glass rounded-lg flex items-center justify-center text-gray-400 hover:text-orange-400 hover:border-orange-500/30 transition-all">
@@ -66,17 +66,17 @@ export function Footer() {
             <ul className="space-y-4">
               <li className="flex items-start gap-3 text-sm text-gray-500">
                 <MapPin size={15} className="text-orange-400 mt-0.5 shrink-0" />
-                <span>123 Food Street, Lanka,<br />Varanasi, UP 221001</span>
+                <span>474 Chak Raghunath,<br />Naini Station, Prayagraj</span>
               </li>
               <li className="flex items-center gap-3 text-sm text-gray-500">
                 <Phone size={15} className="text-orange-400 shrink-0" />
-                <a href="tel:+919876543210" className="hover:text-orange-400 transition-colors">
-                  +91 98765 43210
+                <a href="tel:+917379294659" className="hover:text-orange-400 transition-colors">
+                  +91 73792 94659
                 </a>
               </li>
               <li className="flex items-center gap-3 text-sm text-gray-500">
                 <Clock size={15} className="text-orange-400 shrink-0" />
-                <span>Daily: 10:00 AM – 10:30 PM</span>
+                <span>Daily: 11:00 AM – 12:00 AM</span>
               </li>
             </ul>
           </div>
@@ -85,7 +85,7 @@ export function Footer() {
         {/* ── Bottom bar ── */}
         <div className="mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600"
           style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-          <p>© {new Date().getFullYear()} Chaurasia Ji. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Royal Zaika. All rights reserved.</p>
           <div className="flex gap-5">
             <Link href="/privacy" className="hover:text-gray-400 transition-colors">Privacy Policy</Link>
             <Link href="/terms"   className="hover:text-gray-400 transition-colors">Terms of Service</Link>
