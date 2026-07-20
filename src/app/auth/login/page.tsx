@@ -2,9 +2,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
-import { Mail, Eye, EyeOff, ArrowRight, ChefHat, ShoppingBag } from "lucide-react";
+import { Mail, Phone, Eye, EyeOff, ArrowRight, ChefHat, ShoppingBag } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
+import { validateIndianPhone, normalizePhone } from "@/lib/utils";
 
 type Role = "customer" | "owner" | "rider";
 type Mode = "login" | "signup";
@@ -15,7 +16,10 @@ export default function AuthPage() {
   const [mode, setMode]         = useState<Mode>("login");
   const [loading, setLoading]   = useState(false);
   const [showPass, setShowPass] = useState(false);
-  const [form, setForm]         = useState({ name: "", email: "", password: "" });
+  const [showConfPass, setShowConfPass] = useState(false);
+  const [form, setForm] = useState({
+    name: "", identifier: "", phone: "", password: "", confirmPassword: "",
+  });
 
   function update(key: string, val: string) {
     setForm((prev) => ({ ...prev, [key]: val }));
@@ -36,20 +40,78 @@ export default function AuthPage() {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email: form.email,
+        // ── Signup validation ──────────────────────────────────────────
+        if (!form.name.trim()) throw new Error("Full name is required");
+        if (!form.identifier.trim()) throw new Error("Email address is required");
+        if (!form.phone.trim()) throw new Error("Mobile number is required");
+        if (!validateIndianPhone(form.phone)) {
+          throw new Error("Enter a valid 10-digit Indian mobile number (starting with 6–9)");
+        }
+        if (form.password.length < 6) throw new Error("Password must be at least 6 characters");
+        if (form.password !== form.confirmPassword) throw new Error("Passwords do not match");
+
+        const cleanPhone = normalizePhone(form.phone);
+
+        const { data, error } = await supabase.auth.signUp({
+          email: form.identifier.trim(),
           password: form.password,
-          options: { data: { full_name: form.name, role: role === "owner" ? "restaurant_owner" : role === "rider" ? "delivery" : "customer" } },
+          options: {
+            data: {
+              full_name: form.name.trim(),
+              phone:     cleanPhone,
+              role: role === "owner" ? "restaurant_owner" : role === "rider" ? "delivery" : "customer",
+            },
+          },
         });
         if (error) throw error;
+
+        // Store phone via service-role API (bypasses RLS; also enforces uniqueness)
+        if (data.user?.id) {
+          const res = await fetch("/api/auth/store-phone", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: data.user.id, phone: cleanPhone }),
+          });
+          const json = await res.json();
+          if (!res.ok) {
+            // Phone taken — delete the auth user? No, Supabase doesn't let us easily.
+            // Instead, surface the error so the user knows their account was created
+            // but phone isn't saved yet. They can update it from Profile.
+            toast.error(json.error ?? "Account created but mobile number could not be saved. Update it from Profile.");
+            setMode("login");
+            setLoading(false);
+            return;
+          }
+        }
+
         toast.success("Account created! Check your email to confirm.");
         setMode("login");
+
       } else {
+        // ── Login ─────────────────────────────────────────────────────
+        const id = form.identifier.trim();
+        let emailToUse = id;
+
+        if (!id.includes("@")) {
+          // Treat as mobile number → look up email
+          if (!validateIndianPhone(id)) {
+            throw new Error("Enter a valid email address or 10-digit mobile number");
+          }
+          const res = await fetch("/api/auth/phone-lookup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: id }),
+          });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error ?? "No account found with this mobile number");
+          emailToUse = json.email;
+        }
+
         const { error } = await supabase.auth.signInWithPassword({
-          email: form.email, password: form.password,
+          email: emailToUse, password: form.password,
         });
         if (error) throw error;
-        // Fetch role via server-side API (bypasses RLS infinite recursion)
+
         toast.success("Welcome back! 👋");
         try {
           const res = await fetch("/api/auth/role", { credentials: "include" });
@@ -136,7 +198,7 @@ export default function AuthPage() {
             <div className="w-12 h-12 bg-blue-500/15 rounded-2xl flex items-center justify-center flex-shrink-0 text-2xl">🛵</div>
             <div>
               <p className="font-bold text-lg mb-0.5" style={{ color: "var(--text-primary)" }}>Delivery Partner</p>
-              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Pick up & deliver orders</p>
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Pick up &amp; deliver orders</p>
             </div>
             <div className="ml-auto w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all" style={{ background: "#f97316" }}>
               <ArrowRight size={12} className="text-white" />
@@ -216,25 +278,95 @@ export default function AuthPage() {
             </>
           )}
 
-          {/* Email / Password Form */}
+          {/* Form */}
           <form onSubmit={handleEmailSubmit} className="space-y-4">
+            {/* Name — signup only */}
             {mode === "signup" && (
-              <input type="text" value={form.name} onChange={(e) => update("name", e.target.value)}
-                placeholder="Full Name" required className="input-field" />
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => update("name", e.target.value)}
+                placeholder="Full Name"
+                required
+                className="input-field"
+              />
             )}
+
+            {/* Email / Identifier */}
             <div className="relative">
-              <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
-              <input type="email" value={form.email} onChange={(e) => update("email", e.target.value)}
-                placeholder="Email Address" required className="input-field pl-11" />
+              {mode === "login" && !form.identifier.includes("@") && form.identifier.length > 0
+                ? <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
+                : <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
+              }
+              <input
+                type={mode === "signup" ? "email" : "text"}
+                value={form.identifier}
+                onChange={(e) => update("identifier", e.target.value)}
+                placeholder={mode === "signup" ? "Email Address" : "Email Address or Mobile Number"}
+                required
+                autoComplete={mode === "signup" ? "email" : "username"}
+                className="input-field pl-11"
+              />
             </div>
+
+            {/* Phone — signup only */}
+            {mode === "signup" && (
+              <div className="relative">
+                <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => update("phone", e.target.value)}
+                  placeholder="Mobile Number (e.g. 9876543210)"
+                  required
+                  maxLength={13}
+                  className="input-field pl-11"
+                />
+                {form.phone && !validateIndianPhone(form.phone) && (
+                  <p className="text-xs text-red-400 mt-1 ml-1">Enter a valid 10-digit Indian mobile number</p>
+                )}
+              </div>
+            )}
+
+            {/* Password */}
             <div className="relative">
-              <input type={showPass ? "text" : "password"} value={form.password} onChange={(e) => update("password", e.target.value)}
-                placeholder="Password" required minLength={6} className="input-field pr-11" />
+              <input
+                type={showPass ? "text" : "password"}
+                value={form.password}
+                onChange={(e) => update("password", e.target.value)}
+                placeholder="Password"
+                required
+                minLength={6}
+                className="input-field pr-11"
+              />
               <button type="button" onClick={() => setShowPass(!showPass)}
                 className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }}>
                 {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+
+            {/* Confirm Password — signup only */}
+            {mode === "signup" && (
+              <div className="relative">
+                <input
+                  type={showConfPass ? "text" : "password"}
+                  value={form.confirmPassword}
+                  onChange={(e) => update("confirmPassword", e.target.value)}
+                  placeholder="Confirm Password"
+                  required
+                  minLength={6}
+                  className="input-field pr-11"
+                />
+                <button type="button" onClick={() => setShowConfPass(!showConfPass)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }}>
+                  {showConfPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+                {form.confirmPassword && form.password !== form.confirmPassword && (
+                  <p className="text-xs text-red-400 mt-1 ml-1">Passwords do not match</p>
+                )}
+              </div>
+            )}
+
             <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2">
               {loading ? "Please wait..." : mode === "login" ? "Sign In" : "Create Account"}
               {!loading && <ArrowRight size={16} />}

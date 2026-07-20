@@ -91,3 +91,96 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({ error: err.message ?? "Internal error" }, { status: 500 });
   }
 }
+
+/**
+ * PATCH /api/rider/orders
+ * Body: { trackingId: string, orderId: string, trackingStatus: string, orderStatus: string }
+ *
+ * Updates delivery_tracking.status AND orders.status using service-role client.
+ * Direct anon-key updates fail silently (RLS blocks delivery_tracking writes)
+ * which caused a false "Failed to update status" toast even when the DB row
+ * was actually updated. Using service-role here eliminates that RLS issue.
+ */
+export async function PATCH(req: NextRequest) {
+  try {
+    // 1. Verify caller is authenticated
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return cookieStore.getAll(); },
+          setAll() {},
+        },
+      }
+    );
+
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+    if (authErr || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 2. Verify delivery role
+    const { data: profile } = await adminClient
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile || profile.role !== "delivery") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // 3. Parse body
+    const { trackingId, orderId, trackingStatus, orderStatus } = await req.json();
+    if (!trackingId || !orderId || !trackingStatus || !orderStatus) {
+      return NextResponse.json({ error: "trackingId, orderId, trackingStatus, orderStatus required" }, { status: 400 });
+    }
+
+    console.log("[/api/rider/orders PATCH] Updating:", { trackingId, orderId, trackingStatus, orderStatus, riderId: user.id });
+
+    // 4. Verify this tracking row belongs to the authenticated rider (security check)
+    const { data: tracking } = await adminClient
+      .from("delivery_tracking")
+      .select("id, partner_id")
+      .eq("id", trackingId)
+      .maybeSingle();
+
+    if (!tracking) {
+      return NextResponse.json({ error: "Tracking record not found" }, { status: 404 });
+    }
+    if (tracking.partner_id !== user.id) {
+      return NextResponse.json({ error: "Forbidden — this order is not assigned to you" }, { status: 403 });
+    }
+
+    // 5. Update delivery_tracking using service-role (bypasses RLS)
+    const { error: trackErr } = await adminClient
+      .from("delivery_tracking")
+      .update({ status: trackingStatus, updated_at: new Date().toISOString() })
+      .eq("id", trackingId);
+
+    if (trackErr) {
+      console.error("[/api/rider/orders PATCH] delivery_tracking update error:", trackErr.message);
+      return NextResponse.json({ error: "Failed to update delivery tracking: " + trackErr.message }, { status: 500 });
+    }
+
+    // 6. Update orders using service-role
+    const { error: orderErr } = await adminClient
+      .from("orders")
+      .update({ status: orderStatus })
+      .eq("id", orderId);
+
+    if (orderErr) {
+      console.error("[/api/rider/orders PATCH] orders update error:", orderErr.message);
+      return NextResponse.json({ error: "Failed to update order status: " + orderErr.message }, { status: 500 });
+    }
+
+    console.log("[/api/rider/orders PATCH] Success:", { trackingStatus, orderStatus });
+    return NextResponse.json({ success: true, trackingStatus, orderStatus });
+  } catch (err: any) {
+    console.error("[/api/rider/orders PATCH] Unexpected error:", err.message);
+    return NextResponse.json({ error: err.message ?? "Internal error" }, { status: 500 });
+  }
+}
+

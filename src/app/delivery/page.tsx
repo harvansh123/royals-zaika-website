@@ -225,29 +225,50 @@ export default function DeliveryDashboard() {
   }
 
   async function updateDeliveryStatus(trackingId: string, orderId: string, newStatus: string, orderStatus: string) {
-    const [trackRes, orderRes] = await Promise.all([
-      supabase.from("delivery_tracking").update({ status: newStatus }).eq("id", trackingId),
-      supabase.from("orders").update({ status: orderStatus }).eq("id", orderId),
-    ]);
-    if (trackRes.error || orderRes.error) {
-      toast.error("Failed to update status. Please try again.");
-      return;
-    }
+    console.log("[updateDeliveryStatus] Request:", { trackingId, orderId, newStatus, orderStatus });
 
-    // ── Stop alarm when rider picks up or delivers the order ──────────
-    if (newStatus === "picked_up" || newStatus === "delivered") {
-      dismissRiderAlarm();
-    }
+    try {
+      const res = await fetch("/api/rider/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          trackingId,
+          orderId,
+          trackingStatus: newStatus,
+          orderStatus,
+        }),
+      });
 
-    if (newStatus === "delivered") {
-      setOrders((prev) => prev.filter((t) => t.id !== trackingId));
-      setTodayCount((n) => n + 1);
-      toast.success("Delivery completed! 🎉", { duration: 4000 });
-      // Refresh km stats after delivery to reflect new distance
-      setTimeout(refreshKm, 2000);
-    } else {
-      setOrders((prev) => prev.map((t) => t.id === trackingId ? { ...t, status: newStatus } : t));
-      toast.success(newStatus === "picked_up" ? "Order picked up! 📦" : "Status updated");
+      const json = await res.json();
+      console.log("[updateDeliveryStatus] Response:", { ok: res.ok, status: res.status, json });
+
+      if (!res.ok) {
+        // Genuine failure — API returned an error
+        console.error("[updateDeliveryStatus] Update failed:", json.error);
+        toast.error("Failed to update status. Please try again.");
+        return;
+      }
+
+      console.log("[updateDeliveryStatus] Success:", json);
+
+      // ── Stop alarm when rider picks up or delivers ──────────────────
+      if (newStatus === "picked_up" || newStatus === "delivered") {
+        dismissRiderAlarm();
+      }
+
+      if (newStatus === "delivered") {
+        setOrders((prev) => prev.filter((t) => t.id !== trackingId));
+        setTodayCount((n) => n + 1);
+        toast.success("Delivery completed! 🎉", { duration: 4000 });
+        setTimeout(refreshKm, 2000);
+      } else {
+        setOrders((prev) => prev.map((t) => t.id === trackingId ? { ...t, status: newStatus } : t));
+        toast.success(newStatus === "picked_up" ? "Order picked up! 📦" : "Status updated ✅");
+      }
+    } catch (err: any) {
+      console.error("[updateDeliveryStatus] Network error:", err);
+      toast.error("Network error. Please try again.");
     }
   }
 

@@ -95,8 +95,36 @@ export async function PATCH(req: NextRequest) {
     // Update users table fields
     const userUpdate: Record<string, any> = {};
     if (typeof body.name       === "string") userUpdate.name       = body.name.trim() || null;
-    if (typeof body.phone      === "string") userUpdate.phone      = body.phone.trim() || null;
     if (typeof body.avatar_url === "string") userUpdate.avatar_url = body.avatar_url || null;
+
+    // Phone: validate + uniqueness check
+    if (typeof body.phone === "string") {
+      const raw = body.phone.trim();
+      if (raw === "") {
+        userUpdate.phone = null;
+      } else {
+        let digits = raw.replace(/[\s\-().]/g, "");
+        if (digits.startsWith("+91"))    digits = digits.slice(3);
+        else if (digits.startsWith("0091")) digits = digits.slice(4);
+        else if (digits.startsWith("0"))    digits = digits.slice(1);
+
+        if (!/^[6-9]\d{9}$/.test(digits)) {
+          return NextResponse.json(
+            { error: "Invalid mobile number. Enter a valid 10-digit Indian mobile number." },
+            { status: 400 }
+          );
+        }
+        const { data: dup } = await adminClient
+          .from("users").select("id").eq("phone", digits).neq("id", user.id).maybeSingle();
+        if (dup) {
+          return NextResponse.json(
+            { error: "This mobile number is already registered with another account." },
+            { status: 409 }
+          );
+        }
+        userUpdate.phone = digits;
+      }
+    }
 
     if (Object.keys(userUpdate).length > 0) {
       const { error: userErr } = await adminClient
@@ -112,7 +140,7 @@ export async function PATCH(req: NextRequest) {
     // Update delivery_partners table fields
     const partnerUpdate: Record<string, any> = {};
     if (typeof body.name           === "string") partnerUpdate.name           = body.name.trim() || null;
-    if (typeof body.phone          === "string") partnerUpdate.phone          = body.phone.trim() || null;
+    if (typeof body.phone          === "string" && userUpdate.phone !== undefined) partnerUpdate.phone = userUpdate.phone;
     if (typeof body.vehicle_type   === "string") partnerUpdate.vehicle_type   = body.vehicle_type.trim() || null;
     if (typeof body.vehicle_number === "string") partnerUpdate.vehicle_number = body.vehicle_number.trim().toUpperCase() || null;
 

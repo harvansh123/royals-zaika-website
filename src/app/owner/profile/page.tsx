@@ -83,17 +83,41 @@ export default function OwnerProfilePage() {
     if (!user) return;
     if (!name.trim()) { toast.error("Name is required"); return; }
 
-    setSavingProfile(true);
-    const { error } = await supabase.from("users")
-      .update({ name: name.trim(), phone: phone.trim() || null, avatar_url: avatarUrl.trim() || null })
-      .eq("id", user.id);
+    // Phone validation (if provided)
+    if (phone.trim()) {
+      let digits = phone.trim().replace(/[\s\-().]/g, "");
+      if (digits.startsWith("+91"))    digits = digits.slice(3);
+      else if (digits.startsWith("0091")) digits = digits.slice(4);
+      else if (digits.startsWith("0"))    digits = digits.slice(1);
+      if (!/^[6-9]\d{9}$/.test(digits)) {
+        toast.error("Enter a valid 10-digit Indian mobile number (starting with 6–9)");
+        return;
+      }
+    }
 
-    if (error) {
-      toast.error("Failed to save: " + error.message);
-    } else {
-      setProfileSaved(true);
-      setTimeout(() => setProfileSaved(false), 3000);
-      toast.success("Profile saved! ✅");
+    setSavingProfile(true);
+    // Use service-role API to avoid RLS recursion and get uniqueness check
+    try {
+      const res = await fetch("/api/customer/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: name.trim(),
+          phone: phone.trim() || "",
+          avatar_url: avatarUrl.trim() || "",
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error ?? "Failed to save profile");
+      } else {
+        setProfileSaved(true);
+        setTimeout(() => setProfileSaved(false), 3000);
+        toast.success("Profile saved! ✅");
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
     }
     setSavingProfile(false);
   }

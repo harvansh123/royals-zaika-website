@@ -42,12 +42,50 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const updateData: Record<string, any> = {};
     if (typeof body.name       === "string") updateData.name       = body.name.trim();
-    if (typeof body.phone      === "string") updateData.phone      = body.phone.trim() || null;
     if (typeof body.avatar_url === "string") updateData.avatar_url = body.avatar_url || null;
+
+    // Phone: validate Indian format + uniqueness
+    if (typeof body.phone === "string") {
+      const raw = body.phone.trim();
+      if (raw === "") {
+        updateData.phone = null; // allow clearing
+      } else {
+        // Normalise
+        let digits = raw.replace(/[\s\-().]/g, "");
+        if (digits.startsWith("+91"))    digits = digits.slice(3);
+        else if (digits.startsWith("0091")) digits = digits.slice(4);
+        else if (digits.startsWith("0"))    digits = digits.slice(1);
+
+        if (!/^[6-9]\d{9}$/.test(digits)) {
+          return NextResponse.json(
+            { error: "Invalid mobile number. Enter a valid 10-digit Indian mobile number." },
+            { status: 400 }
+          );
+        }
+
+        // Uniqueness — make sure no OTHER user has this phone
+        const { data: dup } = await adminClient
+          .from("users")
+          .select("id")
+          .eq("phone", digits)
+          .neq("id", user.id)
+          .maybeSingle();
+
+        if (dup) {
+          return NextResponse.json(
+            { error: "This mobile number is already registered with another account." },
+            { status: 409 }
+          );
+        }
+
+        updateData.phone = digits;
+      }
+    }
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
     }
+
 
     // 3. Update via service role — bypasses the RLS infinite recursion on users table
     const { data, error } = await adminClient

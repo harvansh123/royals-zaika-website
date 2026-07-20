@@ -2,15 +2,19 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
-import { Mail, Eye, EyeOff, ArrowRight, User } from "lucide-react";
+import { Mail, Phone, Eye, EyeOff, ArrowRight, User } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import { validateIndianPhone, normalizePhone } from "@/lib/utils";
 
 export default function SignUpPage() {
   const router  = useRouter();
-  const [form, setForm]       = useState({ name: "", email: "", password: "" });
-  const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading]   = useState(false);
+  const [form, setForm] = useState({
+    name: "", email: "", phone: "", password: "", confirmPassword: "",
+  });
+  const [showPass, setShowPass]       = useState(false);
+  const [showConfPass, setShowConfPass] = useState(false);
+  const [loading, setLoading]         = useState(false);
 
   const update = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -25,13 +29,44 @@ export default function SignUpPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!form.name.trim())  { toast.error("Full name is required"); return; }
+    if (!form.email.trim()) { toast.error("Email address is required"); return; }
+    if (!form.phone.trim()) { toast.error("Mobile number is required"); return; }
+    if (!validateIndianPhone(form.phone)) {
+      toast.error("Enter a valid 10-digit Indian mobile number (starting with 6–9)");
+      return;
+    }
+    if (form.password.length < 6) { toast.error("Password must be at least 6 characters"); return; }
+    if (form.password !== form.confirmPassword) { toast.error("Passwords do not match"); return; }
+
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
-        email: form.email, password: form.password,
-        options: { data: { full_name: form.name, role: "customer" } },
+      const cleanPhone = normalizePhone(form.phone);
+
+      const { data, error } = await supabase.auth.signUp({
+        email: form.email.trim(),
+        password: form.password,
+        options: {
+          data: { full_name: form.name.trim(), phone: cleanPhone, role: "customer" },
+        },
       });
       if (error) throw error;
+
+      // Persist phone in users table via service-role API
+      if (data.user?.id) {
+        const res = await fetch("/api/auth/store-phone", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: data.user.id, phone: cleanPhone }),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          toast.error(json.error ?? "Account created but mobile number could not be saved — update it from Profile.");
+          router.push("/auth/login");
+          return;
+        }
+      }
+
       toast.success("Account created! You can now sign in 🎉");
       router.push("/auth/login");
     } catch (err: any) {
@@ -83,24 +118,56 @@ export default function SignUpPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Full Name */}
             <div className="relative">
               <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
               <input type="text" value={form.name} onChange={(e) => update("name", e.target.value)}
                 placeholder="Full Name" required className="input-field pl-11" />
             </div>
+
+            {/* Email */}
             <div className="relative">
               <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
               <input type="email" value={form.email} onChange={(e) => update("email", e.target.value)}
                 placeholder="Email Address" required className="input-field pl-11" />
             </div>
+
+            {/* Mobile Number */}
             <div className="relative">
-              <input type={showPass ? "text" : "password"} value={form.password} onChange={(e) => update("password", e.target.value)}
+              <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+              <input type="tel" value={form.phone} onChange={(e) => update("phone", e.target.value)}
+                placeholder="Mobile Number (e.g. 9876543210)" required maxLength={13}
+                className="input-field pl-11" />
+              {form.phone && !validateIndianPhone(form.phone) && (
+                <p className="text-xs text-red-400 mt-1 ml-1">Enter a valid 10-digit Indian mobile number</p>
+              )}
+            </div>
+
+            {/* Password */}
+            <div className="relative">
+              <input type={showPass ? "text" : "password"} value={form.password}
+                onChange={(e) => update("password", e.target.value)}
                 placeholder="Password (min. 6 characters)" required minLength={6} className="input-field pr-11" />
               <button type="button" onClick={() => setShowPass(!showPass)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
                 {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+
+            {/* Confirm Password */}
+            <div className="relative">
+              <input type={showConfPass ? "text" : "password"} value={form.confirmPassword}
+                onChange={(e) => update("confirmPassword", e.target.value)}
+                placeholder="Confirm Password" required minLength={6} className="input-field pr-11" />
+              <button type="button" onClick={() => setShowConfPass(!showConfPass)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
+                {showConfPass ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+              {form.confirmPassword && form.password !== form.confirmPassword && (
+                <p className="text-xs text-red-400 mt-1 ml-1">Passwords do not match</p>
+              )}
+            </div>
+
             <button type="submit" disabled={loading}
               className="btn-primary w-full flex items-center justify-center gap-2 py-3">
               {loading ? "Creating account..." : <><ArrowRight size={16} /> Create Account</>}

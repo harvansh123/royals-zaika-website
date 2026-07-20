@@ -12,7 +12,7 @@ import {
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { Order, Address } from "@/lib/database.types";
-import { formatPrice, formatDate, ORDER_STATUS_CONFIG } from "@/lib/utils";
+import { formatPrice, formatDate, ORDER_STATUS_CONFIG, validateIndianPhone } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import SupportTicketModal from "@/components/support/SupportTicketModal";
 import TicketHistoryList from "@/components/support/TicketHistoryList";
@@ -81,6 +81,11 @@ export default function ProfilePage() {
   async function handleSave() {
     if (!user) return;
     if (!form.name.trim()) { toast.error("Name is required"); return; }
+    // Validate phone if provided
+    if (form.phone.trim() && !validateIndianPhone(form.phone)) {
+      toast.error("Enter a valid 10-digit Indian mobile number (starting with 6–9)");
+      return;
+    }
     setSaving(true);
     try {
       const res  = await fetch("/api/customer/profile", {
@@ -317,12 +322,15 @@ export default function ProfilePage() {
           </div>
 
           <div>
-            <label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Phone Number</label>
+            <label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Mobile Number</label>
             <div className="relative">
               <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
               <input value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
-                className="input-field pl-11" placeholder="+91 98765 43210" type="tel" />
+                className="input-field pl-11" placeholder="e.g. 9876543210" type="tel" maxLength={13} />
             </div>
+            {form.phone.trim() && !validateIndianPhone(form.phone) && (
+              <p className="text-xs text-red-400 mt-1 ml-1">Enter a valid 10-digit Indian mobile number</p>
+            )}
           </div>
 
           <div>

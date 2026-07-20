@@ -74,3 +74,28 @@ export function getSpiceLabel(level: number) {
   const labels = ["", "Mild", "Medium", "Spicy", "Very Spicy", "Extra Hot"];
   return labels[level] ?? "Mild";
 }
+
+/**
+ * Strips country code (+91 / 0091 / 0) and non-digit characters,
+ * then validates that the result is a 10-digit Indian mobile number
+ * starting with 6, 7, 8, or 9.
+ */
+export function validateIndianPhone(raw: string): boolean {
+  if (!raw) return false;
+  // Remove spaces, dashes, dots, parentheses
+  let digits = raw.replace(/[\s\-().]/g, "");
+  // Strip country code prefix
+  if (digits.startsWith("+91"))   digits = digits.slice(3);
+  else if (digits.startsWith("0091")) digits = digits.slice(4);
+  else if (digits.startsWith("0"))    digits = digits.slice(1);
+  return /^[6-9]\d{9}$/.test(digits);
+}
+
+/** Returns the clean 10-digit form, stripping country code prefix. */
+export function normalizePhone(raw: string): string {
+  let digits = raw.replace(/[\s\-().]/g, "");
+  if (digits.startsWith("+91"))   digits = digits.slice(3);
+  else if (digits.startsWith("0091")) digits = digits.slice(4);
+  else if (digits.startsWith("0"))    digits = digits.slice(1);
+  return digits;
+}
