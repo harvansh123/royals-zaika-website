@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
 import { FileText, ChevronRight } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Terms & Conditions — Chaurasia Ji",
+  title: "Terms & Conditions â€” Royal Zaika",
   description:
-    "Read Chaurasia Ji's Terms & Conditions governing your use of our online food ordering platform, including ordering rules, payment terms, delivery policy, and cancellation policy.",
+    "Read Royal Zaika's Terms & Conditions governing your use of our online food ordering platform, including ordering rules, payment terms, delivery policy, and cancellation policy.",
 };
 
 const sections = [
@@ -37,7 +37,7 @@ export default function TermsPage() {
       className="min-h-screen"
       style={{ background: "var(--bg-primary, #0d0d0d)", color: "var(--text-primary, #f1f5f9)" }}
     >
-      {/* ── Hero Banner ──────────────────────────────────────────────── */}
+      {/* â”€â”€ Hero Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div
         className="relative py-16 px-5 sm:px-8 overflow-hidden"
         style={{
@@ -75,8 +75,8 @@ export default function TermsPage() {
             creating an account, you agree to be bound by these terms.
           </p>
           <div className="flex flex-wrap gap-4 mt-6 text-xs text-gray-500">
-            <span>📅 Effective Date: 1 January 2024</span>
-            <span>🔄 Last Updated: 20 July 2026</span>
+            <span>ðŸ“… Effective Date: 1 January 2024</span>
+            <span>ðŸ”„ Last Updated: 20 July 2026</span>
           </div>
         </div>
       </div>
@@ -84,7 +84,7 @@ export default function TermsPage() {
       <div className="max-w-4xl mx-auto px-5 sm:px-8 py-12">
         <div className="lg:flex lg:gap-12">
 
-          {/* ── Sticky Table of Contents (desktop) ───────────────────── */}
+          {/* â”€â”€ Sticky Table of Contents (desktop) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <aside className="hidden lg:block w-64 shrink-0">
             <div
               className="sticky top-20 rounded-2xl p-5"
@@ -108,21 +108,21 @@ export default function TermsPage() {
             </div>
           </aside>
 
-          {/* ── Main Content ──────────────────────────────────────────── */}
+          {/* â”€â”€ Main Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <main className="flex-1 space-y-12 text-sm leading-relaxed" style={{ color: "var(--text-secondary, #94a3b8)" }}>
 
             {/* 1. Acceptance */}
             <section id="acceptance">
               <SectionHeading number="1" title="Acceptance of Terms" />
               <p className="mb-3">
-                Welcome to <strong className="text-white">Chaurasia Ji</strong>. These Terms &amp;
-                Conditions (&ldquo;Terms&rdquo;) govern your access to and use of the Chaurasia Ji website,
+                Welcome to <strong className="text-white">Royal Zaika</strong>. These Terms &amp;
+                Conditions (&ldquo;Terms&rdquo;) govern your access to and use of the Royal Zaika website,
                 web application, and all related services (collectively, the &ldquo;Platform&rdquo;). The
-                Platform is owned and operated by Chaurasia Ji Restaurant, Varanasi, India.
+                Platform is owned and operated by Royal Zaika Restaurant, Prayagraj, India.
               </p>
               <p className="mb-3">
-                By accessing or using the Platform — including browsing the menu, creating an
-                account, placing an order, or submitting a review — you confirm that you have
+                By accessing or using the Platform â€” including browsing the menu, creating an
+                account, placing an order, or submitting a review â€” you confirm that you have
                 read, understood, and agree to be bound by these Terms and our{" "}
                 <Link href="/privacy" className="text-orange-400 hover:underline">Privacy Policy</Link>.
               </p>
@@ -145,7 +145,7 @@ export default function TermsPage() {
                 "You must be a resident of, or ordering from within, a location within our delivery radius.",
                 "You must provide accurate, current, and complete information during registration and at checkout.",
                 "You must not be barred from receiving services under applicable Indian law.",
-                "You must have a valid phone number for OTP verification — this is mandatory for order placement.",
+                "You must have a valid phone number for OTP verification â€” this is mandatory for order placement.",
               ]} />
             </section>
 
@@ -188,7 +188,7 @@ export default function TermsPage() {
               <InfoList items={[
                 "All orders are subject to availability of menu items and restaurant operating hours.",
                 "You must be within our defined delivery radius to place a delivery order.",
-                "An OTP verification is required to confirm every order — unverified orders will not be processed.",
+                "An OTP verification is required to confirm every order â€” unverified orders will not be processed.",
                 "The order becomes confirmed only after you receive an on-screen order confirmation and a confirmation notification.",
                 "Menu items, ingredients, and pricing displayed on the Platform may differ slightly from what is actually served due to seasonal availability or recipe updates.",
                 "You are responsible for providing accurate delivery address details. We are not liable for failed deliveries due to incorrect address information.",
@@ -213,7 +213,7 @@ export default function TermsPage() {
                 "Promotional offers, discount codes, and limited-time deals are subject to their own specific terms and validity periods.",
                 "Offers cannot be combined unless explicitly stated.",
                 "We reserve the right to withdraw or modify any offer at any time without notice.",
-                "Offers are intended for genuine customer use. Fraudulent use of offers — including creating multiple accounts — will result in order cancellation and account suspension.",
+                "Offers are intended for genuine customer use. Fraudulent use of offers â€” including creating multiple accounts â€” will result in order cancellation and account suspension.",
                 "Minimum order amounts may apply for certain offers. These are displayed clearly on the offer banner.",
               ]} />
             </section>
@@ -227,8 +227,8 @@ export default function TermsPage() {
                 We currently accept the following payment methods:
               </p>
               <InfoList items={[
-                "Cash on Delivery (COD) — pay in cash when your order arrives at your doorstep.",
-                "Online payment via Razorpay (UPI, debit/credit cards, net banking) — currently available for select orders.",
+                "Cash on Delivery (COD) â€” pay in cash when your order arrives at your doorstep.",
+                "Online payment via Razorpay (UPI, debit/credit cards, net banking) â€” currently available for select orders.",
               ]} />
 
               <SubHeading>6.2 Cash on Delivery Policy</SubHeading>
@@ -274,10 +274,10 @@ export default function TermsPage() {
                 Refunds are issued in the following circumstances:
               </p>
               <InfoList items={[
-                "Order cancelled by the restaurant — full refund processed within 5–7 business days.",
-                "Incorrect or missing items in your order — partial or full refund after verification.",
-                "Order not delivered within a reasonable time due to our fault — full refund.",
-                "Payment debited but order not confirmed due to a technical failure — full refund.",
+                "Order cancelled by the restaurant â€” full refund processed within 5â€“7 business days.",
+                "Incorrect or missing items in your order â€” partial or full refund after verification.",
+                "Order not delivered within a reasonable time due to our fault â€” full refund.",
+                "Payment debited but order not confirmed due to a technical failure â€” full refund.",
               ]} />
               <p className="mt-3 mb-3">
                 Refunds are <strong className="text-white">not</strong> provided in the following cases:
@@ -385,9 +385,9 @@ export default function TermsPage() {
             <section id="ip">
               <SectionHeading number="14" title="Intellectual Property" />
               <p className="mb-3">
-                All content on the Platform — including but not limited to the Chaurasia Ji name,
-                logo, menu design, food photographs, website design, text, graphics, and code — is
-                the exclusive intellectual property of Chaurasia Ji Restaurant and is protected
+                All content on the Platform â€” including but not limited to the Royal Zaika name,
+                logo, menu design, food photographs, website design, text, graphics, and code â€” is
+                the exclusive intellectual property of Royal Zaika Restaurant and is protected
                 under applicable Indian and international intellectual property laws.
               </p>
               <p className="mb-3">
@@ -396,7 +396,7 @@ export default function TermsPage() {
               </p>
               <p>
                 Content submitted by users (such as reviews and ratings) remains the property of
-                the user but grants Chaurasia Ji a non-exclusive, royalty-free, perpetual licence
+                the user but grants Royal Zaika a non-exclusive, royalty-free, perpetual licence
                 to use, display, and moderate that content on the Platform.
               </p>
             </section>
@@ -405,13 +405,13 @@ export default function TermsPage() {
             <section id="liability">
               <SectionHeading number="15" title="Limitation of Liability" />
               <p className="mb-3">
-                To the fullest extent permitted by applicable law, Chaurasia Ji shall not be
+                To the fullest extent permitted by applicable law, Royal Zaika shall not be
                 liable for:
               </p>
               <InfoList items={[
                 "Any indirect, incidental, consequential, or punitive damages arising from your use of the Platform.",
                 "Loss of data, revenue, or profits arising from Platform downtime, errors, or unavailability.",
-                "Allergic reactions, food intolerances, or health issues arising from consumption of food ordered through the Platform — it is your responsibility to inform us of any dietary restrictions or allergies.",
+                "Allergic reactions, food intolerances, or health issues arising from consumption of food ordered through the Platform â€” it is your responsibility to inform us of any dietary restrictions or allergies.",
                 "Delivery delays caused by factors outside our reasonable control (see Force Majeure clause).",
                 "Unauthorised access to your account due to your failure to maintain account security.",
                 "Technical issues arising from third-party services including Razorpay, Google, or your internet service provider.",
@@ -427,7 +427,7 @@ export default function TermsPage() {
             <section id="force-majeure">
               <SectionHeading number="16" title="Force Majeure" />
               <p className="mb-3">
-                Chaurasia Ji shall not be liable for any failure or delay in fulfilling its
+                Royal Zaika shall not be liable for any failure or delay in fulfilling its
                 obligations under these Terms where such failure or delay is caused by events
                 beyond our reasonable control, including but not limited to:
               </p>
@@ -459,7 +459,7 @@ export default function TermsPage() {
                 "Abusive, threatening, or inappropriate behaviour towards our staff or riders.",
                 "Repeated order cancellations or failed cash-on-delivery collections.",
                 "Provision of false or misleading information during registration or checkout.",
-                "Any activity that we reasonably believe may cause harm to Chaurasia Ji, our customers, or our staff.",
+                "Any activity that we reasonably believe may cause harm to Royal Zaika, our customers, or our staff.",
               ]} />
               <p className="mt-3">
                 Upon termination, your right to access the Platform immediately ceases. You may
@@ -523,10 +523,10 @@ export default function TermsPage() {
                 style={{ background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.2)" }}
               >
                 <p><span className="text-orange-400 font-semibold">Restaurant:</span>{" "}
-                  <span className="text-white">Chaurasia Ji</span>
+                  <span className="text-white">Royal Zaika</span>
                 </p>
                 <p><span className="text-orange-400 font-semibold">Address:</span>{" "}
-                  <span className="text-white">123 Food Street, Lanka, Varanasi, Uttar Pradesh – 221001</span>
+                  <span className="text-white">123 Food Street, Lanka, Varanasi, Uttar Pradesh â€“ 221001</span>
                 </p>
                 <p><span className="text-orange-400 font-semibold">General Support:</span>{" "}
                   <a href="mailto:support@chaurasiaiji.in" className="text-orange-400 hover:underline">
@@ -544,7 +544,7 @@ export default function TermsPage() {
                   </a>
                 </p>
                 <p><span className="text-orange-400 font-semibold">Support Hours:</span>{" "}
-                  <span className="text-white">Monday – Sunday, 10:00 AM – 10:30 PM IST</span>
+                  <span className="text-white">Monday â€“ Sunday, 10:00 AM â€“ 10:30 PM IST</span>
                 </p>
               </div>
             </section>
@@ -554,8 +554,8 @@ export default function TermsPage() {
               className="rounded-2xl p-5 text-center text-xs text-gray-500"
               style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
             >
-              <p className="mb-1">📅 <strong className="text-gray-400">Effective Date:</strong> 1 January 2024</p>
-              <p>🔄 <strong className="text-gray-400">Last Updated:</strong> 20 July 2026</p>
+              <p className="mb-1">ðŸ“… <strong className="text-gray-400">Effective Date:</strong> 1 January 2024</p>
+              <p>ðŸ”„ <strong className="text-gray-400">Last Updated:</strong> 20 July 2026</p>
             </div>
 
             {/* Bottom Links */}
@@ -565,14 +565,14 @@ export default function TermsPage() {
                 className="flex-1 text-center py-3 rounded-xl text-sm font-semibold transition-all"
                 style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.25)", color: "#fb923c" }}
               >
-                Read Privacy Policy →
+                Read Privacy Policy â†’
               </Link>
               <Link
                 href="/"
                 className="flex-1 text-center py-3 rounded-xl text-sm font-semibold transition-all text-gray-400 hover:text-white"
                 style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
               >
-                ← Back to Home
+                â† Back to Home
               </Link>
             </div>
 
@@ -583,7 +583,7 @@ export default function TermsPage() {
   );
 }
 
-/* ── Helper Components ───────────────────────────────────────────────── */
+/* â”€â”€ Helper Components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function SectionHeading({ number, title }: { number: string; title: string }) {
   return (
     <div className="flex items-center gap-3 mb-4">
@@ -622,3 +622,5 @@ function InfoList({ items }: { items: string[] }) {
     </ul>
   );
 }
+
+
