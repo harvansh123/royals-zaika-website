@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/authStore";
 import type { Session } from "@supabase/supabase-js";
@@ -34,74 +34,120 @@ function buildFallbackUser(session: Session): User {
   };
 }
 
+/**
+ * PERFORMANCE: cache the last resolved user profile by user ID.
+ * This avoids re-fetching /api/auth/role on every TOKEN_REFRESHED event
+ * (which Supabase fires every ~hour). The cache is invalidated when the
+ * user ID changes (different user signs in) or on sign-out.
+ */
+const profileCache = new Map<string, { user: User; ts: number }>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 // Try to fetch/create DB profile via server-side API (bypasses RLS infinite recursion).
 // Falls back to session metadata if API is unavailable.
 async function resolveUser(session: Session): Promise<User> {
-  const au = session.user;
+  const userId = session.user.id;
+
+  // Return cached profile if it's still fresh
+  const cached = profileCache.get(userId);
+  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+    return cached.user;
+  }
 
   try {
     const res = await fetch("/api/auth/role", { credentials: "include" });
     if (res.ok) {
       const { profile } = await res.json();
-      if (profile) return profile as User;
+      if (profile) {
+        profileCache.set(userId, { user: profile as User, ts: Date.now() });
+        return profile as User;
+      }
     }
   } catch {
     // Network error — fall through to metadata fallback
   }
 
-  return buildFallbackUser(session);
+  const fallback = buildFallbackUser(session);
+  profileCache.set(userId, { user: fallback, ts: Date.now() });
+  return fallback;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser, setLoading } = useAuthStore();
+  // Track whether the component is still mounted to avoid stale state updates
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
-    let cancelled = false;
+    cancelledRef.current = false;
 
     // ── Safety timeout: if nothing responds in 5 s, stop loading ──────
     const safetyTimer = setTimeout(() => {
-      if (!cancelled) setLoading(false);
+      if (!cancelledRef.current) setLoading(false);
     }, 5000);
 
     // ── Initial session check ──────────────────────────────────────────
     supabase.auth
       .getSession()
       .then(async ({ data: { session } }) => {
-        if (cancelled) return;
+        if (cancelledRef.current) return;
         if (session) {
           const user = await resolveUser(session);
-          if (!cancelled) setUser(user);
+          if (!cancelledRef.current) setUser(user);
         } else {
-          if (!cancelled) setUser(null);
+          if (!cancelledRef.current) setUser(null);
         }
       })
       .catch(() => {
-        // Supabase unreachable — still stop loading
-        if (!cancelled) setUser(null);
+        if (!cancelledRef.current) setUser(null);
       })
       .finally(() => {
         clearTimeout(safetyTimer);
-        if (!cancelled) setLoading(false);
+        if (!cancelledRef.current) setLoading(false);
       });
 
     // ── Realtime auth state changes ────────────────────────────────────
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (cancelled) return;
+      if (cancelledRef.current) return;
+
+      // On sign-out, clear profile cache for the departing user
+      if (event === "SIGNED_OUT") {
+        profileCache.clear();
+        if (!cancelledRef.current) setUser(null);
+        if (!cancelledRef.current) setLoading(false);
+        return;
+      }
+
       if (session) {
         const user = await resolveUser(session);
-        if (!cancelled) setUser(user);
+        if (!cancelledRef.current) setUser(user);
       } else {
-        if (!cancelled) setUser(null);
+        if (!cancelledRef.current) setUser(null);
       }
-      if (!cancelled) setLoading(false);
+      if (!cancelledRef.current) setLoading(false);
     });
 
+    // ── bfcache safety net ─────────────────────────────────────────────
+    // When the browser restores a page from Back-Forward Cache (bfcache),
+    // React effects do NOT re-run. This pageshow listener fires on every
+    // bfcache restore. If the session is gone (user logged out in another
+    // tab, or this page was cached before logout), redirect to login.
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (!event.persisted) return; // not a bfcache restore, skip
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) {
+          window.location.replace("/auth/login");
+        }
+      });
+    };
+    window.addEventListener("pageshow", handlePageShow);
+
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
       clearTimeout(safetyTimer);
       subscription.unsubscribe();
+      window.removeEventListener("pageshow", handlePageShow);
     };
   }, [setUser, setLoading]);
 

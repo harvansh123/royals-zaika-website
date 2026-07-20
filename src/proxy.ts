@@ -42,15 +42,38 @@ async function handler(request: NextRequest) {
     return data?.role ?? "customer";
   }
 
-  // Protect admin routes
-  if (request.nextUrl.pathname.startsWith("/admin")) {
+  const { pathname } = request.nextUrl;
+
+  // ── Add Cache-Control: no-store to ALL protected pages ────────────────
+  // This prevents browsers from storing these pages in the Back-Forward
+  // Cache (bfcache). Without this, pressing Back after logout restores a
+  // cached version of the protected page without re-running auth checks.
+  const protectedPrefixes = [
+    "/admin", "/owner", "/delivery",
+    "/profile", "/orders", "/cart", "/checkout",
+    "/track", "/review",
+  ];
+  const isProtectedPage = protectedPrefixes.some(
+    (p) => pathname === p || pathname.startsWith(p + "/")
+  );
+  if (isProtectedPage) {
+    supabaseResponse.headers.set(
+      "Cache-Control",
+      "no-store, no-cache, must-revalidate"
+    );
+    supabaseResponse.headers.set("Pragma", "no-cache");
+    supabaseResponse.headers.set("Expires", "0");
+  }
+
+  // ── Protect admin routes ──────────────────────────────────────────────
+  if (pathname.startsWith("/admin")) {
     if (!user) return NextResponse.redirect(new URL("/auth/login", request.url));
     const role = await getUserRole(user.id);
     if (role !== "admin") return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // Protect owner routes
-  if (request.nextUrl.pathname.startsWith("/owner")) {
+  // ── Protect owner routes ──────────────────────────────────────────────
+  if (pathname.startsWith("/owner")) {
     if (!user) return NextResponse.redirect(new URL("/auth/login", request.url));
     const role = await getUserRole(user.id);
     if (!["restaurant_owner", "admin"].includes(role)) {
@@ -58,8 +81,8 @@ async function handler(request: NextRequest) {
     }
   }
 
-  // Protect delivery routes
-  if (request.nextUrl.pathname.startsWith("/delivery")) {
+  // ── Protect delivery routes ───────────────────────────────────────────
+  if (pathname.startsWith("/delivery")) {
     if (!user) return NextResponse.redirect(new URL("/auth/login", request.url));
     const role = await getUserRole(user.id);
     if (!["delivery", "admin"].includes(role)) {
@@ -67,8 +90,19 @@ async function handler(request: NextRequest) {
     }
   }
 
-  // Redirect logged-in users away from login page → correct dashboard
-  if (request.nextUrl.pathname.startsWith("/auth/login") && user) {
+  // ── Protect customer routes ───────────────────────────────────────────
+  // /profile, /orders, /cart, /checkout, /track, /review
+  const customerProtected = ["/profile", "/orders", "/cart", "/checkout", "/track", "/review"];
+  if (customerProtected.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+    if (!user) {
+      const loginUrl = new URL("/auth/login", request.url);
+      loginUrl.searchParams.set("next", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  // ── Redirect logged-in users away from login page → correct dashboard ─
+  if (pathname.startsWith("/auth/login") && user) {
     const role = await getUserRole(user.id);
     if (role === "admin")            return NextResponse.redirect(new URL("/admin",    request.url));
     if (role === "restaurant_owner") return NextResponse.redirect(new URL("/owner",    request.url));
@@ -83,5 +117,19 @@ export { handler as proxy };
 export default handler;
 
 export const config = {
-  matcher: ["/admin/:path*", "/owner/:path*", "/delivery/:path*", "/checkout", "/auth/login"],
+  matcher: [
+    // Staff dashboards
+    "/admin/:path*",
+    "/owner/:path*",
+    "/delivery/:path*",
+    // Customer protected pages
+    "/profile/:path*",
+    "/orders/:path*",
+    "/cart/:path*",
+    "/checkout/:path*",
+    "/track/:path*",
+    "/review/:path*",
+    // Auth redirect
+    "/auth/login",
+  ],
 };

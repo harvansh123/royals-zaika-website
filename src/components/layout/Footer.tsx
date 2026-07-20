@@ -87,8 +87,8 @@ export function Footer() {
           style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
           <p>© {new Date().getFullYear()} Chaurasia Ji. All rights reserved.</p>
           <div className="flex gap-5">
-            <Link href="#" className="hover:text-gray-400 transition-colors">Privacy Policy</Link>
-            <Link href="#" className="hover:text-gray-400 transition-colors">Terms of Service</Link>
+            <Link href="/privacy" className="hover:text-gray-400 transition-colors">Privacy Policy</Link>
+            <Link href="/terms"   className="hover:text-gray-400 transition-colors">Terms of Service</Link>
           </div>
         </div>
       </div>

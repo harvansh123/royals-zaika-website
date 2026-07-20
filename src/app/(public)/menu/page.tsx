@@ -11,6 +11,8 @@ import { formatPrice } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import toast from "react-hot-toast";
+import { useRestaurantStatus, formatTime } from "@/hooks/useRestaurantStatus";
+import ClosedPopup from "@/components/restaurant/ClosedPopup";
 
 type ActiveOffer = {
   id: string; title: string; description: string | null;
@@ -36,7 +38,7 @@ function setCache(d: { items: MenuItem[]; categories: Category[] }) {
 }
 
 // ── Zomato-style food card ───────────────────────────────────────────
-const FoodCard = memo(function FoodCard({ item }: { item: MenuItem }) {
+const FoodCard = memo(function FoodCard({ item, isOpen }: { item: MenuItem; isOpen: boolean }) {
   const qty      = useCartStore((s) => s.items.find((i) => i.id === item.id)?.quantity ?? 0);
   const addItem  = useCartStore((s) => s.addItem);
   const updateQty = useCartStore((s) => s.updateQty);
@@ -50,9 +52,10 @@ const FoodCard = memo(function FoodCard({ item }: { item: MenuItem }) {
   const handleAdd = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) { toast.error("Please login to add items"); router.push("/auth/login"); return; }
+    if (!isOpen) { toast.error("Restaurant is currently closed", { icon: "🔴" }); return; }
     addItem(item);
     toast.success(`Added to cart!`, { icon: "🛒", duration: 1200 });
-  }, [addItem, item, user, router]);
+  }, [addItem, item, user, router, isOpen]);
 
   return (
     <div className="flex gap-4 py-5 border-b last:border-0"
@@ -128,8 +131,16 @@ const FoodCard = memo(function FoodCard({ item }: { item: MenuItem }) {
           )}
         </div>
 
-        {/* ADD button Zomato-style */}
-        {qty === 0 ? (
+        {/* ADD button Zomato-style — disabled when closed */}
+        {!isOpen ? (
+          <button
+            disabled
+            className="w-28 py-1.5 rounded-lg text-sm font-bold border-2 border-gray-600 text-gray-500 bg-transparent cursor-not-allowed"
+            title="Restaurant is currently closed"
+          >
+            CLOSED
+          </button>
+        ) : qty === 0 ? (
           <button onClick={handleAdd}
             className="w-28 py-1.5 rounded-lg text-sm font-bold border-2 border-orange-500 text-orange-500 bg-transparent hover:bg-orange-500/10 transition-all active:scale-95">
             ADD
@@ -175,6 +186,9 @@ function MenuContent() {
   const [loading, setLoading]         = useState(true);
   const [search, setSearch]           = useState("");
   const [activeCategory, setActiveCategory] = useState(searchParams.get("category") ?? "all");
+
+  // ── Restaurant open/closed status ────────────────────────────────
+  const { isOpen, isTemporarilyClosed, openingTimeFormatted, closingTimeFormatted, statusMode } = useRestaurantStatus();
 
   const totalItems  = useCartStore((s) => s.totalItems());
   const total       = useCartStore((s) => s.total());
@@ -260,6 +274,34 @@ function MenuContent() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 pb-32">
+
+      {/* ── Restaurant Status Banner ───────────────────────────── */}
+      <div
+        className="mb-5 rounded-2xl p-4 flex items-center gap-3 transition-all duration-500"
+        style={{
+          background: isOpen ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)",
+          border: `1px solid ${isOpen ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`,
+        }}
+      >
+        <div
+          className={`w-3 h-3 rounded-full shrink-0 ${isOpen ? "bg-green-500" : "bg-red-500"}`}
+          style={{ animation: isOpen ? "pulse 2s ease-in-out infinite" : "none" }}
+        />
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-sm" style={{ color: isOpen ? "#4ade80" : "#f87171" }}>
+            {statusMode === "temporarily_closed"
+              ? "🔴 Temporarily Closed"
+              : isOpen ? "🟢 Restaurant Open" : "🔴 Restaurant Closed"}
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+            Today&apos;s hours: {openingTimeFormatted} – {closingTimeFormatted}
+            {!isOpen && " · Ordering is disabled until we reopen"}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Temporarily Closed Popup ──────────────────────────── */}
+      <ClosedPopup isTemporarilyClosed={isTemporarilyClosed} />
 
       {/* ── Active Offer Banner ───────────────────────────────── */}
       {activeOffer && (
@@ -352,7 +394,8 @@ function MenuContent() {
             )}
             <div className="rounded-2xl overflow-hidden px-1"
               style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-              {gItems.map((item) => <FoodCard key={item.id} item={item} />)}
+              {gItems.map((item) => <FoodCard key={item.id} item={item} isOpen={isOpen} />)}
+
             </div>
           </div>
         ))

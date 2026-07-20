@@ -1,18 +1,17 @@
 "use client";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { ShoppingCart, LogOut, Menu, X, User } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useCartStore } from "@/stores/cartStore";
-import { supabase } from "@/lib/supabase/client";
+import { performSignOut } from "@/lib/sign-out";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 
 export function Navbar() {
-  const pathname  = usePathname();
-  const router    = useRouter();
-  const { user }  = useAuthStore();
+  const pathname   = usePathname();
+  const { user }   = useAuthStore();
   const totalItems = useCartStore((s) => s.totalItems());
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -26,11 +25,11 @@ export function Navbar() {
   }, []);
 
   async function handleSignOut() {
-    await supabase.auth.signOut();
-    toast.success("Signed out");
-    router.push("/");
     setMenuOpen(false);
+    toast.success("Signed out");
+    await performSignOut();
   }
+
 
   // Hide on staff panels
   if (pathname.startsWith("/owner") || pathname.startsWith("/admin") || pathname.startsWith("/delivery")) return null;

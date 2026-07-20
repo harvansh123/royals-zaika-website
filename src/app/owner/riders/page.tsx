@@ -13,6 +13,7 @@ import toast from "react-hot-toast";
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase/client";
 
 type AccountStatus = "active" | "disabled" | "suspended" | "blocked";
 
@@ -87,6 +88,38 @@ export default function OwnerRidersPage() {
   useEffect(() => {
     if (user?.role === "restaurant_owner" || user?.role === "admin") loadRiders();
   }, [user, loadRiders]);
+
+  // ── Supabase Realtime — delivery_partners ───────────────────────────────
+  // Subscribe once per mount. When any rider changes is_available or is_busy,
+  // update that rider's row in-place — no full refetch, no page refresh needed.
+  useEffect(() => {
+    if (!user?.role || (user.role !== "restaurant_owner" && user.role !== "admin")) return;
+
+    const channel = supabase
+      .channel("owner_riders_availability")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "delivery_partners" },
+        (payload) => {
+          const updated = payload.new as any;
+          if (!updated?.id) return;
+          setRiders((prev) =>
+            prev.map((r) =>
+              r.id === updated.id
+                ? {
+                    ...r,
+                    is_available: updated.is_available ?? r.is_available,
+                    is_busy:      updated.is_busy      ?? r.is_busy,
+                  }
+                : r
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.role]);
 
   // Filter + search
   const filteredRiders = riders.filter(r => {

@@ -11,6 +11,8 @@ import toast from "react-hot-toast";
 import Image from "next/image";
 import { ADDRESS_SESSION_KEY } from "@/app/(public)/checkout/address/page";
 import { haversineKm, RestaurantSettings } from "@/lib/haversine";
+import { useRestaurantStatus } from "@/hooks/useRestaurantStatus";
+import ClosedPopup from "@/components/restaurant/ClosedPopup";
 
 declare global { interface Window { Razorpay: any; } }
 
@@ -49,6 +51,14 @@ export default function CheckoutPage() {
   const [settings,        setSettings]        = useState<RestaurantSettings | null>(null);
   const [activeOffer,     setActiveOffer]     = useState<ActiveOffer | null>(null);
   const [showCodPopup,    setShowCodPopup]    = useState(false);
+
+  // ── Restaurant timing-aware open/closed status ────────────────────────────
+  const {
+    isOpen: restaurantIsOpen,
+    isTemporarilyClosed,
+    openingTimeFormatted,
+    closingTimeFormatted,
+  } = useRestaurantStatus();
 
   const sub   = subtotal();
   const fee   = deliveryFee();
@@ -120,9 +130,14 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Restaurant open/closed check
-    if (settings && settings.is_open === false) {
-      toast.error("Restaurant is currently closed. Please try again later.");
+    // Restaurant open/closed check (timing-aware: auto/manual/temporarily_closed)
+    if (!restaurantIsOpen) {
+      toast.error(
+        isTemporarilyClosed
+          ? "Restaurant is temporarily closed. Please try again later."
+          : "Restaurant is currently closed. Please try again later.",
+        { icon: "🔴" }
+      );
       return;
     }
 
@@ -465,14 +480,19 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      {/* Restaurant Closed Warning — shown when owner has set restaurant to Offline */}
-      {settings && settings.is_open === false && (
+      {/* Temporarily Closed Popup — shown once per session */}
+      <ClosedPopup isTemporarilyClosed={isTemporarilyClosed} />
+
+      {/* Restaurant Closed Warning — timing-aware */}
+      {!restaurantIsOpen && (
         <div className="mb-4 p-4 rounded-xl" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}>
           <p className="text-sm text-red-400 font-bold flex items-center gap-2">
-            🔴 Restaurant is Currently Closed
+            🔴 {isTemporarilyClosed ? "Restaurant Temporarily Closed" : "Restaurant is Currently Closed"}
           </p>
           <p className="text-xs text-red-400/80 mt-1">
-            The restaurant is not accepting new orders right now. Please try again later.
+            {isTemporarilyClosed
+              ? "The restaurant is temporarily closed and not accepting new orders."
+              : `Ordering is available during ${openingTimeFormatted} – ${closingTimeFormatted}.`}
           </p>
         </div>
       )}
@@ -497,12 +517,12 @@ export default function CheckoutPage() {
       <button onClick={placeOrder}
         disabled={placing
           || !deliveryAddress?.delivery_distance_km
-          || (!!settings && settings.is_open === false)}
+          || !restaurantIsOpen}
         className="w-full btn-primary flex items-center justify-center gap-3 py-4 text-base rounded-2xl disabled:opacity-70">
         {placing ? (
           <><Loader2 size={20} className="animate-spin" /> Processing...</>
-        ) : settings?.is_open === false ? (
-          <>🔴 Restaurant Closed</>
+        ) : !restaurantIsOpen ? (
+          <>{isTemporarilyClosed ? "🔴 Temporarily Closed" : "🔴 Restaurant Closed"}</>
         ) : !deliveryAddress?.delivery_distance_km ? (
           <>⚠️ Address Not Verified</>
         ) : (

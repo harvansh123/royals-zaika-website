@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import { performSignOut } from "@/lib/sign-out";
 
 const STATUS_COLORS: Record<string, string> = {
   assigned:  "bg-blue-50 text-blue-700 border-blue-200",
@@ -50,7 +51,41 @@ export default function DeliveryDashboard() {
   const [otpLoading, setOtpLoading] = useState<Record<string, boolean>>({});
   const [accountStatus, setAccountStatus] = useState<string | null>(null);
   const [isOnline, setIsOnline]           = useState<boolean>(false);
+  const [togglingOnline, setTogglingOnline] = useState(false);
   const [signingOut, setSigningOut]       = useState(false);
+
+  // ── Toggle Online / Offline ──────────────────────────────────────
+  // Calls /api/rider/status PATCH, updates local state instantly.
+  // The service-role API writes delivery_partners.is_available → Supabase
+  // Realtime broadcasts the change to owner dashboards automatically.
+  async function handleToggleOnline() {
+    if (togglingOnline) return;
+    if (accountStatus && accountStatus !== "active") {
+      toast.error("Your account is not active. Contact the restaurant.");
+      return;
+    }
+    const newStatus = !isOnline;
+    setTogglingOnline(true);
+    try {
+      const res = await fetch("/api/rider/status", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ isAvailable: newStatus }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Failed to update status");
+      setIsOnline(newStatus);
+      toast.success(
+        newStatus ? "🟢 You are now Online — ready to receive orders!" : "🔴 You are now Offline",
+        { duration: 3000 }
+      );
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to update status");
+    } finally {
+      setTogglingOnline(false);
+    }
+  }
 
   const fetchMyOrders = useCallback(async () => {
     if (!user) return;
@@ -211,17 +246,9 @@ export default function DeliveryDashboard() {
 
   async function handleSignOut() {
     setSigningOut(true);
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      useAuthStore.getState().setUser(null);
-      toast.success("Signed out successfully");
-      router.push("/auth/login");
-      router.refresh();
-    } catch (err: any) {
-      toast.error("Sign out failed: " + err.message);
-      setSigningOut(false);
-    }
+    toast.success("Signed out successfully");
+    useAuthStore.getState().setUser(null);
+    await performSignOut();
   }
 
   async function updateDeliveryStatus(trackingId: string, orderId: string, newStatus: string, orderStatus: string) {
@@ -439,6 +466,36 @@ export default function DeliveryDashboard() {
               {signingOut ? "..." : "Sign Out"}
             </button>
           </div>
+        </div>
+
+        {/* ── Go Online / Go Offline Toggle ─────────────────────── */}
+        <div className="mt-4 pt-3" style={{ borderTop: "1px solid rgba(249,115,22,0.15)" }}>
+          <button
+            id="rider-online-toggle-btn"
+            onClick={handleToggleOnline}
+            disabled={togglingOnline || (!!accountStatus && accountStatus !== "active")}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            style={{
+              background: isOnline
+                ? "rgba(239,68,68,0.1)"
+                : "linear-gradient(135deg,#22c55e,#16a34a)",
+              border: isOnline ? "1px solid rgba(239,68,68,0.3)" : "none",
+              color: isOnline ? "#ef4444" : "white",
+            }}
+          >
+            {togglingOnline ? (
+              <><Loader2 size={16} className="animate-spin" /> Updating...</>
+            ) : isOnline ? (
+              <>🔴 Go Offline</>
+            ) : (
+              <>🟢 Go Online</>  
+            )}
+          </button>
+          {!!accountStatus && accountStatus !== "active" && (
+            <p className="text-center text-xs mt-2" style={{ color: "var(--text-muted)" }}>
+              Status changes disabled — account is {accountStatus}
+            </p>
+          )}
         </div>
       </div>
 

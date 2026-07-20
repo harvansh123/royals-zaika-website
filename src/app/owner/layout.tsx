@@ -2,10 +2,11 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { LayoutDashboard, ShoppingBag, UtensilsCrossed, LogOut, UserCircle, HelpCircle, MapPin, Users, Tag, Bell, BellOff, Star } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, UtensilsCrossed, LogOut, UserCircle, HelpCircle, MapPin, Users, Tag, Bell, BellOff, Star, Clock } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
+import { performSignOut } from "@/lib/sign-out";
 import {
   startLoopingAlarm,
   stopCurrentAlarm,
@@ -21,6 +22,7 @@ const tabs = [
   { href: "/owner/riders",   icon: Users,           label: "Riders"    },
   { href: "/owner/reviews",  icon: Star,            label: "Reviews"   },
   { href: "/owner/support",  icon: HelpCircle,      label: "Support"   },
+  { href: "/owner/timing",   icon: Clock,           label: "Timing"    },
   { href: "/owner/delivery-settings", icon: MapPin, label: "Delivery"  },
   { href: "/owner/profile",  icon: UserCircle,      label: "Profile"   },
 ];
@@ -98,10 +100,9 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function signOut() {
-    await supabase.auth.signOut();
     stopCurrentAlarm();
     toast.success("Signed out");
-    router.push("/auth/login");
+    await performSignOut();
   }
 
   return (

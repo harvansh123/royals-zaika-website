@@ -165,7 +165,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Failed to update delivery tracking: " + trackErr.message }, { status: 500 });
     }
 
-    // 6. Update orders using service-role
+    // 6. Update orders.status using service-role
     const { error: orderErr } = await adminClient
       .from("orders")
       .update({ status: orderStatus })
@@ -174,6 +174,53 @@ export async function PATCH(req: NextRequest) {
     if (orderErr) {
       console.error("[/api/rider/orders PATCH] orders update error:", orderErr.message);
       return NextResponse.json({ error: "Failed to update order status: " + orderErr.message }, { status: 500 });
+    }
+
+    // 7. COD payment auto-mark — runs ONLY when the order is delivered
+    if (orderStatus === "delivered") {
+      try {
+        // Fetch the payment method for this order
+        const { data: orderRow } = await adminClient
+          .from("orders")
+          .select("payment_method, payment_status")
+          .eq("id", orderId)
+          .maybeSingle();
+
+        if (orderRow?.payment_method === "cash_on_delivery" && orderRow.payment_status !== "paid") {
+          console.log("[/api/rider/orders PATCH] COD order delivered — marking payment as paid:", orderId);
+
+          // Update orders.payment_status
+          const { error: payStatusErr } = await adminClient
+            .from("orders")
+            .update({ payment_status: "paid" })
+            .eq("id", orderId);
+
+          if (payStatusErr) {
+            console.error("[/api/rider/orders PATCH] COD orders.payment_status update error:", payStatusErr.message);
+          }
+
+          // Update payments table row for this order
+          const { error: payTableErr } = await adminClient
+            .from("payments")
+            .update({ status: "paid" })
+            .eq("order_id", orderId)
+            .eq("method", "cash_on_delivery");
+
+          if (payTableErr) {
+            console.error("[/api/rider/orders PATCH] COD payments.status update error:", payTableErr.message);
+          }
+
+          console.log("[/api/rider/orders PATCH] COD payment marked as paid for order:", orderId);
+        } else {
+          console.log("[/api/rider/orders PATCH] Non-COD or already paid — skipping payment auto-update:", {
+            method: orderRow?.payment_method,
+            status: orderRow?.payment_status,
+          });
+        }
+      } catch (payErr: any) {
+        // Non-fatal — delivery is confirmed; log and continue
+        console.error("[/api/rider/orders PATCH] COD payment auto-update unexpected error:", payErr.message);
+      }
     }
 
     console.log("[/api/rider/orders PATCH] Success:", { trackingStatus, orderStatus });

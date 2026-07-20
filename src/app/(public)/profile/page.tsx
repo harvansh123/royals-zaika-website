@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import SupportTicketModal from "@/components/support/SupportTicketModal";
 import TicketHistoryList from "@/components/support/TicketHistoryList";
 import { HelpCircle } from "lucide-react";
+import { performSignOut } from "@/lib/sign-out";
 
 type Tab = "profile" | "orders" | "addresses" | "password" | "support";
 
@@ -122,20 +123,12 @@ export default function ProfilePage() {
     setSavingPass(false);
   }
 
-  // ── Sign Out ──────────────────────────────────────────────────────────
+  // ── Sign Out ────────────────────────────────────────────────────────────────────
   async function handleSignOut() {
     setSigningOut(true);
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      setUser(null);
-      toast.success("Signed out successfully");
-      router.push("/");
-      router.refresh();
-    } catch (err: any) {
-      toast.error("Sign out failed: " + err.message);
-      setSigningOut(false);
-    }
+    toast.success("Signed out successfully");
+    setUser(null);
+    await performSignOut();
   }
 
   // ── Use Current Location ─────────────────────────────────────────────

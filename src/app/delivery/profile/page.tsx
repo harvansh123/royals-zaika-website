@@ -6,13 +6,14 @@ import { useRouter } from "next/navigation";
 import {
   User, Phone, Mail, Camera, Lock, Save, Loader2,
   Eye, EyeOff, ChevronLeft, CheckCircle, Bike, Hash,
-  WifiOff, Wifi, TrendingUp, Calendar, RefreshCw, HelpCircle,
+  WifiOff, Wifi, TrendingUp, Calendar, RefreshCw, HelpCircle, LogOut,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import Image from "next/image";
 import Link from "next/link";
 import SupportTicketModal from "@/components/support/SupportTicketModal";
 import TicketHistoryList from "@/components/support/TicketHistoryList";
+import { performSignOut } from "@/lib/sign-out";
 import type { RiderStatsResponse, DailyRecord } from "@/app/api/rider/stats/route";
 
 // ── Shared input style ────────────────────────────────────────────────
@@ -264,8 +265,8 @@ export default function RiderProfilePage() {
 
   async function handleSignOut() {
     setUser(null);
-    await supabase.auth.signOut();
-    router.replace("/auth/login");
+    toast.success("Signed out successfully");
+    await performSignOut();
   }
 
   if (authLoading || !user) return (

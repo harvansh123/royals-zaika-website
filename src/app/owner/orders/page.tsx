@@ -100,7 +100,56 @@ export default function OwnerOrdersPage() {
         }
       })
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+
+    // ── Realtime: delivery_partners ──────────────────────────────────
+    // When a rider goes Online/Offline while the assign-modal is open,
+    // add them to or remove them from the riders list immediately.
+    const riderCh = supabase
+      .channel("owner-orders-riders-status")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "delivery_partners" },
+        (payload) => {
+          const updated = payload.new as any;
+          if (!updated?.id) return;
+
+          const isNowOnline =
+            updated.is_available === true && updated.account_status === "active";
+
+          setRiders((prev) => {
+            const exists = prev.some((r) => r.id === updated.id);
+
+            if (isNowOnline && !exists) {
+              // Rider just came online — add them to the list
+              return [
+                ...prev,
+                {
+                  id:                updated.id,
+                  name:              updated.name              ?? "Unnamed",
+                  phone:             updated.phone             ?? "—",
+                  vehicle_type:      updated.vehicle_type      ?? "bike",
+                  is_available:      true,
+                  total_deliveries:  updated.total_deliveries  ?? 0,
+                },
+              ];
+            }
+
+            if (!isNowOnline && exists) {
+              // Rider went offline — remove them from the list
+              return prev.filter((r) => r.id !== updated.id);
+            }
+
+            // No change needed
+            return prev;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ch);
+      supabase.removeChannel(riderCh);
+    };
   }, []);
 
   async function loadOrders() {
