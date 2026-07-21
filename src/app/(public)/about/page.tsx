@@ -36,7 +36,7 @@ const VALUES = [
 const TEAM = [
   { emoji: "👨‍🍳", name: "Harvansh Chaurasia",  role: "Founder & Owner",    desc: "Passionate about serving fresh, delicious food and creating a great experience for every customer." },
   { emoji: "👩‍🍳", name: "Sarita Chaurasia",     role: "Kitchen Head",       desc: "The heart of our kitchen, preparing fresh and delicious food with love and care for every customer in Prayagraj." },
-  { emoji: "👩‍💼", name: "Sister's Name",         role: "Team Member",        desc: "A valued part of our team, helping us serve fresh and delicious food with care and dedication in Prayagraj." },
+  { emoji: "👩‍💼", name: "Anisha Chaurasia",       role: "Team Member",        desc: "A valued part of our team, helping us serve fresh and delicious food with care and dedication in Prayagraj." },
 ];
 
 export default function AboutPage() {
