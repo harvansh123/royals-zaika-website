@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Phone, MapPin, Clock, Award, Heart, Leaf, Shield } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "About Us | Chaurasia Ji — Authentic Indian Cuisine",
+  title: "About Us | Royal Zaika — Authentic Indian Cuisine",
   description:
-    "Learn the story of Chaurasia Ji — a family restaurant rooted in Varanasi's rich culinary tradition. Serving authentic North Indian food since 2010 with love, heritage, and quality.",
+    "Learn the story of Royal Zaika — a family restaurant rooted in Varanasi's rich culinary tradition. Serving authentic North Indian food since 2010 with love, heritage, and quality.",
 };
 
 const MILESTONES = [
@@ -74,7 +74,7 @@ export default function AboutPage() {
             </span>
           </h1>
           <p className="text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed" style={{ color: "#d1bfa8" }}>
-            Chaurasia Ji was born from a simple belief — that real Indian food tells a story.
+            Royal Zaika was born from a simple belief — that real Indian food tells a story.
             For over 14 years, we've been sharing that story, one plate at a time.
           </p>
         </div>
@@ -102,7 +102,7 @@ export default function AboutPage() {
                   No marketing gimmicks. No compromises. Just food made exactly the way it should be.
                 </p>
                 <p>
-                  Today, Chaurasia Ji serves thousands of guests every month — from local families
+                  Today, Royal Zaika serves thousands of guests every month — from local families
                   celebrating milestones to travellers from across India and the world seeking a taste
                   of authentic North Indian culture. But our ethos remains unchanged: every meal
                   deserves the same love and attention as the very first one we ever cooked.
@@ -308,3 +308,4 @@ export default function AboutPage() {
     </div>
   );
 }
+

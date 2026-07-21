@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/authStore";
@@ -28,8 +28,8 @@ function loadRestaurantSettings(): RestaurantSettings {
   if (typeof window === "undefined") return { restaurant_name: "", restaurant_logo: "", restaurant_address: "", business_hours: DEFAULT_HOURS };
   try {
     const saved = localStorage.getItem(RESTAURANT_KEY);
-    return saved ? JSON.parse(saved) : { restaurant_name: "Chaurasia Ji", restaurant_logo: "", restaurant_address: "", business_hours: DEFAULT_HOURS };
-  } catch { return { restaurant_name: "Chaurasia Ji", restaurant_logo: "", restaurant_address: "", business_hours: DEFAULT_HOURS }; }
+    return saved ? JSON.parse(saved) : { restaurant_name: "Royal Zaika", restaurant_logo: "", restaurant_address: "", business_hours: DEFAULT_HOURS };
+  } catch { return { restaurant_name: "Royal Zaika", restaurant_logo: "", restaurant_address: "", business_hours: DEFAULT_HOURS }; }
 }
 
 export default function OwnerProfilePage() {
@@ -318,7 +318,7 @@ export default function OwnerProfilePage() {
             <input type="text"
               value={restaurant.restaurant_name}
               onChange={(e) => setRestaurant((p) => ({ ...p, restaurant_name: e.target.value }))}
-              placeholder="e.g. Chaurasia Ji"
+              placeholder="e.g. Royal Zaika"
               className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none transition-colors"
               style={{ background: "var(--bg-glass)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
           </div>
@@ -500,3 +500,4 @@ export default function OwnerProfilePage() {
     </div>
   );
 }
+

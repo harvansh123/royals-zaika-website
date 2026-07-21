@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+﻿import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "@/components/providers/AuthProvider";
@@ -6,18 +6,18 @@ import { AddressModalProvider } from "@/components/providers/AddressModalProvide
 
 export const metadata: Metadata = {
   title: {
-    default: "Chaurasia Ji — Authentic Indian Cuisine",
-    template: "%s | Chaurasia Ji",
+    default: "Royal Zaika — Authentic Indian Cuisine",
+    template: "%s | Royal Zaika",
   },
   description:
-    "Order authentic North Indian food online. Fresh thalis, biryanis, dal makhani, and more. Fast delivery from Chaurasia Ji restaurant.",
-  keywords: ["Indian food", "online food order", "thali", "biryani", "North Indian cuisine", "Chaurasia Ji"],
+    "Order authentic North Indian food online. Fresh thalis, biryanis, dal makhani, and more. Fast delivery from Royal Zaika restaurant.",
+  keywords: ["Indian food", "online food order", "thali", "biryani", "North Indian cuisine", "Royal Zaika"],
   manifest: "/manifest.json",
   openGraph: {
     type: "website",
     locale: "en_IN",
-    siteName: "Chaurasia Ji",
-    title: "Chaurasia Ji — Authentic Indian Cuisine",
+    siteName: "Royal Zaika",
+    title: "Royal Zaika — Authentic Indian Cuisine",
     description: "Order authentic North Indian food online with fast delivery.",
   },
   robots: "index, follow",
@@ -67,3 +67,4 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
+

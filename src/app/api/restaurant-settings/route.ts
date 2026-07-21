@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin = createClient(
@@ -35,7 +35,7 @@ export async function GET() {
   if (error || !data) {
     const defaults = {
       id: 1,
-      restaurant_name: "Chaurasia Ji",
+      restaurant_name: "Royal Zaika",
       restaurant_lat: 25.3176,
       restaurant_lng: 82.9739,
       delivery_radius_km: 5.0,
@@ -80,7 +80,7 @@ export async function PUT(req: NextRequest) {
       .from("restaurant_settings")
       .upsert({
         id: 1,
-        restaurant_name: restaurant_name ?? "Chaurasia Ji",
+        restaurant_name: restaurant_name ?? "Royal Zaika",
         restaurant_lat,
         restaurant_lng,
         delivery_radius_km,
@@ -136,3 +136,4 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
+

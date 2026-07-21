@@ -193,7 +193,7 @@ export default function OrderConfirmedPage() {
       </div>
 
       <p className="text-gray-600 text-xs mt-8">
-        Thank you for ordering from Chaurasia Ji! 🙏<br />
+        Thank you for ordering from Royal Zaika! 🙏<br />
         We'll have your food ready as soon as possible.
       </p>
     </div>

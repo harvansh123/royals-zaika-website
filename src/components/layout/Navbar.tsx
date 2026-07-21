@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -57,7 +57,7 @@ export function Navbar() {
             </div>
             <div className="leading-none">
               <p className="font-bold text-base" style={{ fontFamily: "'Outfit', sans-serif", color: "var(--text-primary)" }}>
-                Chaurasia Ji
+                Royal Zaika
               </p>
               <p className="text-[10px] text-orange-500">Authentic Indian Cuisine</p>
             </div>
@@ -191,3 +191,4 @@ export function Navbar() {
     </nav>
   );
 }
+

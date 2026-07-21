@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/stores/cartStore";
@@ -258,7 +258,7 @@ export default function CheckoutPage() {
         key:         process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount:      Math.round(finalTotal * 100),
         currency:    "INR",
-        name:        "Chaurasia Ji",
+        name:        "Royal Zaika",
         description: `Order #${order.order_number}`,
         order_id:    json.razorpayOrderId,
         prefill:     { name: user.name, email: user.email ?? "" },
@@ -536,3 +536,4 @@ export default function CheckoutPage() {
     </div>
   );
 }
+

@@ -1,9 +1,9 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Shield, ChevronRight } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy â€” Royal Zaika",
+  title: "Privacy Policy — Royal Zaika",
   description:
     "Read Royal Zaika's Privacy Policy to understand how we collect, use, and protect your personal information when you use our food ordering platform.",
 };
@@ -30,7 +30,7 @@ export default function PrivacyPolicyPage() {
       className="min-h-screen"
       style={{ background: "var(--bg-primary, #0d0d0d)", color: "var(--text-primary, #f1f5f9)" }}
     >
-      {/* â”€â”€ Hero Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Hero Banner ──────────────────────────────────────────────── */}
       <div
         className="relative py-16 px-5 sm:px-8 overflow-hidden"
         style={{
@@ -66,8 +66,8 @@ export default function PrivacyPolicyPage() {
             explains what data we collect, why we collect it, and how we keep it safe.
           </p>
           <div className="flex flex-wrap gap-4 mt-6 text-xs text-gray-500">
-            <span>ðŸ“… Effective Date: 1 January 2024</span>
-            <span>ðŸ”„ Last Updated: 20 July 2026</span>
+            <span>📅 Effective Date: 1 January 2024</span>
+            <span>🔄 Last Updated: 20 July 2026</span>
           </div>
         </div>
       </div>
@@ -75,7 +75,7 @@ export default function PrivacyPolicyPage() {
       <div className="max-w-4xl mx-auto px-5 sm:px-8 py-12">
         <div className="lg:flex lg:gap-12">
 
-          {/* â”€â”€ Sticky Table of Contents (desktop) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+          {/* ── Sticky Table of Contents (desktop) ───────────────────── */}
           <aside className="hidden lg:block w-64 shrink-0">
             <div
               className="sticky top-20 rounded-2xl p-5"
@@ -99,7 +99,7 @@ export default function PrivacyPolicyPage() {
             </div>
           </aside>
 
-          {/* â”€â”€ Main Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+          {/* ── Main Content ──────────────────────────────────────────── */}
           <main className="flex-1 space-y-12 text-sm leading-relaxed" style={{ color: "var(--text-secondary, #94a3b8)" }}>
 
             {/* 1. Introduction */}
@@ -273,7 +273,7 @@ export default function PrivacyPolicyPage() {
                   </thead>
                   <tbody>
                     {[
-                      ["Essential", "Required for the Platform to function â€” session management, authentication tokens, cart state."],
+                      ["Essential", "Required for the Platform to function — session management, authentication tokens, cart state."],
                       ["Functional", "Remember your preferences such as language, theme, and saved addresses."],
                       ["Analytics", "Understand how visitors interact with the Platform (anonymised data only)."],
                       ["Security", "Detect fraud, prevent CSRF attacks, and protect your account."],
@@ -304,7 +304,7 @@ export default function PrivacyPolicyPage() {
               <InfoList items={[
                 "All data is transmitted over HTTPS (TLS/SSL encryption)",
                 "Authentication tokens are stored securely via Supabase Auth with automatic refresh",
-                "Passwords are never stored in plain text â€” we use secure password hashing",
+                "Passwords are never stored in plain text — we use secure password hashing",
                 "OTP-based verification is required before placing any order",
                 "Sensitive payment information is handled exclusively by Razorpay (PCI-DSS Level 1 compliant)",
                 "Database access is restricted by Row-Level Security (RLS) policies",
@@ -313,7 +313,7 @@ export default function PrivacyPolicyPage() {
               <p className="mt-3">
                 While we take every reasonable precaution, no method of electronic transmission
                 or storage is 100% secure. We encourage you to use a strong, unique password and
-                to never share your OTP with anyone â€” including our staff.
+                to never share your OTP with anyone — including our staff.
               </p>
             </section>
 
@@ -326,11 +326,11 @@ export default function PrivacyPolicyPage() {
                 limited circumstances:
               </p>
               <InfoList items={[
-                "Delivery Riders â€” your name, phone number, and delivery address are shared with the assigned rider to fulfil your order.",
-                "Payment Processors â€” transaction data is shared with Razorpay to process your payment securely.",
-                "Cloud Infrastructure â€” your data is stored on Supabase (hosted on AWS), which is bound by strict data processing agreements.",
-                "Legal Requirements â€” we may disclose your information if required by Indian law, court order, or government authority.",
-                "Business Transfer â€” in the unlikely event of a merger or acquisition, your data may be transferred as part of business assets, and you will be notified.",
+                "Delivery Riders — your name, phone number, and delivery address are shared with the assigned rider to fulfil your order.",
+                "Payment Processors — transaction data is shared with Razorpay to process your payment securely.",
+                "Cloud Infrastructure — your data is stored on Supabase (hosted on AWS), which is bound by strict data processing agreements.",
+                "Legal Requirements — we may disclose your information if required by Indian law, court order, or government authority.",
+                "Business Transfer — in the unlikely event of a merger or acquisition, your data may be transferred as part of business assets, and you will be notified.",
               ]} />
             </section>
 
@@ -382,12 +382,12 @@ export default function PrivacyPolicyPage() {
                 information:
               </p>
               <InfoList items={[
-                "Right to Access â€” you may request a copy of the personal data we hold about you.",
-                "Right to Correction â€” you may update inaccurate or incomplete information via your profile settings.",
-                "Right to Deletion â€” you may request deletion of your account and personal data (see Account Deletion Policy below).",
-                "Right to Portability â€” you may request your order history and profile data in a structured, commonly used format.",
-                "Right to Restriction â€” you may request that we limit how we process your data in certain circumstances.",
-                "Right to Object â€” you may opt out of marketing communications at any time.",
+                "Right to Access — you may request a copy of the personal data we hold about you.",
+                "Right to Correction — you may update inaccurate or incomplete information via your profile settings.",
+                "Right to Deletion — you may request deletion of your account and personal data (see Account Deletion Policy below).",
+                "Right to Portability — you may request your order history and profile data in a structured, commonly used format.",
+                "Right to Restriction — you may request that we limit how we process your data in certain circumstances.",
+                "Right to Object — you may opt out of marketing communications at any time.",
               ]} />
               <p className="mt-3">
                 To exercise any of these rights, please contact us at the email address listed in
@@ -403,12 +403,12 @@ export default function PrivacyPolicyPage() {
                 provide our services. Specific retention periods are as follows:
               </p>
               <InfoList items={[
-                "Account data â€” retained for the lifetime of your account plus 90 days after deletion.",
-                "Order records â€” retained for 7 years for statutory compliance under Indian tax law.",
-                "Payment transaction records â€” retained for 7 years as required by financial regulations.",
-                "Support ticket data â€” retained for 2 years from ticket closure.",
-                "Session & authentication logs â€” retained for 90 days for security monitoring.",
-                "Marketing preferences â€” retained until you withdraw consent.",
+                "Account data — retained for the lifetime of your account plus 90 days after deletion.",
+                "Order records — retained for 7 years for statutory compliance under Indian tax law.",
+                "Payment transaction records — retained for 7 years as required by financial regulations.",
+                "Support ticket data — retained for 2 years from ticket closure.",
+                "Session & authentication logs — retained for 90 days for security monitoring.",
+                "Marketing preferences — retained until you withdraw consent.",
               ]} />
             </section>
 
@@ -427,8 +427,8 @@ export default function PrivacyPolicyPage() {
               ]} />
               <p className="mt-3">
                 To request account deletion, contact us at{" "}
-                <a href="mailto:privacy@chaurasiaiji.in" className="text-orange-400 hover:underline">
-                  privacy@chaurasiaiji.in
+                <a href="mailto:privacy@royalzaika.in" className="text-orange-400 hover:underline">
+                  privacy@royalzaika.in
                 </a>
                 . Please allow up to 30 days for complete deletion. This action is irreversible.
               </p>
@@ -444,8 +444,8 @@ export default function PrivacyPolicyPage() {
               <p>
                 If you believe that we have inadvertently collected information from a child under
                 13, please contact us immediately at{" "}
-                <a href="mailto:privacy@chaurasiaiji.in" className="text-orange-400 hover:underline">
-                  privacy@chaurasiaiji.in
+                <a href="mailto:privacy@royalzaika.in" className="text-orange-400 hover:underline">
+                  privacy@royalzaika.in
                 </a>{" "}
                 and we will promptly delete such information.
               </p>
@@ -482,14 +482,14 @@ export default function PrivacyPolicyPage() {
                 style={{ background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.2)" }}
               >
                 <p><span className="text-orange-400 font-semibold">Restaurant:</span> <span className="text-white">Royal Zaika</span></p>
-                <p><span className="text-orange-400 font-semibold">Address:</span> <span className="text-white">123 Food Street, Lanka, Varanasi, Uttar Pradesh â€“ 221001</span></p>
+                <p><span className="text-orange-400 font-semibold">Address:</span> <span className="text-white">123 Food Street, Lanka, Varanasi, Uttar Pradesh – 221001</span></p>
                 <p><span className="text-orange-400 font-semibold">Privacy Email:</span>{" "}
-                  <a href="mailto:privacy@chaurasiaiji.in" className="text-orange-400 hover:underline">privacy@chaurasiaiji.in</a>
+                  <a href="mailto:privacy@royalzaika.in" className="text-orange-400 hover:underline">privacy@royalzaika.in</a>
                 </p>
                 <p><span className="text-orange-400 font-semibold">Phone:</span>{" "}
                   <a href="tel:+919876543210" className="text-orange-400 hover:underline">+91 98765 43210</a>
                 </p>
-                <p><span className="text-orange-400 font-semibold">Support Hours:</span> <span className="text-white">Monday â€“ Sunday, 10:00 AM â€“ 10:30 PM IST</span></p>
+                <p><span className="text-orange-400 font-semibold">Support Hours:</span> <span className="text-white">Monday – Sunday, 10:00 AM – 10:30 PM IST</span></p>
               </div>
             </section>
 
@@ -498,8 +498,8 @@ export default function PrivacyPolicyPage() {
               className="rounded-2xl p-5 text-center text-xs text-gray-500"
               style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
             >
-              <p className="mb-1">ðŸ“… <strong className="text-gray-400">Effective Date:</strong> 1 January 2024</p>
-              <p>ðŸ”„ <strong className="text-gray-400">Last Updated:</strong> 20 July 2026</p>
+              <p className="mb-1">📅 <strong className="text-gray-400">Effective Date:</strong> 1 January 2024</p>
+              <p>🔄 <strong className="text-gray-400">Last Updated:</strong> 20 July 2026</p>
             </div>
 
             {/* Bottom Links */}
@@ -507,12 +507,12 @@ export default function PrivacyPolicyPage() {
               <Link href="/terms"
                 className="flex-1 text-center py-3 rounded-xl text-sm font-semibold transition-all"
                 style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.25)", color: "#fb923c" }}>
-                Read Terms & Conditions â†’
+                Read Terms & Conditions →
               </Link>
               <Link href="/"
                 className="flex-1 text-center py-3 rounded-xl text-sm font-semibold transition-all text-gray-400 hover:text-white"
                 style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                â† Back to Home
+                ← Back to Home
               </Link>
             </div>
 
@@ -523,7 +523,7 @@ export default function PrivacyPolicyPage() {
   );
 }
 
-/* â”€â”€ Helper Components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Helper Components ───────────────────────────────────────────────── */
 function SectionHeading({ number, title }: { number: string; title: string }) {
   return (
     <div className="flex items-center gap-3 mb-4">
@@ -558,4 +558,5 @@ function InfoList({ items }: { items: string[] }) {
     </ul>
   );
 }
+
 

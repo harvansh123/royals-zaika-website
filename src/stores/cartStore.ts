@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { MenuItem, CartItem, Coupon } from "@/lib/database.types";
@@ -84,3 +84,4 @@ export const useCartStore = create<CartStore>()(
     { name: "chaurasia-cart" }
   )
 );
+

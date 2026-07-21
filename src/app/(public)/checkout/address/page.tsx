@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
@@ -135,7 +135,7 @@ export default function CheckoutAddressPage() {
     const q = `${selectedAddr.address_line1}, ${selectedAddr.city}, ${selectedAddr.state} ${selectedAddr.pincode}`;
     fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=in&limit=1`,
-      { headers: { "User-Agent": "ChaurasiaJi-FoodApp/1.0", "Accept-Language": "en" } }
+      { headers: { "User-Agent": "RoyalZaika-FoodApp/1.0", "Accept-Language": "en" } }
     )
       .then(r => r.json())
       .then(data => {
@@ -258,7 +258,7 @@ export default function CheckoutAddressPage() {
       const addressQuery = `${line1.trim()}, ${city.trim()}, ${stateName.trim()} ${pincode.trim()}`;
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressQuery)}&countrycodes=in&limit=1`,
-        { headers: { "User-Agent": "ChaurasiaJi-FoodApp/1.0", "Accept-Language": "en" } }
+        { headers: { "User-Agent": "RoyalZaika-FoodApp/1.0", "Accept-Language": "en" } }
       );
       if (res.ok) {
         const data = await res.json();
@@ -367,7 +367,7 @@ export default function CheckoutAddressPage() {
       setGpsStep("fetching");
       const res = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-        { headers: { "Accept-Language": "en", "User-Agent": "ChaurasiaJi-FoodApp/1.0" } }
+        { headers: { "Accept-Language": "en", "User-Agent": "RoyalZaika-FoodApp/1.0" } }
       );
       if (!res.ok) throw new Error(`Nominatim HTTP ${res.status}`);
       const data = await res.json();
