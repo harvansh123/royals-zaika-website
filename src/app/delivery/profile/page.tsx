@@ -5,7 +5,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useRouter } from "next/navigation";
 import {
   User, Phone, Mail, Camera, Lock, Save, Loader2,
-  Eye, EyeOff, ChevronLeft, CheckCircle, Bike, Hash,
+  Eye, EyeOff, ChevronLeft, CheckCircle, Bike, Hash, Clock,
   WifiOff, Wifi, TrendingUp, Calendar, RefreshCw, HelpCircle, LogOut,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -23,6 +23,17 @@ const inputStyle = {
   border: "1.5px solid var(--border)",
   color: "var(--text-primary)",
 };
+
+/** Returns true if the current local time falls within the shift window. Handles overnight shifts. */
+function isWithinShift(start: string, end: string): boolean {
+  const now = new Date();
+  const cur = now.getHours() * 60 + now.getMinutes();
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  const s = sh * 60 + sm;
+  const e = eh * 60 + em;
+  return s < e ? cur >= s && cur < e : cur >= s || cur < e;
+}
 
 export default function RiderProfilePage() {
   const { user, loading: authLoading, setUser } = useAuthStore();
@@ -58,6 +69,12 @@ export default function RiderProfilePage() {
   const [saved,           setSaved]           = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
 
+  // ── Shift timing ──────────────────────────────────────────────────
+  const [shiftEnabled, setShiftEnabled] = useState(false);
+  const [shiftStart,   setShiftStart]   = useState("09:00");
+  const [shiftEnd,     setShiftEnd]     = useState("21:00");
+  const [savingShift,  setSavingShift]  = useState(false);
+
   const avatarRef = useRef<HTMLInputElement>(null);
   // Ref to prevent stale closure in toggleStatus
   const riderStatusRef = useRef<"online" | "offline">("offline");
@@ -75,6 +92,11 @@ export default function RiderProfilePage() {
     setEmail(user.email ?? "");
     setPhone(user.phone ?? "");
     setAvatarUrl(user.avatar_url ?? "");
+
+    // Load shift settings from localStorage
+    setShiftEnabled(localStorage.getItem("rider_shift_enabled") === "true");
+    setShiftStart(localStorage.getItem("rider_shift_start") || "09:00");
+    setShiftEnd(localStorage.getItem("rider_shift_end")   || "21:00");
 
     loadRiderData();
     loadRiderStats();
@@ -177,6 +199,15 @@ export default function RiderProfilePage() {
     setSavingRider(false);
   }
 
+  function saveShiftSettings() {
+    localStorage.setItem("rider_shift_enabled", String(shiftEnabled));
+    localStorage.setItem("rider_shift_start",   shiftStart);
+    localStorage.setItem("rider_shift_end",     shiftEnd);
+    setSavingShift(true);
+    setTimeout(() => setSavingShift(false), 800);
+    toast.success("Shift timing saved! ⏰");
+  }
+
   // ── FIXED: Online/Offline toggle — uses server-side API to bypass RLS recursion ──
   async function toggleStatus() {
     if (!user || togglingStatus) return;
@@ -268,6 +299,46 @@ export default function RiderProfilePage() {
     toast.success("Signed out successfully");
     await performSignOut();
   }
+
+  // ── Auto-schedule: go online at shift start, offline at shift end ──
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!shiftEnabled || !user) return;
+    let prevWithin: boolean | null = null;
+
+    async function forceStatus(online: boolean) {
+      try {
+        await fetch("/api/rider/status", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ isAvailable: online }),
+        });
+        setRiderStatus(online ? "online" : "offline");
+        riderStatusRef.current = online ? "online" : "offline";
+        toast.success(
+          online ? "Shift started — You are Online 🟢" : "Shift ended — You are Offline 🔴",
+          { duration: 4000 }
+        );
+      } catch { /* non-critical */ }
+    }
+
+    function tick() {
+      const within = isWithinShift(shiftStart, shiftEnd);
+      if (prevWithin !== null) {
+        if (within && !prevWithin)  forceStatus(true);   // shift just started
+        if (!within && prevWithin)  forceStatus(false);  // shift just ended
+      }
+      prevWithin = within; // record for next tick
+    }
+
+    tick(); // initial tick — only records state, no action
+    const timer = setInterval(tick, 60_000);
+    return () => clearInterval(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shiftEnabled, shiftStart, shiftEnd, user]);
+
+
 
   if (authLoading || !user) return (
     <div className="flex items-center justify-center h-screen" style={{ background: "var(--bg-primary)" }}>
@@ -534,6 +605,70 @@ export default function RiderProfilePage() {
             className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-base font-bold text-white gradient-brand transition-all hover:opacity-90 disabled:opacity-60">
             {savingRider ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
             {savingRider ? "Saving..." : "Save Vehicle Details"}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Shift Timing ─────────────────────────────────────────────── */}
+      <div className="rounded-2xl overflow-hidden mb-4" style={sectionStyle}>
+        <div className="px-6 py-4 flex items-center justify-between" style={sectionHeaderStyle}>
+          <p className="font-bold text-base flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
+            <Clock size={16} className="text-orange-500" /> My Shift Timing
+          </p>
+          {/* Toggle switch */}
+          <button
+            onClick={() => setShiftEnabled(p => !p)}
+            title={shiftEnabled ? "Disable auto-schedule" : "Enable auto-schedule"}
+            className={`relative w-12 h-6 rounded-full transition-all duration-300 ${shiftEnabled ? "bg-green-500" : "bg-gray-400"}`}
+          >
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-300 ${shiftEnabled ? "translate-x-6" : "translate-x-0"}`} />
+          </button>
+        </div>
+        <div className="p-6 space-y-5">
+          <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+            {shiftEnabled
+              ? "Auto-schedule is ON. You will go online at shift start and offline when shift ends."
+              : "Enable auto-schedule to automatically manage your online/offline status."}
+          </p>
+          <div className={`space-y-4 transition-opacity duration-300 ${shiftEnabled ? "opacity-100" : "opacity-40 pointer-events-none"}`}>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
+                  <Clock size={13} /> Shift Start
+                </label>
+                <input type="time" value={shiftStart} onChange={(e) => setShiftStart(e.target.value)}
+                  className={inputCls} style={inputStyle} />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
+                  <Clock size={13} /> Shift End
+                </label>
+                <input type="time" value={shiftEnd} onChange={(e) => setShiftEnd(e.target.value)}
+                  className={inputCls} style={inputStyle} />
+              </div>
+            </div>
+            {shiftEnabled && (
+              <div className="rounded-xl p-4 flex items-start gap-3"
+                style={{
+                  background: isWithinShift(shiftStart, shiftEnd) ? "rgba(22,163,74,0.08)" : "rgba(249,115,22,0.08)",
+                  border: `1px solid ${isWithinShift(shiftStart, shiftEnd) ? "rgba(22,163,74,0.25)" : "rgba(249,115,22,0.25)"}`
+                }}>
+                <Clock size={16} className={`shrink-0 mt-0.5 ${isWithinShift(shiftStart, shiftEnd) ? "text-green-500" : "text-orange-500"}`} />
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                    {isWithinShift(shiftStart, shiftEnd) ? "🟢 Shift is Active Right Now" : "⏳ Outside Shift Hours"}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                    {shiftStart} – {shiftEnd} · You can still go offline manually anytime during shift
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+          <button onClick={saveShiftSettings} disabled={savingShift}
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-base font-bold text-white gradient-brand transition-all hover:opacity-90 disabled:opacity-60">
+            {savingShift ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+            {savingShift ? "Saving..." : "Save Shift Settings"}
           </button>
         </div>
       </div>
