@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Phone, MapPin, Clock, Award, Heart, Leaf, Shield } from "lucide-react";
 
@@ -8,14 +8,7 @@ export const metadata: Metadata = {
     "Learn the story of Royal Zaika — a family restaurant rooted in Varanasi's rich culinary tradition. Serving authentic North Indian food since 2010 with love, heritage, and quality.",
 };
 
-const MILESTONES = [
-  { year: "2010", title: "The Beginning",         desc: "Founded by Shri Ram Prasad Chaurasia with a humble kitchen and a dream to share his family's recipes with Varanasi." },
-  { year: "2013", title: "First Expansion",        desc: "Expanded the dining hall to accommodate the growing flood of loyal customers. Added the famous Dum Biryani to our menu." },
-  { year: "2016", title: "FSSAI Certification",   desc: "Achieved FSSAI certification, reaffirming our commitment to the highest standards of food safety and hygiene." },
-  { year: "2019", title: "50,000 Customers",       desc: "Celebrated serving our 50,000th customer — a milestone made possible by our dedicated team and your continued trust." },
-  { year: "2022", title: "Best Restaurant Award",  desc: "Honoured with the 'Best North Indian Restaurant' award at the Varanasi Food Excellence Awards." },
-  { year: "2024", title: "Continuing the Legacy",  desc: "Still serving the same authentic recipes, the same love, and the same commitment — now joined by the next generation." },
-];
+
 
 const VALUES = [
   {
@@ -80,60 +73,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ══════════════════ OUR STORY — Warm Cream light section ══════════════════ */}
-      <section style={{ background: "#FFF8F0", borderTop: "1px solid #F5E6D3" }}>
-        <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Story text */}
-            <div>
-              <p className="text-sm font-semibold tracking-widest uppercase mb-3" style={{ color: "#F97316" }}>Est. 2010</p>
-              <h2 className="font-black text-3xl mb-6" style={{ fontFamily: "'Outfit', sans-serif", color: "#1F2937" }}>
-                Where It All Began
-              </h2>
-              <div className="space-y-4 leading-relaxed" style={{ color: "#4B5563" }}>
-                <p>
-                  In the heart of Varanasi — a city that breathes history, spirituality, and culture —
-                  Shri Ram Prasad Chaurasia opened a modest kitchen in 2010 with nothing but his
-                  mother's recipes, a tandoor, and an unshakeable belief in the power of honest food.
-                </p>
-                <p>
-                  What began as a small eatery serving neighbourhood families grew, purely on the
-                  strength of flavour and trust, into one of Varanasi's most beloved dining destinations.
-                  No marketing gimmicks. No compromises. Just food made exactly the way it should be.
-                </p>
-                <p>
-                  Today, Royal Zaika serves thousands of guests every month — from local families
-                  celebrating milestones to travellers from across India and the world seeking a taste
-                  of authentic North Indian culture. But our ethos remains unchanged: every meal
-                  deserves the same love and attention as the very first one we ever cooked.
-                </p>
-              </div>
-            </div>
 
-            {/* Story card */}
-            <div className="relative">
-              <div className="rounded-3xl p-8 space-y-6"
-                style={{ background: "#FFFFFF", border: "1px solid #F5E6D3", boxShadow: "0 4px 24px rgba(31,41,55,0.08)" }}>
-                {[
-                  { emoji: "🏺", stat: "Est. 2010",  label: "Founded in Varanasi"       },
-                  { emoji: "👨‍👩‍👧‍👦", stat: "3rd Gen",    label: "Family-run tradition"      },
-                  { emoji: "🌶️",  stat: "100+",      label: "Unique dishes on our menu"  },
-                  { emoji: "📍",  stat: "1 Location", label: "Pure, focused excellence"  },
-                ].map(({ emoji, stat, label }) => (
-                  <div key={label} className="flex items-center gap-5 pb-5 last:pb-0"
-                    style={{ borderBottom: "1px solid #F5E6D3" }}>
-                    <span className="text-3xl">{emoji}</span>
-                    <div>
-                      <p className="font-black text-xl" style={{ fontFamily: "'Outfit', sans-serif", color: "#1F2937" }}>{stat}</p>
-                      <p className="text-sm" style={{ color: "#6B7280" }}>{label}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* ══════════════════ MISSION & VISION — Deep Charcoal ══════════════════ */}
       <section style={{ background: "#1F2937", borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
@@ -194,47 +134,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ══════════════════ TIMELINE — Deep Charcoal dark section ══════════════════ */}
-      <section style={{ background: "#1F2937", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-        <div className="max-w-4xl mx-auto px-5 sm:px-8 py-16">
-          <div className="text-center mb-12">
-            <p className="text-sm font-semibold tracking-widest uppercase mb-3" style={{ color: "#FBBF24" }}>Our Journey</p>
-            <h2 className="font-black text-3xl sm:text-4xl" style={{ fontFamily: "'Outfit', sans-serif", color: "#FFF8F0" }}>
-              14 Years of Growth
-            </h2>
-          </div>
 
-          <div className="relative">
-            {/* Vertical timeline line */}
-            <div className="absolute left-4 sm:left-1/2 top-0 bottom-0 w-px"
-              style={{ background: "linear-gradient(to bottom, rgba(251,191,36,0.5), rgba(249,115,22,0.2), transparent)", transform: "translateX(-50%)" }} />
-
-            <div className="space-y-10">
-              {MILESTONES.map(({ year, title, desc }, i) => (
-                <div key={year}
-                  className={`relative flex gap-8 sm:gap-0 ${i % 2 === 0 ? "sm:flex-row" : "sm:flex-row-reverse"} items-center`}>
-                  {/* Content */}
-                  <div className={`flex-1 pl-12 sm:pl-0 ${i % 2 === 0 ? "sm:pr-12 sm:text-right" : "sm:pl-12"}`}>
-                    <div className="p-5 rounded-2xl inline-block w-full sm:w-auto sm:max-w-sm"
-                      style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(251,191,36,0.15)" }}>
-                      <p className="font-bold text-sm mb-1" style={{ color: "#FBBF24" }}>{year}</p>
-                      <h3 className="font-bold mb-2" style={{ color: "#FFF8F0" }}>{title}</h3>
-                      <p className="text-sm leading-relaxed" style={{ color: "#9ca3af" }}>{desc}</p>
-                    </div>
-                  </div>
-
-                  {/* Center dot */}
-                  <div className="absolute left-4 sm:left-1/2 w-4 h-4 rounded-full shrink-0 z-10"
-                    style={{ transform: "translate(-50%, 0)", background: "#F97316", boxShadow: "0 0 14px rgba(249,115,22,0.65)" }} />
-
-                  {/* Empty side */}
-                  <div className="hidden sm:block flex-1" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* ══════════════════ TEAM — Warm Cream light section ══════════════════ */}
       <section style={{ background: "#FFF8F0", borderTop: "1px solid #F5E6D3" }}>
