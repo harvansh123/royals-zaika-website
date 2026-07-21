@@ -237,6 +237,7 @@ export default function OwnerSupportDashboard() {
   const [archivedFilterStatus, setArchivedFilterStatus] = useState("All");
   const [archivedFilterType, setArchivedFilterType] = useState("All");
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadActiveTickets = useCallback(async () => {
     setActiveLoading(true);
@@ -360,11 +361,17 @@ export default function OwnerSupportDashboard() {
           </p>
         </div>
         <button
-          onClick={() => { loadActiveTickets(); if (activeTab === "archived") loadArchivedTickets(); }}
+          onClick={async () => {
+            setIsRefreshing(true);
+            await loadActiveTickets();
+            if (activeTab === "archived") await loadArchivedTickets();
+            setIsRefreshing(false);
+          }}
+          disabled={isRefreshing}
           className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl transition-all border hover:opacity-80"
           style={{ background: "var(--bg-secondary)", color: "var(--text-primary)", borderColor: "var(--border)" }}
         >
-          <RefreshCw size={14} /> Refresh
+          <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} /> {isRefreshing ? "Refreshing..." : "Refresh"}
         </button>
       </div>
 

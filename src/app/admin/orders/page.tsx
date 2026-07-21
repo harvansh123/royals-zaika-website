@@ -54,6 +54,7 @@ export default function AdminOrdersPage() {
   const [ridersLoading, setRidersLoading] = useState(false);
   const [assigning, setAssigning]     = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (!user) { router.push("/auth/login"); return; }
@@ -223,8 +224,9 @@ export default function AdminOrdersPage() {
               <span className="text-yellow-400 font-bold text-sm">{pendingCount} pending</span>
             </div>
           )}
-          <button onClick={fetchOrders} className="p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
-            <RefreshCw size={18} />
+          <button onClick={async () => { setIsRefreshing(true); await fetchOrders(); setIsRefreshing(false); }}
+            className="p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-colors" disabled={isRefreshing}>
+            <RefreshCw size={18} className={isRefreshing ? "animate-spin" : ""} />
           </button>
         </div>
       </div>

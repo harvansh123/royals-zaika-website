@@ -26,6 +26,7 @@ export default function OwnerTimingPage() {
   const [openingTime, setOpeningTime] = useState("09:00");
   const [closingTime,  setClosingTime]  = useState("23:00");
   const [statusMode,  setStatusMode]  = useState<Mode>("auto");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Auth guard
   useEffect(() => {
@@ -110,9 +111,12 @@ export default function OwnerTimingPage() {
             Control when customers can place orders
           </p>
         </div>
-        <button onClick={fetchSettings} className="p-2 rounded-xl transition hover:opacity-70" title="Refresh"
+        <button
+          onClick={async () => { setIsRefreshing(true); await fetchSettings(); setIsRefreshing(false); }}
+          disabled={isRefreshing}
+          className="p-2 rounded-xl transition hover:opacity-70" title="Refresh"
           style={{ background: "var(--card-bg)", border: "1px solid var(--border)" }}>
-          <RefreshCw size={16} style={{ color: "var(--text-muted)" }} />
+          <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} style={{ color: "var(--text-muted)" }} />
         </button>
       </div>
 

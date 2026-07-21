@@ -53,6 +53,7 @@ export default function DeliveryDashboard() {
   const [isOnline, setIsOnline]           = useState<boolean>(false);
   const [togglingOnline, setTogglingOnline] = useState(false);
   const [signingOut, setSigningOut]       = useState(false);
+  const [isRefreshing, setIsRefreshing]   = useState(false);
 
   // ── Toggle Online / Offline ──────────────────────────────────────
   // Calls /api/rider/status PATCH, updates local state instantly.
@@ -240,7 +241,9 @@ export default function DeliveryDashboard() {
   }
 
   async function fullRefresh() {
+    setIsRefreshing(true);
     await Promise.all([fetchMyOrders(), fetchTodayCount(), refreshKm()]);
+    setIsRefreshing(false);
     toast.success("Refreshed! ✅", { duration: 1500 });
   }
 
@@ -520,10 +523,10 @@ export default function DeliveryDashboard() {
         <h2 className="font-semibold" style={{ color: "var(--text-primary)" }}>
           Active Orders {orders.length > 0 && <span className="ml-2 text-xs" style={{ color: "var(--text-muted)" }}>({orders.length})</span>}
         </h2>
-        <button onClick={fullRefresh}
+        <button onClick={fullRefresh} disabled={isRefreshing}
           className="flex items-center gap-1.5 text-xs transition-colors font-medium"
           style={{ color: "var(--text-muted)" }}>
-          <RefreshCw size={13} /> Refresh
+          <RefreshCw size={13} className={isRefreshing ? "animate-spin" : ""} /> {isRefreshing ? "Refreshing..." : "Refresh"}
         </button>
       </div>
 

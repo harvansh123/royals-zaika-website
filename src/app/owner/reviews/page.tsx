@@ -51,6 +51,7 @@ export default function OwnerReviewsPage() {
   const [filter,     setFilter]     = useState("all");
   const [searchInput, setSearchInput] = useState("");
   const [hasMore,    setHasMore]    = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchReviews = useCallback(async (p: number, s: string, f: string, reset = false) => {
     setLoading(true);
@@ -124,10 +125,12 @@ export default function OwnerReviewsPage() {
             {total} total review{total !== 1 ? "s" : ""} — real-time updates
           </p>
         </div>
-        <button onClick={() => fetchReviews(1, search, filter, true)}
+        <button
+          onClick={async () => { setIsRefreshing(true); await fetchReviews(1, search, filter, true); setIsRefreshing(false); }}
+          disabled={isRefreshing}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all hover:opacity-80"
           style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
-          <RefreshCw size={13} /> Refresh
+          <RefreshCw size={13} className={isRefreshing ? "animate-spin" : ""} /> {isRefreshing ? "Refreshing..." : "Refresh"}
         </button>
       </div>
 
