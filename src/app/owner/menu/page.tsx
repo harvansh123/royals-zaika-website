@@ -34,6 +34,11 @@ export default function OwnerMenuPage() {
   const [search, setSearch]       = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // New category states
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName]   = useState("");
+  const [addingCategory, setAddingCategory]     = useState(false);
+
   useEffect(() => { load(); }, []);
 
   async function load() {
@@ -61,6 +66,8 @@ export default function OwnerMenuPage() {
     setForm(EMPTY_FORM);
     setImageFile(null);
     setImagePreview(null);
+    setIsAddingCategory(false);
+    setNewCategoryName("");
     setShowForm(true);
   }
 
@@ -78,6 +85,8 @@ export default function OwnerMenuPage() {
     });
     setImageFile(null);
     setImagePreview(item.image_url);
+    setIsAddingCategory(false);
+    setNewCategoryName("");
     setShowForm(true);
   }
 
@@ -93,6 +102,29 @@ export default function OwnerMenuPage() {
     setImageFile(null);
     setImagePreview(null);
     if (fileRef.current) fileRef.current.value = "";
+  }
+
+  async function handleAddCategory() {
+    if (!newCategoryName.trim()) return;
+    setAddingCategory(true);
+    try {
+      const res = await fetch("/api/owner/menu/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newCategoryName })
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      setCategories(prev => [...prev, json.category]);
+      setForm(p => ({ ...p, category_id: json.category.id }));
+      setIsAddingCategory(false);
+      setNewCategoryName("");
+      toast.success("Category added!");
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to add category");
+    } finally {
+      setAddingCategory(false);
+    }
   }
 
   async function toggleAvailability(item: Item) {
@@ -343,12 +375,40 @@ export default function OwnerMenuPage() {
                   placeholder="Sale Price ₹" className="input-field" />
               </div>
 
-              <select value={form.category_id} onChange={(e) => setForm((p) => ({ ...p, category_id: e.target.value }))}
-                className="input-field"
-                style={!form.category_id ? { border: "1.5px solid rgba(249,115,22,0.5)" } : {}}>
-                <option value="">⚠️ Select Category *</option>
-                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <div className="flex flex-col gap-2">
+                {!isAddingCategory ? (
+                  <div className="flex gap-2">
+                    <select value={form.category_id} onChange={(e) => setForm((p) => ({ ...p, category_id: e.target.value }))}
+                      className="input-field flex-1"
+                      style={!form.category_id ? { border: "1.5px solid rgba(249,115,22,0.5)" } : {}}>
+                      <option value="">⚠️ Select Category *</option>
+                      {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                    <button type="button" onClick={() => setIsAddingCategory(true)}
+                      className="px-3 rounded-xl flex items-center justify-center transition-all"
+                      style={{ background: "rgba(249,115,22,0.1)", color: "#f97316", border: "1px solid rgba(249,115,22,0.2)" }}
+                      title="Add New Category">
+                      <Plus size={18} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input autoFocus value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="New category name" className="input-field flex-1"
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddCategory(); } }} />
+                    <button type="button" onClick={handleAddCategory} disabled={addingCategory || !newCategoryName.trim()}
+                      className="px-3 rounded-xl flex items-center justify-center transition-all disabled:opacity-50"
+                      style={{ background: "#16a34a", color: "white" }}>
+                      {addingCategory ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
+                    </button>
+                    <button type="button" onClick={() => setIsAddingCategory(false)}
+                      className="px-3 rounded-xl flex items-center justify-center transition-all"
+                      style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.2)" }}>
+                      <X size={18} />
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {/* Toggles */}
               <div className="flex gap-3">
