@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
-import { supabase } from "@/lib/supabase/client";
+// supabase client not needed — all operations use server-side API routes
 import Image from "next/image";
 import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, X, Loader2, ImagePlus, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -122,20 +122,24 @@ export default function OwnerMenuPage() {
     try {
       let imageUrl = editItem?.image_url ?? null;
 
-      // Upload image if selected (storage uses client-side, this is fine)
+      // Upload image via server-side API (service role bypasses Storage RLS)
       if (imageFile) {
-        const ext  = imageFile.name.split(".").pop();
-        const path = `menu/${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("food-images").upload(path, imageFile, { upsert: true });
-        if (upErr) {
-          // If storage RLS blocks, fall back to a public URL if image was pasted
-          console.warn("Storage upload failed:", upErr.message);
-          toast.error("Image upload failed — please paste an image URL instead, or contact admin to fix storage policy.");
+        const uploadForm = new FormData();
+        uploadForm.append("file", imageFile);
+
+        const upRes  = await fetch("/api/owner/upload", {
+          method:      "POST",
+          credentials: "include",
+          body:        uploadForm,
+        });
+        const upJson = await upRes.json();
+
+        if (!upRes.ok) {
+          toast.error("Image upload failed: " + (upJson.error ?? "Please try again"));
           setSaving(false);
           return;
         }
-        const { data: urlData } = supabase.storage.from("food-images").getPublicUrl(path);
-        imageUrl = urlData.publicUrl;
+        imageUrl = upJson.url;
       }
 
       const payload = {
