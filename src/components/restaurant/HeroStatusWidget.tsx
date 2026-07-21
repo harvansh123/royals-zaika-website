@@ -68,13 +68,6 @@ export default function HeroStatusWidget({ initialSettings }: Props) {
           color: isOpen ? "#4ade80" : "#f87171",
         }}
       >
-        <span
-          className="w-2 h-2 rounded-full"
-          style={{
-            background: isOpen ? "#4ade80" : "#f87171",
-            animation: isOpen ? "pulse 2s ease-in-out infinite" : "none",
-          }}
-        />
         <span className="font-semibold">{statusLabel}</span>
         <span style={{ color: "rgba(255,255,255,0.4)" }}>·</span>
         <span style={{ color: "rgba(255,255,255,0.6)" }}>
