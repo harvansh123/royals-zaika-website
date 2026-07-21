@@ -29,14 +29,14 @@ const VALUES = [
   {
     icon: Award,
     title: "Consistent Excellence",
-    desc: "The dal makhani you loved in 2015 tastes exactly the same today. We protect our recipes like family heirlooms.",
+    desc: "The Shahi Paneer you loved in 2025 tastes exactly the same today. We protect our recipes like family heirlooms.",
   },
 ];
 
 const TEAM = [
-  { emoji: "👨‍🍳", name: "Ram Prasad Chaurasia", role: "Founder & Head Chef",     desc: "35+ years of expertise in North Indian cuisine. His recipes are the soul of every dish." },
-  { emoji: "👩‍🍳", name: "Savitri Chaurasia",      role: "Co-Founder & Kitchen Head", desc: "Masters traditional sweets and desserts. Her rabri is legendary in Varanasi." },
-  { emoji: "🧑‍🍳", name: "Rohan Chaurasia",        role: "Executive Chef",             desc: "Second generation, trained in Lucknow. Brings innovation while honouring tradition." },
+  { emoji: "👨‍🍳", name: "Harvansh Chaurasia",  role: "Founder & Owner",    desc: "Passionate about serving fresh, delicious food and creating a great experience for every customer." },
+  { emoji: "👩‍🍳", name: "Sarita Chaurasia",     role: "Kitchen Head",       desc: "The heart of our kitchen, preparing fresh and delicious food with love and care for every customer in Prayagraj." },
+  { emoji: "👩‍💼", name: "Sister's Name",         role: "Team Member",        desc: "A valued part of our team, helping us serve fresh and delicious food with care and dedication in Prayagraj." },
 ];
 
 export default function AboutPage() {
@@ -68,7 +68,7 @@ export default function AboutPage() {
           </h1>
           <p className="text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed" style={{ color: "#d1bfa8" }}>
             Royal Zaika was born from a simple belief — that real Indian food tells a story.
-            For over 14 years, we've been sharing that story, one plate at a time.
+            For over 1+ year, we've been sharing that story, one plate at a time.
           </p>
         </div>
       </section>
@@ -168,15 +168,15 @@ export default function AboutPage() {
               Come, Be Our Guest
             </h2>
             <p className="max-w-lg mx-auto" style={{ color: "#9ca3af" }}>
-              We'd love to welcome you. Find us in the heart of Lanka, Varanasi.
+              We'd love to welcome you. Find us in the heart of Naini, Prayagraj.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 max-w-3xl mx-auto mb-12">
             {[
-              { icon: MapPin, label: "Address",      value: "123 Food Street, Lanka, Varanasi, UP 221001" },
-              { icon: Phone,  label: "Phone",         value: "+91 98765 43210"                             },
-              { icon: Clock,  label: "Opening Hours", value: "Daily: 10:00 AM – 10:30 PM"                 },
+              { icon: MapPin, label: "Address",      value: "474 Chak Raghunath, Naini, Prayagraj" },
+              { icon: Phone,  label: "Phone",         value: "+91 73792 94659"                       },
+              { icon: Clock,  label: "Opening Hours", value: "Daily: 11:00 AM – 12:00 AM"           },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex flex-col items-center text-center p-6 rounded-2xl gap-3"
                 style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(251,191,36,0.15)" }}>
