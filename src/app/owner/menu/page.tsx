@@ -88,6 +88,13 @@ export default function OwnerMenuPage() {
     setImagePreview(URL.createObjectURL(file));
   }
 
+  function handleRemoveImage(e: React.MouseEvent) {
+    e.stopPropagation();
+    setImageFile(null);
+    setImagePreview(null);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
   async function toggleAvailability(item: Item) {
     const newVal = !item.is_available;
     const res  = await fetch("/api/owner/menu", {
@@ -120,7 +127,7 @@ export default function OwnerMenuPage() {
     if (!form.category_id) { toast.error("Please select a category"); return; }
     setSaving(true);
     try {
-      let imageUrl = editItem?.image_url ?? null;
+      let imageUrl = imagePreview && !imagePreview.startsWith("blob:") ? imagePreview : null;
 
       // Upload image via server-side API (service role bypasses Storage RLS)
       if (imageFile) {
@@ -297,12 +304,24 @@ export default function OwnerMenuPage() {
             </div>
 
             {/* Image Upload */}
-            <div className="mb-4 cursor-pointer" onClick={() => fileRef.current?.click()}>
+            <div className="mb-4">
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-              <div className="h-36 rounded-2xl overflow-hidden flex items-center justify-center transition-all"
+              <div 
+                onClick={() => !imagePreview && fileRef.current?.click()}
+                className={`relative h-36 rounded-2xl overflow-hidden flex items-center justify-center transition-all ${!imagePreview ? "cursor-pointer" : ""}`}
                 style={{ background: "var(--bg-glass)", border: "2px dashed var(--border)" }}>
                 {imagePreview ? (
-                  <img src={imagePreview} alt="preview" className="h-full w-full object-cover" />
+                  <>
+                    <img src={imagePreview} alt="preview" className="h-full w-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-3 opacity-0 hover:opacity-100 transition-opacity">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }} className="px-3 py-1.5 rounded-lg bg-white/20 text-white font-medium backdrop-blur-sm hover:bg-white/30 text-sm">
+                        Change
+                      </button>
+                      <button type="button" onClick={handleRemoveImage} className="px-3 py-1.5 rounded-lg bg-red-500/80 text-white font-medium backdrop-blur-sm hover:bg-red-500 text-sm">
+                        Remove
+                      </button>
+                    </div>
+                  </>
                 ) : (
                   <div className="text-center">
                     <ImagePlus size={28} className="mx-auto mb-2 text-orange-500" />
