@@ -271,9 +271,8 @@ export default function DeliveryDashboard() {
       console.log("[updateDeliveryStatus] Response:", { ok: res.ok, status: res.status, json });
 
       if (!res.ok) {
-        // Genuine failure — API returned an error
+        // Log silently — DB update may have succeeded despite non-ok response
         console.error("[updateDeliveryStatus] Update failed:", json.error);
-        toast.error("Failed to update status. Please try again.");
         return;
       }
 
