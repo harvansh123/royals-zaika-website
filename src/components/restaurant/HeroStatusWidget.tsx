@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { computeIsOpen, StatusMode, RestaurantTimingSettings } from "@/hooks/useRestaurantStatus";
+import { formatTime, computeIsOpen, StatusMode, RestaurantTimingSettings } from "@/hooks/useRestaurantStatus";
 import ClosedPopup from "@/components/restaurant/ClosedPopup";
 
 interface Props {
@@ -23,7 +23,8 @@ export default function HeroStatusWidget({ initialSettings }: Props) {
   const mode   = settings.status_mode as StatusMode;
   const isTemporarilyClosed = mode === "temporarily_closed";
 
-
+  const openingFmt = formatTime(settings.opening_time ?? "09:00");
+  const closingFmt  = formatTime(settings.closing_time  ?? "23:00");
 
   useEffect(() => {
     // Realtime subscription
@@ -47,13 +48,39 @@ export default function HeroStatusWidget({ initialSettings }: Props) {
     };
   }, []);
 
-
+  const statusLabel = isTemporarilyClosed
+    ? "🔴 Temporarily Closed"
+    : isOpen
+    ? "🟢 Open Now"
+    : "🔴 Closed";
 
   return (
     <>
       {/* Popup for temporarily closed — shown once per session */}
       <ClosedPopup isTemporarilyClosed={isTemporarilyClosed} />
 
+      {/* ── Status Badge ──────────────────────────────────────────────── */}
+      <div
+        className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full text-sm font-medium transition-all duration-500"
+        style={{
+          background: isOpen ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
+          border: `1px solid ${isOpen ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`,
+          color: isOpen ? "#4ade80" : "#f87171",
+        }}
+      >
+        <span
+          className="w-2 h-2 rounded-full"
+          style={{
+            background: isOpen ? "#4ade80" : "#f87171",
+            animation: isOpen ? "pulse 2s ease-in-out infinite" : "none",
+          }}
+        />
+        <span className="font-semibold">{statusLabel}</span>
+        <span style={{ color: "rgba(255,255,255,0.4)" }}>·</span>
+        <span style={{ color: "rgba(255,255,255,0.6)" }}>
+          {openingFmt} – {closingFmt}
+        </span>
+      </div>
 
       {/* ── CTA Button — changes label based on open/closed state ────── */}
       <div className="flex flex-col sm:flex-row gap-4">
