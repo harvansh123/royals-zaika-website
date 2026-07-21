@@ -35,6 +35,13 @@ function isWithinShift(start: string, end: string): boolean {
   return s < e ? cur >= s && cur < e : cur >= s || cur < e;
 }
 
+/** Returns true if today's date (YYYY-MM-DD) falls within the leave range (inclusive). */
+function isOnLeave(start: string, end: string): boolean {
+  if (!start || !end) return false;
+  const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
+  return today >= start && today <= end;
+}
+
 export default function RiderProfilePage() {
   const { user, loading: authLoading, setUser } = useAuthStore();
   const router = useRouter();
@@ -75,6 +82,11 @@ export default function RiderProfilePage() {
   const [shiftEnd,     setShiftEnd]     = useState("21:00");
   const [savingShift,  setSavingShift]  = useState(false);
 
+  // ── Leave / Days off ────────────────────────────────────────
+  const [leaveStart,  setLeaveStart]  = useState("");
+  const [leaveEnd,    setLeaveEnd]    = useState("");
+  const [savingLeave, setSavingLeave] = useState(false);
+
   const avatarRef = useRef<HTMLInputElement>(null);
   // Ref to prevent stale closure in toggleStatus
   const riderStatusRef = useRef<"online" | "offline">("offline");
@@ -97,6 +109,8 @@ export default function RiderProfilePage() {
     setShiftEnabled(localStorage.getItem("rider_shift_enabled") === "true");
     setShiftStart(localStorage.getItem("rider_shift_start") || "09:00");
     setShiftEnd(localStorage.getItem("rider_shift_end")   || "21:00");
+    setLeaveStart(localStorage.getItem("rider_leave_start") || "");
+    setLeaveEnd(localStorage.getItem("rider_leave_end")   || "");
 
     loadRiderData();
     loadRiderStats();
@@ -206,6 +220,24 @@ export default function RiderProfilePage() {
     setSavingShift(true);
     setTimeout(() => setSavingShift(false), 800);
     toast.success("Shift timing saved! ⏰");
+  }
+
+  function saveLeaveSettings() {
+    if (!leaveStart || !leaveEnd) { toast.error("Please select both start and end dates"); return; }
+    if (leaveStart > leaveEnd)    { toast.error("End date must be on or after start date"); return; }
+    localStorage.setItem("rider_leave_start", leaveStart);
+    localStorage.setItem("rider_leave_end",   leaveEnd);
+    setSavingLeave(true);
+    setTimeout(() => setSavingLeave(false), 800);
+    toast.success("Leave scheduled! You will stay offline during this period 🗓️");
+  }
+
+  function cancelLeave() {
+    localStorage.removeItem("rider_leave_start");
+    localStorage.removeItem("rider_leave_end");
+    setLeaveStart("");
+    setLeaveEnd("");
+    toast.success("Leave cancelled ✅");
   }
 
   // ── FIXED: Online/Offline toggle — uses server-side API to bypass RLS recursion ──
@@ -326,19 +358,45 @@ export default function RiderProfilePage() {
     function tick() {
       const within = isWithinShift(shiftStart, shiftEnd);
       if (prevWithin !== null) {
-        if (within && !prevWithin)  forceStatus(true);   // shift just started
-        if (!within && prevWithin)  forceStatus(false);  // shift just ended
+        // Only go online at shift start if NOT on leave
+        if (within && !prevWithin && !isOnLeave(leaveStart, leaveEnd))  forceStatus(true);  // shift started
+        if (!within && prevWithin)  forceStatus(false);  // shift ended
       }
-      prevWithin = within; // record for next tick
+      prevWithin = within;
     }
 
-    tick(); // initial tick — only records state, no action
+    tick();
     const timer = setInterval(tick, 60_000);
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shiftEnabled, shiftStart, shiftEnd, user]);
+  }, [shiftEnabled, shiftStart, shiftEnd, leaveStart, leaveEnd, user]);
 
+  // ── Leave auto-offline: keep rider offline during leave period ────────
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!user) return;
 
+    async function checkLeave() {
+      if (isOnLeave(leaveStart, leaveEnd) && riderStatusRef.current === "online") {
+        try {
+          await fetch("/api/rider/status", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ isAvailable: false }),
+          });
+          setRiderStatus("offline");
+          riderStatusRef.current = "offline";
+          toast("You are on leave — set to Offline 🗓️", { icon: "🛑", duration: 4000 });
+        } catch { /* non-critical */ }
+      }
+    }
+
+    checkLeave(); // immediate check on mount / leave change
+    const timer = setInterval(checkLeave, 60_000);
+    return () => clearInterval(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leaveStart, leaveEnd, user]);
 
   if (authLoading || !user) return (
     <div className="flex items-center justify-center h-screen" style={{ background: "var(--bg-primary)" }}>
@@ -669,6 +727,76 @@ export default function RiderProfilePage() {
             className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-base font-bold text-white gradient-brand transition-all hover:opacity-90 disabled:opacity-60">
             {savingShift ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
             {savingShift ? "Saving..." : "Save Shift Settings"}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Days Off / Leave ──────────────────────────────────────────── */}
+      <div className="rounded-2xl overflow-hidden mb-4" style={sectionStyle}>
+        <div className="px-6 py-4 flex items-center gap-3" style={sectionHeaderStyle}>
+          <Calendar size={16} className="text-purple-500" />
+          <p className="font-bold text-base" style={{ color: "var(--text-primary)" }}>Days Off / Leave</p>
+          {isOnLeave(leaveStart, leaveEnd) && (
+            <span className="ml-auto text-xs font-bold px-2.5 py-1 rounded-full bg-red-500/10 text-red-500 border border-red-500/20">
+              🛑 On Leave
+            </span>
+          )}
+        </div>
+        <div className="p-6 space-y-5">
+          <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+            Select a date range for your days off. You will be automatically kept offline during this period.
+          </p>
+
+          {/* Active leave warning */}
+          {isOnLeave(leaveStart, leaveEnd) && (
+            <div className="rounded-xl p-4 flex items-start justify-between gap-3"
+              style={{ background: "rgba(220,38,38,0.07)", border: "1px solid rgba(220,38,38,0.25)" }}>
+              <div className="flex items-start gap-3">
+                <span className="text-xl">🛑</span>
+                <div>
+                  <p className="text-sm font-semibold text-red-500">Leave Active</p>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                    {new Date(leaveStart + "T12:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
+                    {" → "}
+                    {new Date(leaveEnd + "T12:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                  </p>
+                </div>
+              </div>
+              <button onClick={cancelLeave}
+                className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg transition-all hover:opacity-80"
+                style={{ background: "rgba(220,38,38,0.12)", color: "#dc2626", border: "1px solid rgba(220,38,38,0.3)" }}>
+                Cancel Leave
+              </button>
+            </div>
+          )}
+
+          {/* Date pickers */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium mb-2 flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
+                <Calendar size={13} /> Leave Start
+              </label>
+              <input type="date" value={leaveStart}
+                min={new Date().toLocaleDateString("en-CA")}
+                onChange={(e) => setLeaveStart(e.target.value)}
+                className={inputCls} style={inputStyle} />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
+                <Calendar size={13} /> Leave End
+              </label>
+              <input type="date" value={leaveEnd}
+                min={leaveStart || new Date().toLocaleDateString("en-CA")}
+                onChange={(e) => setLeaveEnd(e.target.value)}
+                className={inputCls} style={inputStyle} />
+            </div>
+          </div>
+
+          <button onClick={saveLeaveSettings} disabled={savingLeave || !leaveStart || !leaveEnd}
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-base font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
+            style={{ background: "linear-gradient(135deg,#7c3aed,#a855f7)" }}>
+            {savingLeave ? <Loader2 size={18} className="animate-spin" /> : <Calendar size={18} />}
+            {savingLeave ? "Saving..." : "Set Days Off"}
           </button>
         </div>
       </div>
