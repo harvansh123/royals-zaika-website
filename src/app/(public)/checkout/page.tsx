@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/stores/cartStore";
@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 import Image from "next/image";
 import { ADDRESS_SESSION_KEY } from "@/app/(public)/checkout/address/page";
 import { haversineKm, RestaurantSettings } from "@/lib/haversine";
+import { getDeliveryPricing } from "@/lib/deliveryPricing";
 import { useRestaurantStatus } from "@/hooks/useRestaurantStatus";
 import ClosedPopup from "@/components/restaurant/ClosedPopup";
 
@@ -167,6 +168,12 @@ export default function CheckoutPage() {
       const discountAmt = offerDiscount;
       const finalTotal  = Math.max(0, sub + fee - discountAmt);
 
+      const orderDistanceKm = settings && deliveryAddress.latitude && deliveryAddress.longitude
+        ? haversineKm(settings.restaurant_lat, settings.restaurant_lng, deliveryAddress.latitude, deliveryAddress.longitude)
+        : null;
+
+      const pricing = getDeliveryPricing(orderDistanceKm);
+
       // Create order
       const { data: order, error: orderErr } = await supabase.from("orders").insert({
         user_id:          user.id,
@@ -174,13 +181,14 @@ export default function CheckoutPage() {
         payment_method:   method,
         payment_status:   "pending",
         subtotal:         sub,
-        delivery_fee:     fee,
+        delivery_fee:     fee, // this fee is already the distance-based customerFee
+        rider_payout:       pricing?.riderPayout ?? null,
+        owner_contribution: pricing?.ownerContribution ?? null,
+        distance_range:     pricing?.rangeLabel ?? null,
         discount_amount:  discountAmt,
         total_amount:     finalTotal,
         estimated_time:   30,
-        delivery_distance_km: settings && deliveryAddress.latitude && deliveryAddress.longitude
-          ? haversineKm(settings.restaurant_lat, settings.restaurant_lng, deliveryAddress.latitude, deliveryAddress.longitude)
-          : null,
+        delivery_distance_km: orderDistanceKm,
         radius_validated: true,
         delivery_address: deliveryAddress
           ? {

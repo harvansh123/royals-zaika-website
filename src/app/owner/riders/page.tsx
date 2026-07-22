@@ -29,6 +29,7 @@ type Rider = {
   is_busy: boolean;
   total_deliveries: number;
   today_deliveries: number;
+  today_earnings: number;
   rating: number;
   account_status: AccountStatus;
   suspension_end: string | null;
@@ -361,8 +362,8 @@ export default function OwnerRidersPage() {
                       <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Today</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-base font-black text-blue-600">{rider.total_deliveries}</p>
-                      <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Total</p>
+                      <p className="text-base font-black text-emerald-600">₹{Math.round(rider.today_earnings ?? 0)}</p>
+                      <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Earnings</p>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-1">

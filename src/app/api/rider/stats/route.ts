@@ -17,6 +17,9 @@ export interface RiderStatsResponse {
   todayDistanceKm: number;
   weekDistanceKm: number;
   monthDistanceKm: number;
+  todayEarnings: number;
+  weekEarnings: number;
+  monthEarnings: number;
   history: DailyRecord[];
 }
 
@@ -113,11 +116,35 @@ export async function GET(req: NextRequest) {
       if (d >= monthStart) monthDistanceKm += h.distanceKm;
     }
 
+    // ── Fetch Rider Earnings ──────────────────────────────────────
+    let todayEarnings = 0;
+    let weekEarnings  = 0;
+    let monthEarnings = 0;
+
+    const { data: earningsData } = await supabaseAdmin
+      .from("rider_earnings")
+      .select("payout_amount, earned_at")
+      .eq("partner_id", riderId)
+      .gte("earned_at", monthStart.toISOString());
+
+    for (const e of earningsData ?? []) {
+      const amount = parseFloat(e.payout_amount);
+      const earnedAt = new Date(e.earned_at);
+      const dateStr = earnedAt.toLocaleDateString("en-CA");
+
+      if (dateStr === todayStr) todayEarnings += amount;
+      if (earnedAt >= weekStart)  weekEarnings  += amount;
+      if (earnedAt >= monthStart) monthEarnings += amount;
+    }
+
     const resp: RiderStatsResponse = {
       todayDeliveries,
       todayDistanceKm:  Math.round(todayDistanceKm  * 10) / 10,
       weekDistanceKm:   Math.round(weekDistanceKm   * 10) / 10,
       monthDistanceKm:  Math.round(monthDistanceKm  * 10) / 10,
+      todayEarnings:    Math.round(todayEarnings),
+      weekEarnings:     Math.round(weekEarnings),
+      monthEarnings:    Math.round(monthEarnings),
       history: history.slice(0, 60), // last 60 days
     };
 

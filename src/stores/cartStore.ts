@@ -1,25 +1,28 @@
-﻿"use client";
+"use client";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { MenuItem, CartItem, Coupon } from "@/lib/database.types";
+import { getDeliveryPricing } from "@/lib/deliveryPricing";
 
 interface CartStore {
   items: CartItem[];
   coupon: Coupon | null;
   discountAmount: number;
+  deliveryDistanceKm: number | null;
 
-  addItem:    (item: MenuItem) => void;
-  removeItem: (id: string) => void;
-  updateQty:  (id: string, qty: number) => void;
-  clearCart:  () => void;
-  applyCoupon:(coupon: Coupon) => void;
-  removeCoupon:() => void;
+  addItem:             (item: MenuItem) => void;
+  removeItem:          (id: string) => void;
+  updateQty:           (id: string, qty: number) => void;
+  clearCart:           () => void;
+  applyCoupon:         (coupon: Coupon) => void;
+  removeCoupon:        () => void;
+  setDeliveryDistance: (km: number | null) => void;
 
   // Computed
-  totalItems:    () => number;
-  subtotal:      () => number;
-  deliveryFee:   () => number;
-  total:         () => number;
+  totalItems:  () => number;
+  subtotal:    () => number;
+  deliveryFee: () => number;
+  total:       () => number;
 }
 
 export const useCartStore = create<CartStore>()(
@@ -28,6 +31,7 @@ export const useCartStore = create<CartStore>()(
       items: [],
       coupon: null,
       discountAmount: 0,
+      deliveryDistanceKm: null,
 
       addItem: (menuItem) => {
         const items = get().items;
@@ -50,7 +54,9 @@ export const useCartStore = create<CartStore>()(
         set({ items: get().items.map((i) => i.id === id ? { ...i, quantity: qty } : i) });
       },
 
-      clearCart: () => set({ items: [], coupon: null, discountAmount: 0 }),
+      clearCart: () => set({ items: [], coupon: null, discountAmount: 0, deliveryDistanceKm: null }),
+
+      setDeliveryDistance: (km) => set({ deliveryDistanceKm: km }),
 
       applyCoupon: (coupon) => {
         const subtotal = get().subtotal();
@@ -74,7 +80,16 @@ export const useCartStore = create<CartStore>()(
           return sum + price * i.quantity;
         }, 0),
 
-      deliveryFee: () => (get().items.length === 0 ? 0 : get().subtotal() > 499 ? 0 : 40),
+      deliveryFee: () => {
+        if (get().items.length === 0) return 0;
+        const distKm = get().deliveryDistanceKm;
+        const pricing = getDeliveryPricing(distKm);
+        // If distance is set and within range, use distance-based fee
+        if (pricing) return pricing.customerFee;
+        // Fallback: if no distance yet, use ₹30 as default display
+        // (will be confirmed when address is selected)
+        return 30;
+      },
 
       total: () => {
         const { subtotal, deliveryFee, discountAmount } = get();

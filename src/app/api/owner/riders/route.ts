@@ -50,6 +50,18 @@ export async function GET(req: NextRequest) {
       todayMap[d.partner_id] = (todayMap[d.partner_id] ?? 0) + 1;
     }
 
+    // Get today's earnings per rider
+    const { data: todayEarnings } = await supabaseAdmin
+      .from("rider_earnings")
+      .select("partner_id, payout_amount")
+      .in("partner_id", riderIds)
+      .gte("earned_at", todayStr);
+
+    const todayEarningsMap: Record<string, number> = {};
+    for (const e of todayEarnings ?? []) {
+      todayEarningsMap[e.partner_id] = (todayEarningsMap[e.partner_id] ?? 0) + parseFloat(e.payout_amount);
+    }
+
     // Get currently assigned (busy) riders
     const { data: busyRiders } = await supabaseAdmin
       .from("delivery_tracking")
@@ -84,6 +96,7 @@ export async function GET(req: NextRequest) {
       is_busy: busySet.has(p.id),
       total_deliveries: p.total_deliveries ?? 0,
       today_deliveries: todayMap[p.id] ?? 0,
+      today_earnings: todayEarningsMap[p.id] ?? 0,
       rating: p.rating ?? 5.0,
       account_status: suspendedToRestore.find((s: any) => s.id === p.id)
         ? "active"

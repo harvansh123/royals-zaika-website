@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
@@ -44,7 +44,7 @@ type GpsStep = "idle" | "requesting" | "fetching" | "done" | "error" | "blocked"
 export default function CheckoutAddressPage() {
   const router             = useRouter();
   const { user, loading: authLoading } = useAuthStore();
-  const { items }          = useCartStore();
+  const { items, setDeliveryDistance } = useCartStore();
 
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
 
@@ -105,6 +105,7 @@ export default function CheckoutAddressPage() {
   useEffect(() => {
     if (!selectedAddr || !settings) {
       setDistanceKm(null);
+      setDeliveryDistance(null);
       setIsDeliverable(false);
       return;
     }
@@ -114,10 +115,12 @@ export default function CheckoutAddressPage() {
         selectedAddr.latitude, selectedAddr.longitude
       );
       setDistanceKm(dist);
+      setDeliveryDistance(dist);
       setIsDeliverable(dist <= settings.delivery_radius_km);
     } else {
       // No coordinates — auto-geocoding effect below will handle it
       setDistanceKm(null);
+      setDeliveryDistance(null);
       setIsDeliverable(false);
     }
   }, [selectedAddr, settings]);
@@ -145,6 +148,7 @@ export default function CheckoutAddressPage() {
         if (isNaN(lat) || isNaN(lng)) return;
         const dist = haversineKm(settings.restaurant_lat, settings.restaurant_lng, lat, lng);
         setDistanceKm(dist);
+        setDeliveryDistance(dist);
         setIsDeliverable(dist <= settings.delivery_radius_km);
         // ROOT CAUSE FIX: update selectedAddr state with resolved coordinates so that
         // confirmAndContinue includes lat/lng in the sessionStorage payload.

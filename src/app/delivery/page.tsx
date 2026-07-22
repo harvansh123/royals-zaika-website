@@ -29,6 +29,7 @@ export default function DeliveryDashboard() {
   const [loading, setLoading]       = useState(true);
   const [todayCount, setTodayCount] = useState(0);
   const [todayKm, setTodayKm]       = useState<number | null>(null);
+  const [todayEarnings, setTodayEarnings] = useState<number | null>(null);
 
   // ── Rider alarm refs & state ──────────────────────────────────
   // Managed by GlobalAlarmProvider now
@@ -109,7 +110,10 @@ export default function DeliveryDashboard() {
     fetchTodayCount();
     fetch(`/api/rider/stats?riderId=${user.id}`)
       .then((r) => r.json())
-      .then((d) => { if (d.todayDistanceKm !== undefined) setTodayKm(d.todayDistanceKm); })
+      .then((d) => {
+        if (d.todayDistanceKm !== undefined) setTodayKm(d.todayDistanceKm);
+        if (d.todayEarnings !== undefined) setTodayEarnings(d.todayEarnings);
+      })
       .catch(() => {});
 
     // Check account status and online status via service-role API (bypasses RLS recursion)
@@ -203,6 +207,7 @@ export default function DeliveryDashboard() {
       const res = await fetch(`/api/rider/stats?riderId=${user.id}`);
       const d   = await res.json();
       if (d.todayDistanceKm !== undefined) setTodayKm(d.todayDistanceKm);
+      if (d.todayEarnings !== undefined) setTodayEarnings(d.todayEarnings);
     } catch { /* non-critical */ }
   }
 
@@ -441,11 +446,12 @@ export default function DeliveryDashboard() {
       </div>
 
       {/* Stats Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-5">
         {[
           { label: "Active",   value: orders.length,                            color: "text-orange-600", icon: "📦" },
           { label: "Today",    value: todayCount,                               color: "text-green-600",  icon: "✅" },
           { label: "Distance", value: todayKm !== null ? `${todayKm} km` : "—", color: "text-blue-600",   icon: "📍" },
+          { label: "Earnings", value: todayEarnings !== null ? `₹${todayEarnings}` : "—", color: "text-emerald-600", icon: "💰" },
           { label: "Status",   value: isOnline ? "Online" : "Offline",          color: isOnline ? "text-teal-600" : "text-slate-500", icon: isOnline ? "🟢" : "🔴" },
         ].map(({ label, value, color, icon }) => (
           <div key={label} className="rounded-xl p-2.5 text-center"
@@ -494,9 +500,14 @@ export default function DeliveryDashboard() {
                     <p className="font-bold text-sm" style={{ color: "var(--text-primary)" }}>#{order?.order_number}</p>
                     <p className="text-xs" style={{ color: "var(--text-muted)" }}>{formatDate(order?.created_at)}</p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex flex-col items-end gap-1">
                     <p className="font-bold text-orange-600">{formatPrice(order?.total_amount)}</p>
-                    <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full border", STATUS_COLORS[tracking.status] ?? "bg-slate-100 text-slate-600 border-slate-200")}>
+                    {order?.rider_payout != null && (
+                      <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full border border-green-200 shadow-sm">
+                        Payout: {formatPrice(order.rider_payout)}
+                      </span>
+                    )}
+                    <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full border mt-1", STATUS_COLORS[tracking.status] ?? "bg-slate-100 text-slate-600 border-slate-200")}>
                       {tracking.status === "assigned" ? "Assigned" : tracking.status === "picked_up" ? "Picked Up" : tracking.status}
                     </span>
                   </div>

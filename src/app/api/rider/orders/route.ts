@@ -69,6 +69,8 @@ export async function GET(_req: NextRequest) {
           payment_method,
           created_at,
           delivery_address,
+          rider_payout,
+          delivery_distance_km,
           special_instructions,
           delivery_distance_km,
           status,
@@ -179,10 +181,10 @@ export async function PATCH(req: NextRequest) {
     // 7. COD payment auto-mark — runs ONLY when the order is delivered
     if (orderStatus === "delivered") {
       try {
-        // Fetch the payment method for this order
+        // Fetch the payment method and payout details for this order
         const { data: orderRow } = await adminClient
           .from("orders")
-          .select("payment_method, payment_status")
+          .select("payment_method, payment_status, rider_payout, delivery_distance_km, distance_range")
           .eq("id", orderId)
           .maybeSingle();
 
@@ -220,6 +222,36 @@ export async function PATCH(req: NextRequest) {
       } catch (payErr: any) {
         // Non-fatal — delivery is confirmed; log and continue
         console.error("[/api/rider/orders PATCH] COD payment auto-update unexpected error:", payErr.message);
+      }
+
+      // 8. Log Rider Earnings (only if rider_payout exists)
+      try {
+        const { data: orderRow } = await adminClient
+          .from("orders")
+          .select("rider_payout, delivery_distance_km, distance_range")
+          .eq("id", orderId)
+          .maybeSingle();
+
+        if (orderRow?.rider_payout) {
+          const { error: earnErr } = await adminClient
+            .from("rider_earnings")
+            .upsert({
+              order_id:       orderId,
+              partner_id:     user.id,
+              payout_amount:  orderRow.rider_payout,
+              distance_km:    orderRow.delivery_distance_km,
+              distance_range: orderRow.distance_range,
+              earned_at:      new Date().toISOString()
+            }, { onConflict: "order_id" }); // idempotent insertion
+
+          if (earnErr) {
+            console.error("[/api/rider/orders PATCH] Failed to insert rider_earnings:", earnErr.message);
+          } else {
+            console.log("[/api/rider/orders PATCH] Rider earnings saved for order:", orderId);
+          }
+        }
+      } catch (earnErr: any) {
+        console.error("[/api/rider/orders PATCH] Rider earnings unexpected error:", earnErr.message);
       }
     }
 
