@@ -682,16 +682,19 @@ export default function OwnerOrdersPage() {
                   ))}
                 </div>
               )}
-              {riders.length > 0 && (
-                <button onClick={handleAssignRider} disabled={!selectedRider || assigning}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-bold transition-all mt-4 disabled:opacity-50"
-                  style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff" }}>
-                  {assigning
-                    ? <><Loader2 size={16} className="animate-spin" /> Assigning...</>
-                    : <><UserCheck size={16} /> Assign & Send Out for Delivery</>}
-                </button>
-              )}
             </div>
+
+              {riders.length > 0 && (
+                <div className="p-5 pt-3" style={{ borderTop: "1px solid var(--border)", background: "var(--card-bg)" }}>
+                  <button onClick={handleAssignRider} disabled={!selectedRider || assigning}
+                    className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
+                    style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff" }}>
+                    {assigning
+                      ? <><Loader2 size={16} className="animate-spin" /> Assigning...</>
+                      : <><UserCheck size={16} /> Assign & Send Out for Delivery</>}
+                  </button>
+                </div>
+              )}
           </div>
         </div>
       )}
