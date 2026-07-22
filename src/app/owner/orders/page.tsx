@@ -613,8 +613,12 @@ export default function OwnerOrdersPage() {
       {assignModal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}>
-          <div className="w-full max-w-md rounded-3xl overflow-hidden"
-            style={{ background: "var(--card-bg)", border: "1px solid var(--border)" }}>
+          <div className="w-full max-w-md rounded-3xl overflow-hidden flex flex-col"
+            style={{
+              background: "var(--card-bg)",
+              border: "1px solid var(--border)",
+              maxHeight: "90dvh",
+            }}>
 
             <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
               <div>
@@ -641,7 +645,7 @@ export default function OwnerOrdersPage() {
               </div>
             )}
 
-            <div className="p-5">
+            <div className="p-5 overflow-y-auto flex-1">
               <p className="text-xs font-semibold mb-3 uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
                 Available Riders
               </p>
@@ -696,8 +700,12 @@ export default function OwnerOrdersPage() {
       {cancelModal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }}>
-          <div className="w-full max-w-md rounded-3xl overflow-hidden"
-            style={{ background: "var(--card-bg)", border: "1px solid rgba(239,68,68,0.4)" }}>
+          <div className="w-full max-w-md rounded-3xl overflow-hidden flex flex-col"
+            style={{
+              background: "var(--card-bg)",
+              border: "1px solid rgba(239,68,68,0.4)",
+              maxHeight: "90dvh",
+            }}>
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
