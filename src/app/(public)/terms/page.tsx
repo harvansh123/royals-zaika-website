@@ -526,25 +526,25 @@ export default function TermsPage() {
                   <span className="text-white">Royal Zaika</span>
                 </p>
                 <p><span className="text-orange-400 font-semibold">Address:</span>{" "}
-                  <span className="text-white">123 Food Street, Lanka, Varanasi, Uttar Pradesh – 221001</span>
+                  <span className="text-white">474 Chak Raghunath, Naini, Prayagraj, Uttar Pradesh – 211008</span>
                 </p>
                 <p><span className="text-orange-400 font-semibold">General Support:</span>{" "}
-                  <a href="mailto:support@royalzaika.in" className="text-orange-400 hover:underline">
-                    support@royalzaika.in
+                  <a href="mailto:harvanshchaurasia@gmail.com" className="text-orange-400 hover:underline">
+                    harvanshchaurasia@gmail.com
                   </a>
                 </p>
                 <p><span className="text-orange-400 font-semibold">Legal / Privacy:</span>{" "}
-                  <a href="mailto:privacy@royalzaika.in" className="text-orange-400 hover:underline">
-                    privacy@royalzaika.in
+                  <a href="mailto:harvanshchaurasia@gmail.com" className="text-orange-400 hover:underline">
+                    harvanshchaurasia@gmail.com
                   </a>
                 </p>
                 <p><span className="text-orange-400 font-semibold">Phone:</span>{" "}
-                  <a href="tel:+919876543210" className="text-orange-400 hover:underline">
-                    +91 98765 43210
+                  <a href="tel:+917379294659" className="text-orange-400 hover:underline">
+                    +91 73792 94659
                   </a>
                 </p>
                 <p><span className="text-orange-400 font-semibold">Support Hours:</span>{" "}
-                  <span className="text-white">Monday – Sunday, 10:00 AM – 10:30 PM IST</span>
+                  <span className="text-white">Monday – Sunday, 11:00 AM – 12:00 AM IST</span>
                 </p>
               </div>
             </section>

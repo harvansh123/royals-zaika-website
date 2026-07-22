@@ -427,8 +427,8 @@ export default function PrivacyPolicyPage() {
               ]} />
               <p className="mt-3">
                 To request account deletion, contact us at{" "}
-                <a href="mailto:privacy@royalzaika.in" className="text-orange-400 hover:underline">
-                  privacy@royalzaika.in
+                <a href="mailto:harvanshchaurasia@gmail.com" className="text-orange-400 hover:underline">
+                  harvanshchaurasia@gmail.com
                 </a>
                 . Please allow up to 30 days for complete deletion. This action is irreversible.
               </p>
@@ -444,8 +444,8 @@ export default function PrivacyPolicyPage() {
               <p>
                 If you believe that we have inadvertently collected information from a child under
                 13, please contact us immediately at{" "}
-                <a href="mailto:privacy@royalzaika.in" className="text-orange-400 hover:underline">
-                  privacy@royalzaika.in
+                <a href="mailto:harvanshchaurasia@gmail.com" className="text-orange-400 hover:underline">
+                  harvanshchaurasia@gmail.com
                 </a>{" "}
                 and we will promptly delete such information.
               </p>
@@ -482,14 +482,14 @@ export default function PrivacyPolicyPage() {
                 style={{ background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.2)" }}
               >
                 <p><span className="text-orange-400 font-semibold">Restaurant:</span> <span className="text-white">Royal Zaika</span></p>
-                <p><span className="text-orange-400 font-semibold">Address:</span> <span className="text-white">123 Food Street, Lanka, Varanasi, Uttar Pradesh – 221001</span></p>
+                <p><span className="text-orange-400 font-semibold">Address:</span> <span className="text-white">474 Chak Raghunath, Naini, Prayagraj, Uttar Pradesh – 211008</span></p>
                 <p><span className="text-orange-400 font-semibold">Privacy Email:</span>{" "}
-                  <a href="mailto:privacy@royalzaika.in" className="text-orange-400 hover:underline">privacy@royalzaika.in</a>
+                  <a href="mailto:harvanshchaurasia@gmail.com" className="text-orange-400 hover:underline">harvanshchaurasia@gmail.com</a>
                 </p>
                 <p><span className="text-orange-400 font-semibold">Phone:</span>{" "}
-                  <a href="tel:+919876543210" className="text-orange-400 hover:underline">+91 98765 43210</a>
+                  <a href="tel:+917379294659" className="text-orange-400 hover:underline">+91 73792 94659</a>
                 </p>
-                <p><span className="text-orange-400 font-semibold">Support Hours:</span> <span className="text-white">Monday – Sunday, 10:00 AM – 10:30 PM IST</span></p>
+                <p><span className="text-orange-400 font-semibold">Support Hours:</span> <span className="text-white">Monday – Sunday, 11:00 AM – 12:00 AM IST</span></p>
               </div>
             </section>
 
