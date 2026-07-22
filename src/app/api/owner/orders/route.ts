@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
     let query = supabaseAdmin
       .from("orders")
-      .select("*, order_items(name, quantity, price, subtotal), users(name, phone, email)")
+      .select("*, order_items(name, quantity, price, subtotal), users(name, phone, email, completed_orders)")
       .order("created_at", { ascending: false })
       .limit(limit);
 

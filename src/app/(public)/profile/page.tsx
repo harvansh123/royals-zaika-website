@@ -52,12 +52,33 @@ export default function ProfilePage() {
     latitude: null as number | null, longitude: null as number | null,
   });
   const [showSupportModal, setShowSupportModal] = useState(false);
+  // ── Order Counter / Loyalty ───────────────────────────────────────────────────
+  const [completedOrders, setCompletedOrders] = useState<number | null>(null);
+
+  function getCustomerLoyalty(n: number | null): { label: string; emoji: string; color: string } {
+    const c = n ?? 0;
+    if (c >= 10) return { label: "Loyal Customer",     emoji: "⭐", color: "#f59e0b" };
+    if (c >= 6)  return { label: "Regular Customer",   emoji: "🔄", color: "#3b82f6" };
+    if (c >= 3)  return { label: "Returning Customer", emoji: "👋", color: "#8b5cf6" };
+    return         { label: "New Customer",     emoji: "🆕", color: "#6b7280" };
+  }
 
   // Redirect only after auth has fully loaded
   useEffect(() => {
     if (!authLoading && !user) router.push("/auth/login");
     if (user) setForm({ name: user.name ?? "", phone: user.phone ?? "", email: user.email ?? "" });
   }, [user, authLoading]);
+
+  // Fetch completed_orders counter
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from("users")
+      .select("completed_orders")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => { if (data) setCompletedOrders((data as any).completed_orders ?? 0); });
+  }, [user?.id]);
 
   // Load orders
   useEffect(() => {
@@ -257,6 +278,22 @@ export default function ProfilePage() {
             style={{ background: "rgba(249,115,22,0.15)", color: "#f97316" }}>
             {user.role === "restaurant_owner" ? "🍴 Restaurant Owner" : user.role === "admin" ? "⚡ Admin" : "🧑 Customer"}
           </span>
+          {/* Loyalty / Order Counter badge — shown for customers */}
+          {user.role === "customer" && completedOrders !== null && (() => {
+            const loyalty = getCustomerLoyalty(completedOrders);
+            return (
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full"
+                  style={{ background: "rgba(255,255,255,0.06)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
+                  🛍️ {completedOrders} Total Order{completedOrders !== 1 ? "s" : ""}
+                </span>
+                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full"
+                  style={{ background: `${loyalty.color}18`, color: loyalty.color, border: `1px solid ${loyalty.color}35` }}>
+                  {loyalty.emoji} {loyalty.label}
+                </span>
+              </div>
+            );
+          })()}
         </div>
         {/* Prominent Sign Out button — always visible in header */}
         <button onClick={handleSignOut} disabled={signingOut}

@@ -12,7 +12,16 @@ import toast from "react-hot-toast";
 
 // ── Types ────────────────────────────────────────────────────────────
 type OrderItem = { name: string; quantity: number; price: number; subtotal: number };
-type OrderUser = { name: string | null; phone: string | null; email: string | null };
+type OrderUser = { name: string | null; phone: string | null; email: string | null; completed_orders: number | null };
+
+// ── Loyalty helper ────────────────────────────────────────────────────
+function getLoyaltyInfo(count: number | null): { label: string; emoji: string; color: string } {
+  const n = count ?? 0;
+  if (n >= 10) return { label: "Loyal Customer",     emoji: "⭐", color: "#f59e0b" };
+  if (n >= 6)  return { label: "Regular Customer",   emoji: "🔄", color: "#3b82f6" };
+  if (n >= 3)  return { label: "Returning Customer", emoji: "👋", color: "#8b5cf6" };
+  return         { label: "New Customer",     emoji: "🆕", color: "#6b7280" };
+}
 
 type Order = {
   id: string;
@@ -429,6 +438,23 @@ export default function OwnerOrdersPage() {
                             </span>
                           </div>
                         )}
+                        {/* ── Order Count + Loyalty ── */}
+                        {(() => {
+                          const loyalty = getLoyaltyInfo(order.users?.completed_orders ?? null);
+                          const count   = order.users?.completed_orders ?? 0;
+                          return (
+                            <div className="flex items-center justify-between pt-2 mt-2"
+                              style={{ borderTop: "1px solid var(--border)" }}>
+                              <span className="text-xs flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
+                                📦 <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{count}</span> Total Order{count !== 1 ? "s" : ""}
+                              </span>
+                              <span className="text-xs font-bold px-2.5 py-1 rounded-full"
+                                style={{ background: `${loyalty.color}18`, color: loyalty.color, border: `1px solid ${loyalty.color}35` }}>
+                                {loyalty.emoji} {loyalty.label}
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
 
