@@ -4,9 +4,6 @@ import { supabase } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/authStore";
 import { useRouter } from "next/navigation";
 import { formatPrice, formatDate } from "@/lib/utils";
-import {
-  startLoopingAlarm,
-  stopCurrentAlarm,
   requestNotificationPermission,
   showBrowserNotification,
 } from "@/lib/alarm";
@@ -34,17 +31,7 @@ export default function DeliveryDashboard() {
   const [todayKm, setTodayKm]       = useState<number | null>(null);
 
   // ── Rider alarm refs & state ──────────────────────────────────
-  // stopRiderAlarmRef: holds stop fn for the current looping alarm
-  const stopRiderAlarmRef = useRef<(() => void) | null>(null);
-  // riderAlarmActive: controls the persistent alarm banner visibility
-  const [riderAlarmActive, setRiderAlarmActive] = useState(false);
-  const hasPermissionRef  = useRef(false);
-
-  function dismissRiderAlarm() {
-    stopCurrentAlarm();
-    stopRiderAlarmRef.current = null;
-    setRiderAlarmActive(false);
-  }
+  // Managed by GlobalAlarmProvider now
 
   // OTP state per tracking-id
   const [otpInputs, setOtpInputs]   = useState<Record<string, string>>({});
@@ -167,19 +154,6 @@ export default function DeliveryDashboard() {
         event: "INSERT", schema: "public", table: "delivery_tracking",
         filter: `partner_id=eq.${user.id}`,
       }, () => {
-        // ── Start looping alarm ──────────────────────────────────
-        // Stop any existing alarm, then start a fresh looping one
-        if (stopRiderAlarmRef.current) { stopRiderAlarmRef.current(); }
-        const stopFn = startLoopingAlarm();
-        stopRiderAlarmRef.current = stopFn;
-        setRiderAlarmActive(true);
-
-        // Browser notification (visible even when tab is in background)
-        showBrowserNotification(
-          "🛕 New Delivery Assigned!",
-          "You have a new order to pick up. Open your dashboard to accept."
-        );
-
         // Keep the existing toast for quick visual feedback on-screen
         toast.custom((t) => (
           <div className={cn(
@@ -205,19 +179,11 @@ export default function DeliveryDashboard() {
 
     return () => {
       supabase.removeChannel(channel);
-      // Stop alarm if rider closes/leaves the page
-      stopCurrentAlarm();
       if (watchId) navigator.geolocation.clearWatch(watchId);
     };
   }, [user, fetchMyOrders]);
 
-  // Request notification permission once on mount
-  useEffect(() => {
-    if (!hasPermissionRef.current) {
-      hasPermissionRef.current = true;
-      requestNotificationPermission().catch(() => {});
-    }
-  }, []);
+  // Notification permission now handled globally in GlobalAlarmProvider
 
   async function fetchTodayCount() {
     if (!user) return;
@@ -283,7 +249,7 @@ export default function DeliveryDashboard() {
 
       // ── Stop alarm when rider picks up or delivers ──────────────────
       if (newStatus === "picked_up" || newStatus === "delivered") {
-        dismissRiderAlarm();
+        // Handled by GlobalAlarmProvider auto-dismiss or manual dismiss
       }
 
       if (newStatus === "delivered") {
@@ -411,34 +377,7 @@ export default function DeliveryDashboard() {
 
       {/* ── Rider New-Order Alarm Banner ─────────────────────────────────
            Visible until rider clicks "Picked Up" or dismisses manually.
-      ─────────────────────────────────────────────────────────────── */}
-      {riderAlarmActive && (
-        <div
-          className="mb-4 rounded-2xl flex items-center justify-between gap-2 px-4 py-3"
-          style={{
-            background:  "linear-gradient(135deg, #b91c1c, #dc2626)",
-            boxShadow:   "0 4px 20px rgba(220,38,38,0.45)",
-            animation:   "pulse 0.8s ease-in-out infinite",
-          }}
-        >
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-2xl shrink-0">📦</span>
-            <div className="min-w-0">
-              <p className="font-black text-white text-sm">New Order Assigned!</p>
-              <p className="text-red-200 text-xs">Pick up the order to stop this alarm</p>
-            </div>
-          </div>
-          <button
-            onClick={dismissRiderAlarm}
-            title="Dismiss alarm"
-            className="flex items-center gap-1 px-2.5 py-2 rounded-xl text-sm font-bold text-white/80 hover:text-white hover:bg-white/10 transition-all shrink-0"
-          >
-            <BellOff size={15} />
-          </button>
-        </div>
-      )}
-
-      {/* Account Status Banner */}
+      {/* ── Header ── */}
       {accountBanner}
 
       {/* ── Header ── */}

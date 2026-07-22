@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, MapPin, Phone, Star, Award, Leaf, Users } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import HeroStatusWidget from "@/components/restaurant/HeroStatusWidget";
+import { AuthRedirect } from "@/components/auth/AuthRedirect";
 import type { RestaurantTimingSettings } from "@/hooks/useRestaurantStatus";
 
 export const metadata: Metadata = {
@@ -68,6 +69,7 @@ export default async function HomePage() {
 
   return (
     <div className="overflow-x-hidden">
+      <AuthRedirect />
 
       {/* ══ HERO ══ */}
       <section className="relative min-h-[92vh] flex items-center">

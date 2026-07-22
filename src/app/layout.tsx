@@ -1,8 +1,9 @@
-﻿import type { Metadata, Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { AddressModalProvider } from "@/components/providers/AddressModalProvider";
+import { GlobalAlarmProvider } from "@/components/providers/GlobalAlarmProvider";
 
 export const metadata: Metadata = {
   title: {
@@ -44,9 +45,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="font-sans antialiased" suppressHydrationWarning>
         <AuthProvider>
-          {children}
-          <AddressModalProvider />
-          <Toaster
+          <GlobalAlarmProvider>
+            {children}
+            <AddressModalProvider />
+            <Toaster
             position="top-right"
             toastOptions={{
               duration: 3000,
@@ -62,6 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               error:   { iconTheme: { primary: "#DC2626", secondary: "#FEF2F2" } },
             }}
           />
+          </GlobalAlarmProvider>
         </AuthProvider>
       </body>
     </html>
