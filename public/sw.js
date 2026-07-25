@@ -16,20 +16,42 @@ self.addEventListener("push", (event) => {
 
   const title = payload.title || APP_NAME;
   const options = {
-    body:    payload.body  || "You have a new notification",
-    icon:    payload.icon  || "/icons/icon-192x192.png",
-    badge:   "/icons/icon-72x72.png",
-    tag:     payload.tag   || "royalzaika-notification",
+    body:     payload.body  || "You have a new notification",
+    icon:     payload.icon  || "/icons/icon-192x192.png",
+    badge:    "/icons/icon-72x72.png",
+    tag:      payload.tag   || "royalzaika-notification",
     renotify: true,
-    vibrate: [200, 100, 200, 100, 200],
+    vibrate:  [300, 100, 300, 100, 300, 100, 300],
     data: {
-      url: payload.url || "/",
+      url:     payload.url || "/",
+      type:    payload.type || "general",
     },
     actions: payload.actions || [],
   };
 
   event.waitUntil(
-    self.registration.showNotification(title, options)
+    (async () => {
+      // Show system notification
+      await self.registration.showNotification(title, options);
+
+      // ── Try to wake up any open app tab to play custom alarm ──
+      // If the user has the app open in any tab (even background),
+      // send a message to trigger the custom alarm sound there.
+      const allClients = await clients.matchAll({
+        type:             "window",
+        includeUncontrolled: true,
+      });
+
+      if (allClients.length > 0) {
+        // App is open somewhere — send message to play custom alarm
+        for (const client of allClients) {
+          client.postMessage({
+            type:    "PUSH_ALARM",
+            payload: payload,
+          });
+        }
+      }
+    })()
   );
 });
 

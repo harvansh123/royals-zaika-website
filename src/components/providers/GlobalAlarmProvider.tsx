@@ -154,9 +154,33 @@ export function GlobalAlarmProvider({ children }: { children: React.ReactNode })
         .subscribe();
     }
 
+    // ── Listen for Service Worker Messages ──────────────────────────
+    // SW will postMessage if a push arrives while app is open in bg tab
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === "PUSH_ALARM") {
+        if (!stopAlarmRef.current) {
+          const stopFn = startLoopingAlarm();
+          stopAlarmRef.current = stopFn;
+        }
+
+        // Also update banner state if possible
+        if (user.role === "restaurant_owner" || user.role === "admin") {
+          setNewOrderNums((prev) => [...prev, "New"]);
+        } else if (user.role === "delivery") {
+          setRiderAlarmActive(true);
+        }
+      }
+    };
+    if (typeof navigator !== "undefined" && navigator.serviceWorker) {
+      navigator.serviceWorker.addEventListener("message", handleMessage);
+    }
+
     return () => {
       if (channel) {
         supabase.removeChannel(channel);
+      }
+      if (typeof navigator !== "undefined" && navigator.serviceWorker) {
+        navigator.serviceWorker.removeEventListener("message", handleMessage);
       }
       stopCurrentAlarm();
     };
