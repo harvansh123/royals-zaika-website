@@ -11,6 +11,51 @@ import {
 } from "@/lib/alarm";
 import { BellOff } from "lucide-react";
 
+// ── Web Push Helpers ──────────────────────────────────────────────────────
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+
+async function registerServiceWorkerAndSubscribe(userId: string): Promise<void> {
+  if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+    return; // Not supported
+  }
+  try {
+    // Register SW
+    const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    await navigator.serviceWorker.ready;
+
+    // Request notification permission
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") return;
+
+    // Check existing subscription
+    let sub = await reg.pushManager.getSubscription();
+
+    // Subscribe if not already subscribed
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly:      true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    }
+
+    // Save subscription to server
+    await fetch("/api/push/subscribe", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ subscription: sub.toJSON() }),
+    });
+  } catch (err) {
+    console.error("[SW] Push subscription failed:", err);
+  }
+}
+
 export function GlobalAlarmProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuthStore();
   const pathname = usePathname();
@@ -48,7 +93,12 @@ export function GlobalAlarmProvider({ children }: { children: React.ReactNode })
 
     if (!hasShownPermRef.current) {
       hasShownPermRef.current = true;
-      requestNotificationPermission().catch(() => {});
+      // Register Service Worker + subscribe to Web Push (background notifications)
+      // Also calls requestNotificationPermission inside
+      registerServiceWorkerAndSubscribe(user.id).catch(() => {
+        // Fallback: request basic browser notification permission
+        requestNotificationPermission().catch(() => {});
+      });
     }
 
     let channel: ReturnType<typeof supabase.channel> | null = null;

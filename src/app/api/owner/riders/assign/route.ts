@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
       .eq("id", orderId)
       .eq("status", "pending");
 
-    // Notify rider
+    // Notify rider (in-app notification)
     await supabaseAdmin.from("notifications").insert({
       user_id: riderId,
       title:   "New Order Assigned",
@@ -66,6 +66,31 @@ export async function POST(req: NextRequest) {
       type:    "info",
       data:    { order_id: orderId },
     });
+
+    // Web Push to rider (background — works even when page is closed)
+    try {
+      const { data: orderRow } = await supabaseAdmin
+        .from("orders")
+        .select("order_number")
+        .eq("id", orderId)
+        .maybeSingle();
+
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+        || process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`
+        || "http://localhost:3000";
+
+      await fetch(`${baseUrl}/api/push/send-to-rider`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          riderId,
+          orderNumber: orderRow?.order_number,
+          orderId,
+        }),
+      });
+    } catch (pushErr: any) {
+      console.error("[assign] Push to rider failed (non-fatal):", pushErr.message);
+    }
 
     // Audit log on previous rider if reassigned
     if (previousRiderId && previousRiderId !== riderId) {

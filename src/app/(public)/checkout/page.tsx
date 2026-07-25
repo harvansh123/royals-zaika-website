@@ -223,6 +223,14 @@ export default function CheckoutPage() {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ orderId: order.id }),
         });
+
+        // Background push notification to owner (non-blocking)
+        fetch("/api/push/send-to-owners", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ orderNumber: order.order_number, orderId: order.id }),
+        }).catch(() => {});
+
         clearCart();
         sessionStorage.removeItem(ADDRESS_SESSION_KEY); // clear after order placed
         router.push(`/order-confirmed/${order.id}`);
@@ -230,6 +238,13 @@ export default function CheckoutPage() {
       }
 
       // Razorpay flow — use finalTotal (after offer discount)
+      // Background push to owner (non-blocking)
+      fetch("/api/push/send-to-owners", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ orderNumber: order.order_number, orderId: order.id }),
+      }).catch(() => {});
+
       const res  = await fetch("/api/razorpay/create-order", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: Math.round(finalTotal * 100), orderId: order.id }),
