@@ -19,6 +19,7 @@ self.addEventListener("push", (event) => {
     body:     payload.body  || "You have a new notification",
     icon:     payload.icon  || "/icons/icon-192x192.png",
     badge:    "/icons/icon-72x72.png",
+    sound:    "/order_incoming_ringtone_loud_extended.mp3",
     tag:      payload.tag   || "royalzaika-notification",
     renotify: true,
     vibrate:  [300, 100, 300, 100, 300, 100, 300],
