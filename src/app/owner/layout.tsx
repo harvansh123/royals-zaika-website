@@ -86,13 +86,6 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
               >
                 <Icon size={18} />
                 {label}
-                {/* Badge on Orders tab when alarm is active */}
-                {label === "Orders" && newOrderNums.length > 0 && (
-                  <span className="ml-auto text-[10px] font-black px-1.5 py-0.5 rounded-full text-white"
-                    style={{ background: "#dc2626" }}>
-                    {newOrderNums.length}
-                  </span>
-                )}
               </Link>
             );
           })}
