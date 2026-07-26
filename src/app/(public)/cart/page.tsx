@@ -166,60 +166,7 @@ export default function CartPage() {
         <ShoppingBag size={15} /> Add more items
       </Link>
 
-      {/* Order Summary */}
-      <div className="rounded-2xl p-5 mb-5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
-        <h2 className="font-bold text-white mb-4">Order Summary</h2>
 
-        {/* Offer hint — show if offer exists but min not met */}
-        {activeOffer && offerDiscount === 0 && sub > 0 && sub < activeOffer.min_order_amount && (
-          <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium"
-            style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.2)", color: "#f97316" }}>
-            <Tag size={13} />
-            Add {formatPrice(activeOffer.min_order_amount - sub)} more to unlock{" "}
-            <strong>
-              {activeOffer.discount_type === "percentage" ? `${activeOffer.discount_value}% OFF` : `₹${activeOffer.discount_value} OFF`}
-            </strong>
-          </div>
-        )}
-
-        <div className="space-y-3 text-sm">
-          <div className="flex justify-between text-gray-400">
-            <span>Subtotal</span>
-            <span className="text-white">{formatPrice(sub)}</span>
-          </div>
-          <div className="flex justify-between text-gray-400">
-            <span>Delivery Fee</span>
-            <span className={fee === 0 ? "text-green-400 font-medium" : "text-white"}>
-              {fee === 0 ? "🎉 FREE" : formatPrice(fee)}
-            </span>
-          </div>
-
-          {/* Offer Discount Row */}
-          {offerDiscount > 0 && (
-            <div className="flex justify-between items-center py-2 px-3 rounded-xl"
-              style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)" }}>
-              <span className="flex items-center gap-2 text-green-400 font-semibold">
-                <Tag size={13} /> {activeOffer?.title ?? "Offer Discount"}
-              </span>
-              <span className="text-green-400 font-bold">−{formatPrice(offerDiscount)}</span>
-            </div>
-          )}
-
-          <div className="pt-3 border-t flex justify-between font-bold text-base"
-            style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-            <span className="text-white">Total</span>
-            <span className="text-orange-400 text-lg">{formatPrice(grand)}</span>
-          </div>
-
-          {/* You Saved badge */}
-          {offerDiscount > 0 && (
-            <div className="text-center py-2 rounded-xl text-sm font-bold"
-              style={{ background: "rgba(34,197,94,0.1)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.25)" }}>
-              🎉 You save {formatPrice(offerDiscount)} on this order!
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Restaurant Closed Banner */}
       {isRestaurantOpen === false && (
@@ -233,7 +180,7 @@ export default function CartPage() {
         </div>
       )}
 
-      {/* Proceed to Payment */}
+      {/* Proceed to Address / Checkout */}
       <button
         onClick={() => {
           if (!user) { toast.error("Please login first"); router.push("/auth/login"); return; }
@@ -244,10 +191,10 @@ export default function CartPage() {
         className="w-full btn-primary flex items-center justify-between py-4 px-6 text-base rounded-2xl disabled:opacity-60"
       >
         <span className="font-bold">
-          {isRestaurantOpen === false ? "🔴 Restaurant Closed" : "Proceed to Payment"}
+          {isRestaurantOpen === false ? "🔴 Restaurant Closed" : "Proceed to Checkout"}
         </span>
         <div className="flex items-center gap-2">
-          <span className="font-bold">{formatPrice(grand)}</span>
+          <span className="font-bold">{formatPrice(sub)}</span>
           <ArrowRight size={18} />
         </div>
       </button>
