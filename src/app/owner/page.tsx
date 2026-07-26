@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
+import { useRestaurantStatus } from "@/hooks/useRestaurantStatus";
 
 type Stats = {
   todayOrders: number;
@@ -35,17 +36,12 @@ export default function OwnerDashboard() {
   const [loading, setLoading] = useState(true);
   // Track which order is expanded
   const [expanded, setExpanded] = useState<string | null>(null);
-  // Restaurant Online/Offline
-  const [isOpen, setIsOpen]           = useState<boolean>(true);
+  // Restaurant Online/Offline using unified hook
+  const { isOpen, isTemporarilyClosed, refetch } = useRestaurantStatus();
   const [togglingStatus, setTogglingStatus] = useState(false);
 
   useEffect(() => {
     loadDashboard();
-    // Load restaurant open/closed status
-    fetch("/api/restaurant-settings")
-      .then(r => r.json())
-      .then(d => { if (typeof d.is_open === "boolean") setIsOpen(d.is_open); })
-      .catch(() => {});
 
     // Realtime — new orders
     const channel = supabase.channel("owner-dashboard")
@@ -88,17 +84,23 @@ export default function OwnerDashboard() {
   // ── Toggle Restaurant Open/Closed ────────────────────────────────────
   async function toggleRestaurantStatus() {
     setTogglingStatus(true);
-    const newStatus = !isOpen;
+    // If it's currently open (via auto or manual), we close it temporarily.
+    // If it's currently closed, we set it back to auto (or manual_open if they are overriding hours, but auto is standard)
+    const newStatusMode = isOpen ? "temporarily_closed" : "auto";
+    
     try {
       const res  = await fetch("/api/restaurant-settings", {
         method:  "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_open: newStatus }),
+        body: JSON.stringify({ status_mode: newStatusMode }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Failed to update status");
-      setIsOpen(json.is_open);
-      toast.success(json.is_open ? "🟢 Restaurant is now OPEN" : "🔴 Restaurant is now CLOSED");
+      
+      // Force refresh of the hook
+      refetch();
+      
+      toast.success(!isOpen ? "🟢 Restaurant is now OPEN" : "🔴 Restaurant is now CLOSED");
     } catch (err: any) {
       toast.error("Status update failed: " + err.message);
     }
@@ -202,12 +204,14 @@ export default function OwnerDashboard() {
           <p className="font-bold text-base flex items-center gap-2"
             style={{ color: isOpen ? "#22c55e" : "#ef4444" }}>
             {isOpen ? <Wifi size={18} /> : <WifiOff size={18} />}
-            Restaurant is {isOpen ? "Open 🟢" : "Closed 🔴"}
+            Restaurant {isOpen ? "Open 🟢" : "Closed 🔴"}
           </p>
           <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
             {isOpen
               ? "Customers can place orders normally."
-              : "Customers cannot place new orders."}
+              : isTemporarilyClosed 
+                ? "You have temporarily paused new orders."
+                : "Restaurant is closed as per your business hours."}
           </p>
         </div>
         <button onClick={toggleRestaurantStatus} disabled={togglingStatus}
