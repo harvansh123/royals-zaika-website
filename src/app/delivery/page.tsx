@@ -10,7 +10,7 @@ import {
 } from "@/lib/alarm";
 import {
   MapPin, Package, CheckCircle, Loader2, Navigation,
-  Phone, RefreshCw, User, Copy, CreditCard, AlignLeft, Info, LogOut, BellOff
+  Phone, RefreshCw, User, Copy, CreditCard, AlignLeft, Info, LogOut, BellOff, Banknote
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -501,12 +501,15 @@ export default function DeliveryDashboard() {
                     <p className="font-bold text-sm" style={{ color: "var(--text-primary)" }}>#{order?.order_number}</p>
                     <p className="text-xs" style={{ color: "var(--text-muted)" }}>{formatDate(order?.created_at)}</p>
                   </div>
-                  <div className="text-right flex flex-col items-end gap-1">
-                    <p className="font-bold text-orange-600">{formatPrice(order?.total_amount)}</p>
+                  <div className="text-right flex flex-col items-end gap-0.5">
                     {order?.rider_payout != null && (
-                      <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full border border-green-200 shadow-sm">
-                        Payout: {formatPrice(order.rider_payout)}
-                      </span>
+                      <>
+                        <span className="text-[10px] font-bold text-green-600 uppercase tracking-widest">Your Earning</span>
+                        <p className="text-lg font-black text-green-600 leading-none">{formatPrice(order.rider_payout)}</p>
+                      </>
+                    )}
+                    {!order?.rider_payout && (
+                      <p className="font-bold text-orange-600">{formatPrice(order?.total_amount)}</p>
                     )}
                     <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full border mt-1", STATUS_COLORS[tracking.status] ?? "bg-slate-100 text-slate-600 border-slate-200")}>
                       {tracking.status === "assigned" ? "Assigned" : tracking.status === "picked_up" ? "Picked Up" : tracking.status}
@@ -633,11 +636,40 @@ export default function DeliveryDashboard() {
                       ))}
                     </div>
                     
-                    <div className="flex justify-between items-center pt-2 border-t" style={{ borderColor: "var(--border)" }}>
-                      <p className="text-sm font-bold text-slate-600">Total Amount</p>
-                      <p className="text-lg font-black text-orange-600">{formatPrice(order?.total_amount)}</p>
+                    <div className="flex justify-between items-center pt-3 border-t mt-2" style={{ borderColor: "var(--border)" }}>
+                      <div>
+                        <p className="text-sm font-bold text-slate-700">
+                          {order?.payment_method === "cash_on_delivery" ? "Cash to Collect from Customer" : "Total Order Amount"}
+                        </p>
+                        {order?.payment_method !== "cash_on_delivery" && (
+                          <p className="text-xs font-bold text-green-600">✅ Already Paid Online</p>
+                        )}
+                        {order?.payment_method === "cash_on_delivery" && (
+                          <p className="text-[10px] text-orange-600 font-semibold bg-orange-100 px-2 py-0.5 rounded mt-1 w-fit">
+                            COD Order
+                          </p>
+                        )}
+                      </div>
+                      <p className="text-xl font-black text-orange-600">{formatPrice(order?.total_amount)}</p>
                     </div>
                   </div>
+
+                  {/* Highlighted Earning Block in Modal */}
+                  {order?.rider_payout != null && (
+                    <div className="rounded-xl p-4 flex items-center justify-between"
+                      style={{ background: "linear-gradient(135deg, #f0fdf4, #dcfce7)", border: "1px solid #bbf7d0" }}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                          <Banknote size={20} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-green-700 uppercase tracking-wide">Your Earning</p>
+                          <p className="text-sm text-green-800">For delivering this order</p>
+                        </div>
+                      </div>
+                      <p className="text-2xl font-black text-green-600">{formatPrice(order.rider_payout)}</p>
+                    </div>
+                  )}
 
                   {/* Action Buttons */}
                   <div className="flex gap-2 pt-2">
