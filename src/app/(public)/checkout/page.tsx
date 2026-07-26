@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCartStore } from "@/stores/cartStore";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/lib/supabase/client";
-import { ChevronLeft, Loader2, Check, Smartphone, Banknote, CreditCard, MapPin, Tag, X } from "lucide-react";
+import { ChevronLeft, Loader2, Check, Smartphone, Banknote, CreditCard, MapPin, Tag, X, Receipt, ArrowRight } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -52,6 +52,7 @@ export default function CheckoutPage() {
   const [settings,        setSettings]        = useState<RestaurantSettings | null>(null);
   const [activeOffer,     setActiveOffer]     = useState<ActiveOffer | null>(null);
   const [showCodPopup,    setShowCodPopup]    = useState(false);
+  const [checkoutStep,    setCheckoutStep]    = useState<"bill" | "payment">("bill");
 
   // ── Restaurant timing-aware open/closed status ────────────────────────────
   const {
@@ -66,6 +67,10 @@ export default function CheckoutPage() {
   // Offer discount calculated fresh from current offer state
   const offerDiscount = useMemo(() => activeOffer ? calcDiscount(activeOffer, sub) : 0, [activeOffer, sub]);
   const grand = Math.max(0, sub + fee - offerDiscount);
+
+  // Distance info for bill display
+  const distKm = deliveryAddress?.delivery_distance_km ?? null;
+  const pricing = getDeliveryPricing(distKm);
 
   useEffect(() => {
     if (authLoading) return;
@@ -357,23 +362,36 @@ export default function CheckoutPage() {
           <ChevronLeft size={20} />
         </button>
         <div>
-          <h1 className="font-bold text-2xl text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>Payment</h1>
-          <p className="text-gray-500 text-sm">Step 3 of 3 — Choose how to pay</p>
+          <h1 className="font-bold text-2xl text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>
+            {checkoutStep === "bill" ? "Bill Summary" : "Payment"}
+          </h1>
+          <p className="text-gray-500 text-sm">
+            {checkoutStep === "bill" ? "Step 4 of 5 — Review your bill" : "Step 5 of 5 — Choose how to pay"}
+          </p>
         </div>
       </div>
 
       {/* Step indicator */}
       <div className="flex items-center gap-1.5 mb-8 overflow-x-auto no-scrollbar pb-1">
-        {["Menu", "Cart", "Address", "Payment"].map((step, i) => (
-          <div key={step} className="flex items-center gap-1.5 shrink-0">
-            <div className={cn("flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap",
-              i < 3 ? "bg-green-500/15 text-green-400" : "bg-orange-500 text-white")}>
-              {i < 3 ? <Check size={11} /> : null}
-              {step}
+        {["Menu", "Cart", "Address", "Bill", "Payment"].map((step, i) => {
+          const billIdx = 3;
+          const payIdx  = 4;
+          const currentIdx = checkoutStep === "bill" ? billIdx : payIdx;
+          const isDone     = i < currentIdx;
+          const isActive   = i === currentIdx;
+          return (
+            <div key={step} className="flex items-center gap-1.5 shrink-0">
+              <div className={cn("flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap",
+                isDone  ? "bg-green-500/15 text-green-400"
+              : isActive ? "bg-orange-500 text-white"
+              :           "bg-white/5 text-gray-500")}>
+                {isDone ? <Check size={11} /> : null}
+                {step}
+              </div>
+              {i < 4 && <div className="w-4 h-px bg-white/10 shrink-0" />}
             </div>
-            {i < 3 && <div className="w-4 h-px bg-white/10 shrink-0" />}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Delivery address summary */}
@@ -394,6 +412,118 @@ export default function CheckoutPage() {
         </div>
       )}
 
+      {/* ═══ BILL SUMMARY STEP ═══ */}
+      {checkoutStep === "bill" && (
+        <>
+          {/* Detailed Bill */}
+          <div className="rounded-2xl p-5 mb-5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+            {/* Header */}
+            <div className="flex items-center gap-2 mb-4">
+              <Receipt size={18} className="text-orange-400" />
+              <p className="text-base font-bold text-white">Your Bill</p>
+              <span className="ml-auto text-xs text-gray-500">{items.length} item{items.length > 1 ? "s" : ""}</span>
+            </div>
+
+            {/* Item list */}
+            <div className="space-y-2.5 mb-4 max-h-52 overflow-y-auto">
+              {items.map(({ id, menu_item, quantity }) => {
+                const price = menu_item.discounted_price ?? menu_item.price;
+                return (
+                  <div key={id} className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-gray-800">
+                      {menu_item.image_url && !imgErrors[id] ? (
+                        <Image src={menu_item.image_url} alt={menu_item.name} width={40} height={40}
+                          className="object-cover w-full h-full"
+                          onError={() => setImgErrors((p) => ({ ...p, [id]: true }))} />
+                      ) : <div className="w-full h-full flex items-center justify-center text-lg">🍽️</div>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white truncate">{menu_item.name}</p>
+                      <p className="text-xs text-gray-500">{formatPrice(price)} × {quantity}</p>
+                    </div>
+                    <span className="text-sm text-white font-semibold">{formatPrice(price * quantity)}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Divider */}
+            <div className="h-px w-full mb-3" style={{ background: "rgba(255,255,255,0.08)" }} />
+
+            {/* Subtotal */}
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between text-gray-400">
+                <span>Items Subtotal</span>
+                <span className="text-white font-medium">{formatPrice(sub)}</span>
+              </div>
+
+              {/* Delivery Fee with distance info */}
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-1.5 text-gray-400">
+                  <MapPin size={13} className="text-orange-400" />
+                  <span>Delivery Fee</span>
+                  {pricing && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 font-semibold">
+                      {pricing.rangeLabel}
+                    </span>
+                  )}
+                </div>
+                <span className={fee === 0 ? "text-green-400 font-semibold" : "text-white font-medium"}>
+                  {fee === 0 ? "FREE" : formatPrice(fee)}
+                </span>
+              </div>
+
+              {/* Offer Discount */}
+              {offerDiscount > 0 && (
+                <div className="flex justify-between items-center py-2 px-3 rounded-xl"
+                  style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)" }}>
+                  <span className="flex items-center gap-1.5 text-green-400 font-semibold text-xs">
+                    <Tag size={12} /> {activeOffer?.title ?? "Offer Applied"}
+                  </span>
+                  <span className="text-green-400 font-bold">−{formatPrice(offerDiscount)}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Grand Total */}
+            <div className="h-px w-full mt-3 mb-3" style={{ background: "rgba(255,255,255,0.08)" }} />
+            <div className="flex justify-between items-center">
+              <span className="text-base font-bold text-white">Total Payable</span>
+              <span className="text-lg font-black text-orange-400">{formatPrice(grand)}</span>
+            </div>
+
+            {/* You Saved */}
+            {offerDiscount > 0 && (
+              <p className="text-center text-xs font-bold text-green-400 mt-2">
+                🎉 You save {formatPrice(offerDiscount)} with this offer!
+              </p>
+            )}
+          </div>
+
+          {/* Continue to Payment Button */}
+          <button
+            onClick={() => setCheckoutStep("payment")}
+            disabled={!restaurantIsOpen || !deliveryAddress?.delivery_distance_km}
+            className="w-full flex items-center justify-center gap-3 py-4 text-base rounded-2xl font-bold text-white transition-all disabled:opacity-60"
+            style={{ background: "linear-gradient(135deg,#f97316,#dc2626)" }}>
+            {!restaurantIsOpen ? (
+              <>{isTemporarilyClosed ? "🔴 Temporarily Closed" : "🔴 Restaurant Closed"}</>
+            ) : !deliveryAddress?.delivery_distance_km ? (
+              <>⚠️ Address Not Verified</>
+            ) : (
+              <>Continue to Payment <ArrowRight size={18} /></>
+            )}
+          </button>
+
+          <p className="text-center text-xs text-gray-600 mt-3">
+            Review your bill above, then proceed to select payment method.
+          </p>
+        </>
+      )}
+
+      {/* ═══ PAYMENT STEP ═══ */}
+      {checkoutStep === "payment" && (
+        <>
       {/* Order summary (compact) */}
       <div className="rounded-2xl p-4 mb-5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
         <p className="text-sm font-semibold text-white mb-3">Order Summary ({items.length} items)</p>
@@ -553,9 +683,18 @@ export default function CheckoutPage() {
         )}
       </button>
 
-      <p className="text-center text-xs text-gray-600 mt-4">
+      <div className="flex items-center gap-3 mt-3">
+        <button onClick={() => setCheckoutStep("bill")}
+          className="text-xs text-gray-500 hover:text-orange-400 transition-colors">
+          ← Back to Bill
+        </button>
+      </div>
+
+      <p className="text-center text-xs text-gray-600 mt-3">
         🔒 Secure payment. Your order will be prepared immediately after confirmation.
       </p>
+      </> /* end payment step */
+      )}
     </div>
   );
 }
