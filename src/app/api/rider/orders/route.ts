@@ -52,9 +52,11 @@ export async function GET(_req: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // 3. Fetch active assigned orders for this rider using service-role.
-    //    This bypasses the RLS cascade failure caused by delivery_tracking
-    //    → orders → users (customer) being blocked by the users table policy.
+    // 3. Fetch all orders for this rider (active + delivered last 7 days).
+    //    Service-role bypasses RLS cascade failure on delivery_tracking → orders → users join.
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
     const { data: trackingRows, error } = await adminClient
       .from("delivery_tracking")
       .select(`
@@ -72,14 +74,13 @@ export async function GET(_req: NextRequest) {
           rider_payout,
           delivery_distance_km,
           special_instructions,
-          delivery_distance_km,
           status,
           order_items ( name, quantity, price ),
           users ( name, phone, email )
         )
       `)
       .eq("partner_id", user.id)
-      .neq("status", "delivered")
+      .or(`status.neq.delivered,updated_at.gte.${sevenDaysAgo.toISOString()}`)
       .order("updated_at", { ascending: false });
 
     if (error) {

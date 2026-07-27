@@ -43,6 +43,7 @@ export default function DeliveryDashboard() {
   const [togglingOnline, setTogglingOnline] = useState(false);
   const [signingOut, setSigningOut]       = useState(false);
   const [isRefreshing, setIsRefreshing]   = useState(false);
+  const [activeTab, setActiveTab]         = useState<"active" | "completed">("active");
 
   // ── Toggle Online / Offline ──────────────────────────────────────
   // Calls /api/rider/status PATCH, updates local state instantly.
@@ -259,8 +260,11 @@ export default function DeliveryDashboard() {
       }
 
       if (newStatus === "delivered") {
-        setOrders((prev) => prev.filter((t) => t.id !== trackingId));
+        // Keep the delivered order in state but update its status
+        // so it appears in the Completed tab
+        setOrders((prev) => prev.map((t) => t.id === trackingId ? { ...t, status: "delivered" } : t));
         setTodayCount((n) => n + 1);
+        setActiveTab("completed"); // auto-switch to completed tab
         toast.success("Delivery completed! 🎉", { duration: 4000 });
         setTimeout(refreshKm, 2000);
       } else {
@@ -449,7 +453,7 @@ export default function DeliveryDashboard() {
       {/* Stats Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-5">
         {[
-          { label: "Active",   value: orders.length,                            color: "text-orange-600", icon: "📦" },
+          { label: "Active",   value: orders.filter((o:any) => o.status !== "delivered").length, color: "text-orange-600", icon: "📦" },
           { label: "Today",    value: todayCount,                               color: "text-green-600",  icon: "✅" },
           { label: "Distance", value: todayKm !== null ? `${todayKm} km` : "—", color: "text-blue-600",   icon: "📍" },
           { label: "Earnings", value: todayEarnings !== null ? `₹${todayEarnings}` : "—", color: "text-emerald-600", icon: "💰" },
@@ -466,9 +470,29 @@ export default function DeliveryDashboard() {
 
       {/* Refresh */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-semibold" style={{ color: "var(--text-primary)" }}>
-          Active Orders {orders.length > 0 && <span className="ml-2 text-xs" style={{ color: "var(--text-muted)" }}>({orders.length})</span>}
-        </h2>
+        {/* Tabs */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveTab("active")}
+            className={cn("px-4 py-1.5 rounded-full text-sm font-bold transition-all",
+              activeTab === "active" ? "bg-orange-500 text-white" : "text-slate-500 hover:text-orange-500"
+            )}
+          >
+            Active {orders.filter((o:any) => o.status !== "delivered").length > 0 && (
+              <span className="ml-1 bg-white/30 text-xs px-1.5 py-0.5 rounded-full">{orders.filter((o:any) => o.status !== "delivered").length}</span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab("completed")}
+            className={cn("px-4 py-1.5 rounded-full text-sm font-bold transition-all",
+              activeTab === "completed" ? "bg-green-500 text-white" : "text-slate-500 hover:text-green-500"
+            )}
+          >
+            Completed {orders.filter((o:any) => o.status === "delivered").length > 0 && (
+              <span className="ml-1 bg-white/30 text-xs px-1.5 py-0.5 rounded-full">{orders.filter((o:any) => o.status === "delivered").length}</span>
+            )}
+          </button>
+        </div>
         <button onClick={fullRefresh} disabled={isRefreshing}
           className="flex items-center gap-1.5 text-xs transition-colors font-medium"
           style={{ color: "var(--text-muted)" }}>
@@ -476,16 +500,23 @@ export default function DeliveryDashboard() {
         </button>
       </div>
 
-      {orders.length === 0 ? (
+      {activeTab === "active" && orders.filter((o:any) => o.status !== "delivered").length === 0 ? (
         <div className="text-center py-20 rounded-2xl"
           style={{ background: "var(--card-bg)", border: "1px solid var(--border)" }}>
           <Package size={48} className="text-slate-300 mx-auto mb-4" />
           <p className="text-xl font-semibold mb-2" style={{ color: "var(--text-primary)" }}>No active orders</p>
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>New orders assigned to you will appear here instantly</p>
         </div>
+      ) : activeTab === "completed" && orders.filter((o:any) => o.status === "delivered").length === 0 ? (
+        <div className="text-center py-20 rounded-2xl"
+          style={{ background: "var(--card-bg)", border: "1px solid var(--border)" }}>
+          <CheckCircle size={48} className="text-slate-300 mx-auto mb-4" />
+          <p className="text-xl font-semibold mb-2" style={{ color: "var(--text-primary)" }}>No completed orders</p>
+          <p className="text-sm" style={{ color: "var(--text-muted)" }}>Orders you deliver today will appear here</p>
+        </div>
       ) : (
         <div className="space-y-4">
-          {orders.map((tracking: any) => {
+          {orders.filter((o:any) => activeTab === "active" ? o.status !== "delivered" : o.status === "delivered").map((tracking: any) => {
             const order = tracking.orders;
             const addr  = order?.delivery_address as any;
 
