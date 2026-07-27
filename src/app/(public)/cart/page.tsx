@@ -91,10 +91,19 @@ export default function CartPage() {
       </div>
 
       {/* Free delivery progress */}
-      {fee > 0 && (
+      {sub >= freeAt ? (
+        <div className="mb-5 p-4 rounded-2xl flex items-center gap-3"
+          style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)" }}>
+          <span className="text-xl">🎉</span>
+          <div>
+            <p className="text-green-400 font-bold text-sm">Free Delivery Unlocked!</p>
+            <p className="text-green-400/70 text-xs">Your order qualifies for free delivery</p>
+          </div>
+        </div>
+      ) : fee > 0 && (
         <div className="mb-5 p-4 rounded-2xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
           <div className="flex justify-between text-xs text-gray-400 mb-2">
-            <span>Add <span className="text-green-400 font-semibold">{formatPrice(freeAt - sub)}</span> more for free delivery</span>
+            <span>Add <span className="text-green-400 font-semibold">{formatPrice(Math.max(0, freeAt - sub))}</span> more for free delivery</span>
             <span className="text-green-400">FREE</span>
           </div>
           <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
