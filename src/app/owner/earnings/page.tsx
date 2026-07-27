@@ -13,7 +13,7 @@ interface EarningLog {
   distance_range: string;
   earned_at: string;
   order_id: string;
-  orders: { order_number: string; total_amount: number };
+  orders: { order_number: string; total_amount: number; owner_contribution: number | null; delivery_fee: number | null };
   users: { name: string; phone: string };
 }
 
@@ -63,13 +63,17 @@ export default function EarningsAnalyticsPage() {
     let totalPayout = 0;
     let totalDeliveries = 0;
     let totalDistance = 0;
+    let totalOwnerContribution = 0;
 
     for (const l of filteredLogs) {
       totalPayout += l.payout_amount || 0;
       totalDeliveries += 1;
       totalDistance += l.distance_km || 0;
+      // Use order's owner_contribution if available (dynamic), fallback to payout - delivery_fee
+      const contrib = l.orders?.owner_contribution ?? (l.payout_amount - (l.orders?.delivery_fee ?? 0));
+      totalOwnerContribution += Math.max(0, contrib);
     }
-    return { totalPayout, totalDeliveries, totalDistance };
+    return { totalPayout, totalDeliveries, totalDistance, totalOwnerContribution };
   }, [filteredLogs]);
 
   // Aggregate by rider
@@ -134,8 +138,8 @@ export default function EarningsAnalyticsPage() {
             <Activity size={20} />
             <h2 className="font-medium text-sm uppercase tracking-wider">Owner Contribution</h2>
           </div>
-          <p className="text-4xl font-black">₹{(summary.totalDeliveries * 10).toLocaleString()}</p>
-          <p className="text-blue-100 text-sm mt-2">₹10 per completed delivery</p>
+          <p className="text-4xl font-black">₹{summary.totalOwnerContribution.toLocaleString()}</p>
+          <p className="text-blue-100 text-sm mt-2">Rider Payout − Customer Delivery Fee</p>
         </div>
 
         <div className="bg-white border rounded-2xl p-6 shadow-sm flex flex-col justify-center">
@@ -204,41 +208,54 @@ export default function EarningsAnalyticsPage() {
                     <th className="px-4 py-3 font-semibold">Rider</th>
                     <th className="px-4 py-3 font-semibold">Order</th>
                     <th className="px-4 py-3 font-semibold text-right">Distance</th>
-                    <th className="px-4 py-3 font-semibold text-right">Payout</th>
+                    <th className="px-4 py-3 font-semibold text-right">Rider Payout</th>
+                    <th className="px-4 py-3 font-semibold text-right">Owner Contrib.</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y text-slate-700">
                   {filteredLogs.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-10 text-center text-slate-500">No logs found</td>
+                      <td colSpan={6} className="py-10 text-center text-slate-500">No logs found</td>
                     </tr>
                   ) : (
-                    filteredLogs.map(log => (
-                      <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <Calendar size={14} className="text-slate-400" />
-                            {new Date(log.earned_at).toLocaleString("en-IN", {
-                              day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit"
-                            })}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 font-medium text-slate-800">
-                          {log.users?.name || "Unknown"}
-                        </td>
-                        <td className="px-4 py-3 text-orange-600 font-mono text-xs">
-                          #{log.orders?.order_number}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <span className="inline-block bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-xs font-medium border">
-                            {log.distance_range || `${log.distance_km} km`}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right font-bold text-emerald-600">
-                          ₹{log.payout_amount}
-                        </td>
-                      </tr>
-                    ))
+                    filteredLogs.map(log => {
+                      const ownerContrib = log.orders?.owner_contribution ?? Math.max(0, log.payout_amount - (log.orders?.delivery_fee ?? 0));
+                      const isFreeDelivery = (log.orders?.delivery_fee ?? -1) === 0;
+                      return (
+                        <tr key={log.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <Calendar size={14} className="text-slate-400" />
+                              {new Date(log.earned_at).toLocaleString("en-IN", {
+                                day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit"
+                              })}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 font-medium text-slate-800">
+                            {log.users?.name || "Unknown"}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-orange-600 font-mono text-xs">#{log.orders?.order_number}</span>
+                              {isFreeDelivery && (
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 w-fit">FREE DELIVERY</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="inline-block bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-xs font-medium border">
+                              {log.distance_range || `${log.distance_km} km`}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right font-bold text-emerald-600">
+                            ₹{log.payout_amount}
+                          </td>
+                          <td className="px-4 py-3 text-right font-bold text-blue-600">
+                            ₹{ownerContrib.toFixed(0)}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>

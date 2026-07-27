@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
         distance_range,
         earned_at,
         order_id,
-        orders ( order_number, total_amount ),
+        orders ( order_number, total_amount, owner_contribution, delivery_fee ),
         users:partner_id ( name, phone )
       `)
       .order("earned_at", { ascending: false });

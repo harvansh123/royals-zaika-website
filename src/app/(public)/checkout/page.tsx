@@ -65,13 +65,15 @@ export default function CheckoutPage() {
 
   const sub   = subtotal();
   const fee   = deliveryFee();
+  // Distance info for bill display — pass subtotal for free-delivery calculation
+  const distKm = deliveryAddress?.delivery_distance_km ?? null;
+  const pricing = getDeliveryPricing(distKm, sub);
+
   // Offer discount calculated fresh from current offer state
   const offerDiscount = useMemo(() => activeOffer ? calcDiscount(activeOffer, sub) : 0, [activeOffer, sub]);
-  const grand = Math.max(0, sub + fee - offerDiscount);
-
-  // Distance info for bill display
-  const distKm = deliveryAddress?.delivery_distance_km ?? null;
-  const pricing = getDeliveryPricing(distKm);
+  // Use actual customer fee from pricing (handles free delivery), else fallback to cartStore fee
+  const actualFee = pricing?.customerFee ?? fee;
+  const grand = Math.max(0, sub + actualFee - offerDiscount);
 
   useEffect(() => {
     if (authLoading) return;
@@ -172,13 +174,22 @@ export default function CheckoutPage() {
 
       // Calculate final amounts with offer discount applied
       const discountAmt = offerDiscount;
-      const finalTotal  = Math.max(0, sub + fee - discountAmt);
+      // Use actual customer delivery fee from pricing (handles free delivery)
+      const actualPricingForOrder = getDeliveryPricing(deliveryAddress?.delivery_distance_km ?? null, sub);
+      const actualCustomerFee = actualPricingForOrder?.customerFee ?? fee;
+      const finalTotal = Math.max(0, sub + actualCustomerFee - discountAmt);
 
-      const orderDistanceKm = settings && deliveryAddress.latitude && deliveryAddress.longitude
+      // Recalculate grand total using actual customer delivery charge (may be 0 for free delivery)
+      const distKmForOrder = settings && deliveryAddress.latitude && deliveryAddress.longitude
         ? haversineKm(settings.restaurant_lat, settings.restaurant_lng, deliveryAddress.latitude, deliveryAddress.longitude)
         : null;
+      const orderDistanceKm = distKmForOrder;
 
-      const pricing = getDeliveryPricing(orderDistanceKm);
+      const pricing = getDeliveryPricing(orderDistanceKm, sub);
+
+      // Determine actual customer delivery charge (0 if free delivery)
+      const customerDeliveryCharge = pricing?.customerFee ?? fee;
+      const dynamicOwnerContribution = pricing?.ownerContribution ?? 0;
 
       // Create order
       const { data: order, error: orderErr } = await supabase.from("orders").insert({
@@ -187,9 +198,9 @@ export default function CheckoutPage() {
         payment_method:   method,
         payment_status:   "pending",
         subtotal:         sub,
-        delivery_fee:     fee, // this fee is already the distance-based customerFee
+        delivery_fee:     customerDeliveryCharge, // ₹0 if free delivery, else distance-based
         rider_payout:       pricing?.riderPayout ?? null,
-        owner_contribution: pricing?.ownerContribution ?? null,
+        owner_contribution: dynamicOwnerContribution,
         distance_range:     pricing?.rangeLabel ?? null,
         discount_amount:  discountAmt,
         total_amount:     finalTotal,
@@ -472,10 +483,29 @@ export default function CheckoutPage() {
                     </span>
                   )}
                 </div>
-                <span className={fee === 0 ? "text-green-400 font-semibold" : "text-white font-medium"}>
-                  {fee === 0 ? "FREE" : formatPrice(fee)}
+                <span className={pricing?.isFreeDelivery ? "text-green-400 font-bold" : fee === 0 ? "text-green-400 font-semibold" : "text-white font-medium"}>
+                  {pricing?.isFreeDelivery ? "FREE 🎉" : fee === 0 ? "FREE" : formatPrice(fee)}
                 </span>
               </div>
+
+              {/* Free Delivery Banner */}
+              {pricing?.isFreeDelivery && (
+                <div className="flex items-center gap-2 py-2 px-3 rounded-xl"
+                  style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)" }}>
+                  <span className="text-green-400 font-bold text-xs">🎉 Free Delivery Unlocked!</span>
+                  <span className="text-green-400/70 text-xs ml-auto">Orders above ₹499</span>
+                </div>
+              )}
+
+              {/* Nudge: show how close to free delivery */}
+              {!pricing?.isFreeDelivery && sub > 0 && sub < 499 && (
+                <div className="flex items-center gap-2 py-2 px-3 rounded-xl"
+                  style={{ background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.15)" }}>
+                  <span className="text-orange-400 text-xs">
+                    🛵 Add <strong>₹{Math.ceil(499 - sub)}</strong> more to get <strong>FREE delivery!</strong>
+                  </span>
+                </div>
+              )}
 
               {/* Offer Discount */}
               {offerDiscount > 0 && (

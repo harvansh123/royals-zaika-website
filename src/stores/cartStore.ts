@@ -82,9 +82,10 @@ export const useCartStore = create<CartStore>()(
 
       deliveryFee: () => {
         if (get().items.length === 0) return 0;
-        const distKm = get().deliveryDistanceKm;
-        const pricing = getDeliveryPricing(distKm);
-        // If distance is set and within range, use distance-based fee
+        const distKm  = get().deliveryDistanceKm;
+        const sub     = get().subtotal();
+        const pricing = getDeliveryPricing(distKm, sub);
+        // If distance is set and within range, use distance-based (or free) fee
         if (pricing) return pricing.customerFee;
         // Fallback: if no distance yet, use ₹30 as default display
         // (will be confirmed when address is selected)
