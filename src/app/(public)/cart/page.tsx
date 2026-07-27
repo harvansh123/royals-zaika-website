@@ -54,20 +54,99 @@ export default function CartPage() {
       .catch(() => {});
   }, []);
 
+  // ── OTP for last placed order (shown on empty cart) ─────────────────
+  const [lastOrderOtp,    setLastOrderOtp]    = useState<string | null>(null);
+  const [lastOrderNum,    setLastOrderNum]    = useState<string | null>(null);
+  const [otpLoading,      setOtpLoading]      = useState(false);
+
+  useEffect(() => {
+    const lastOrderId = sessionStorage.getItem("cj_last_order_id");
+    if (!lastOrderId) return;
+    setOtpLoading(true);
+    // Fetch OTP from notifications table (customer can read own notifications)
+    (async () => {
+      try {
+        const { supabase } = await import("@/lib/supabase/client");
+        const { data: notifs } = await supabase
+          .from("notifications")
+          .select("data")
+          .eq("type", "delivery_otp")
+          .order("created_at", { ascending: false });
+        const notif = (notifs ?? []).find((n: any) => n.data?.order_id === lastOrderId);
+        if (notif?.data?.otp) {
+          setLastOrderOtp(notif.data.otp);
+          setLastOrderNum(notif.data.order_number ?? null);
+        }
+      } catch {
+        // silent — OTP just won't show
+      } finally {
+        setOtpLoading(false);
+      }
+    })();
+  }, []);
+
   if (items.length === 0) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center px-4">
-        <div className="text-center max-w-xs">
+        <div className="text-center max-w-sm w-full">
+
+          {/* ── OTP Card (shown if last order has OTP) ── */}
+          {otpLoading && (
+            <div className="mb-6 p-5 rounded-2xl flex items-center justify-center gap-3"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px dashed rgba(255,255,255,0.12)" }}>
+              <div className="w-5 h-5 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+              <p className="text-sm text-gray-400">Loading your Delivery OTP...</p>
+            </div>
+          )}
+
+          {!otpLoading && lastOrderOtp && (
+            <div className="mb-6 rounded-2xl overflow-hidden"
+              style={{ background: "linear-gradient(145deg,rgba(99,102,241,0.15),rgba(99,102,241,0.05))", border: "2px solid rgba(99,102,241,0.5)", boxShadow: "0 8px 32px rgba(99,102,241,0.15)" }}>
+
+              {/* Header */}
+              <div className="px-5 pt-5 pb-3 flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <h2 className="font-black text-lg text-indigo-400">Delivery OTP</h2>
+                {lastOrderNum && <span className="text-xs text-gray-500">• Order #{lastOrderNum}</span>}
+              </div>
+
+              {/* OTP Digits */}
+              <div className="flex justify-center gap-2 px-4 pb-5">
+                {lastOrderOtp.split("").map((digit, i) => (
+                  <div key={i}
+                    className="w-12 h-14 rounded-xl flex items-center justify-center font-black text-3xl text-white shadow-lg"
+                    style={{ background: "rgba(99,102,241,0.4)", border: "1px solid rgba(99,102,241,0.8)" }}>
+                    {digit}
+                  </div>
+                ))}
+              </div>
+
+              {/* Warning messages */}
+              <div className="mx-4 mb-4 rounded-xl px-4 py-3"
+                style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.3)" }}>
+                <p className="text-sm font-semibold text-amber-400 mb-1 text-center">
+                  ⚠️ Share this OTP with the delivery rider only after you have received your complete order.
+                </p>
+                <p className="text-xs text-amber-400/70 text-center font-medium">
+                  Never share this OTP before receiving your order.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Empty cart icon + text */}
           <div className="w-24 h-24 mx-auto mb-6 rounded-3xl flex items-center justify-center text-5xl"
             style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
             🛒
           </div>
           <h2 className="font-bold text-2xl text-white mb-2" style={{ fontFamily: "'Outfit', sans-serif" }}>
-            Your cart is empty
+            {lastOrderOtp ? "Order Placed Successfully!" : "Your cart is empty"}
           </h2>
-          <p className="text-gray-500 mb-8 text-sm">Add some delicious dishes to get started!</p>
+          <p className="text-gray-500 mb-8 text-sm">
+            {lastOrderOtp ? "Your food is being prepared 🍛" : "Add some delicious dishes to get started!"}
+          </p>
           <Link href="/menu" className="btn-primary inline-flex items-center gap-2 py-3 px-6">
-            <ShoppingBag size={18} /> Browse Menu
+            <ShoppingBag size={18} /> Continue to Browse Menu
           </Link>
         </div>
       </div>

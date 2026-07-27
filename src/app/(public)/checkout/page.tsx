@@ -246,6 +246,7 @@ export default function CheckoutPage() {
         orderPlacedRef.current = true;
         clearCart();
         sessionStorage.removeItem(ADDRESS_SESSION_KEY); // clear after order placed
+        sessionStorage.setItem("cj_last_order_id", order.id); // for OTP display on empty cart
         router.push(`/order-confirmed/${order.id}`);
         return;
       }
@@ -275,6 +276,7 @@ export default function CheckoutPage() {
         orderPlacedRef.current = true;
         clearCart();
         sessionStorage.removeItem(ADDRESS_SESSION_KEY);
+        sessionStorage.setItem("cj_last_order_id", order.id); // for OTP display on empty cart
         toast("Razorpay not set up — COD applied ✅");
         router.push(`/order-confirmed/${order.id}`);
         return;
@@ -316,6 +318,7 @@ export default function CheckoutPage() {
           orderPlacedRef.current = true;
           clearCart();
           sessionStorage.removeItem(ADDRESS_SESSION_KEY); // clear after order placed
+          sessionStorage.setItem("cj_last_order_id", order.id); // for OTP display on empty cart
           router.push(`/order-confirmed/${order.id}`);
         },
         modal: { ondismiss: () => { toast.error("Payment cancelled"); setPlacing(false); } },
