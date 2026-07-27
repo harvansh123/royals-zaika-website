@@ -132,30 +132,37 @@ export default function OrderConfirmedPage() {
         )}
       </div>
 
-      {/* FIX 2: OTP Card — shown prominently right after order placement */}
-      {otp && (
-        <div className="rounded-2xl p-5 mb-6"
-          style={{ background: "rgba(99,102,241,0.1)", border: "2px solid rgba(99,102,241,0.45)" }}>
-          <div className="flex items-center gap-2 mb-3">
-            <Shield size={20} className="text-indigo-400" />
-            <p className="font-bold text-indigo-400">Your Delivery OTP</p>
+      {/* Main OTP Focus */}
+      {otp ? (
+        <div className="rounded-2xl p-6 mb-8 text-center"
+          style={{ background: "linear-gradient(145deg, rgba(99,102,241,0.15) 0%, rgba(99,102,241,0.05) 100%)", border: "2px solid rgba(99,102,241,0.5)", boxShadow: "0 8px 32px rgba(99,102,241,0.15)" }}>
+          <div className="flex flex-col items-center justify-center gap-2 mb-5">
+            <Shield size={28} className="text-indigo-400" />
+            <h2 className="font-black text-xl text-indigo-400">Delivery OTP</h2>
           </div>
-          {/* Large individual digit boxes */}
-          <div className="flex justify-center gap-2 mb-4">
+          
+          <div className="flex justify-center gap-3 mb-6">
             {otp.split("").map((digit, i) => (
               <div key={i}
-                className="w-11 h-14 rounded-xl flex items-center justify-center font-black text-2xl text-white"
-                style={{ background: "rgba(99,102,241,0.3)", border: "1px solid rgba(99,102,241,0.6)" }}>
+                className="w-14 h-16 rounded-xl flex items-center justify-center font-black text-4xl text-white shadow-lg"
+                style={{ background: "rgba(99,102,241,0.4)", border: "1px solid rgba(99,102,241,0.8)" }}>
                 {digit}
               </div>
             ))}
           </div>
+
           <div className="rounded-xl px-4 py-3" style={{ background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.25)" }}>
-            <p className="text-xs leading-relaxed text-center" style={{ color: "var(--text-secondary)" }}>
-              🔐 <strong className="text-indigo-300">This OTP must be shared with the delivery rider at the time of delivery.</strong>{" "}
-              The order will be marked as delivered only after successful OTP verification.
+            <p className="text-sm leading-relaxed text-center" style={{ color: "var(--text-secondary)" }}>
+              <span className="text-lg">🔐</span> <strong className="text-indigo-300 block mb-1 text-base">Share this OTP with the delivery rider.</strong>
+              Please keep this code handy. The rider will ask for it when they arrive with your order!
             </p>
           </div>
+        </div>
+      ) : (
+        <div className="rounded-2xl p-6 mb-8 text-center flex flex-col items-center justify-center gap-3"
+          style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.15)" }}>
+          <div className="w-8 h-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+          <p className="text-sm text-gray-400">Generating your Delivery OTP...</p>
         </div>
       )}
 
@@ -173,23 +180,9 @@ export default function OrderConfirmedPage() {
       <div className="flex flex-col gap-3">
         {/* PRIMARY: Track Order */}
         <Link href={`/track/${order?.id ?? id}`}
-          className="flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm transition-all btn-primary">
+          className="flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-base transition-all btn-primary shadow-lg shadow-orange-500/20">
           🛵 Track Your Order
         </Link>
-
-        {/* Secondary actions */}
-        <div className="flex gap-3">
-          <Link href="/menu"
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm transition-all"
-            style={{ border: "1px solid rgba(255,255,255,0.12)", color: "#e5e7eb", background: "rgba(255,255,255,0.04)" }}>
-            <ShoppingBag size={15} /> Order More
-          </Link>
-          <Link href="/"
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm transition-all"
-            style={{ border: "1px solid rgba(255,255,255,0.12)", color: "#e5e7eb", background: "rgba(255,255,255,0.04)" }}>
-            <Home size={15} /> Go Home
-          </Link>
-        </div>
       </div>
 
       <p className="text-gray-600 text-xs mt-8">
