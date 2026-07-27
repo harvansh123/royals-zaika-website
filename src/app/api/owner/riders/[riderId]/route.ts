@@ -51,6 +51,8 @@ export async function GET(
       .order("created_at", { ascending: false })
       .limit(50);
 
+    const activeTracking = (allDeliveries ?? []).filter(d => d.status === "assigned" || d.status === "picked_up");
+
     return NextResponse.json({
       rider: {
         ...(partner as any),
@@ -64,6 +66,7 @@ export async function GET(
         month: monthDel,
         lifetime: delivered.length,
         total_assigned: (allDeliveries ?? []).length,
+        active_orders: activeTracking.length,
       },
       audit_logs: auditLogs ?? [],
     });

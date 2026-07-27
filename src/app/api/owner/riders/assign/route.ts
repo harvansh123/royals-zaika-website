@@ -29,6 +29,26 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
+    // ── Busy Check ──────────────────────────────────────────────────
+    // A rider can only handle one active order at a time.
+    // If they already have an assigned or picked_up delivery, block assignment.
+    const { data: activeTracking } = await supabaseAdmin
+      .from("delivery_tracking")
+      .select("id, status, order_id, orders(order_number)")
+      .eq("partner_id", riderId)
+      .in("status", ["assigned", "picked_up"])
+      .maybeSingle();
+
+    // Allow re-assigning the SAME order to the same rider (no-op scenario)
+    if (activeTracking && activeTracking.order_id !== orderId) {
+      const activeOrderNum = (activeTracking.orders as any)?.order_number ?? activeTracking.order_id;
+      return NextResponse.json({
+        error: `rider_busy`,
+        message: `⚠️ Yeh rider abhi busy hai! Order #${activeOrderNum} deliver kar raha hai. Jab deliver ho jaye tab assign karein.`,
+        active_order: activeOrderNum,
+      }, { status: 409 });
+    }
+
     // Check if delivery_tracking row exists
     const { data: existing } = await supabaseAdmin
       .from("delivery_tracking")

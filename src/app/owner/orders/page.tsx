@@ -43,6 +43,7 @@ type Order = {
 type Rider = {
   id: string; name: string; phone: string;
   vehicle_type: string; is_available: boolean; total_deliveries: number;
+  is_busy?: boolean; active_order?: string;
 };
 
 type Filter = "all" | "pending" | "preparing" | "delivered" | "cancelled";
@@ -219,16 +220,12 @@ export default function OwnerOrdersPage() {
   }
 
   async function openAssignModal(order: Order) {
-
     setAssignModal({ order });
     setSelectedRider(null);
     setRidersLoading(true);
 
-    // FIX: Direct supabase.from("users") with anon key → triggers "Admins view all users"
-    // RLS policy → calls get_user_role() → queries users again → infinite recursion.
-    // Solution: use the existing /api/owner/riders service-role endpoint which already
-    // joins delivery_partners (for is_available) and filters correctly.
     try {
+      // Fetch all online active riders
       const res  = await fetch("/api/owner/riders?status=all");
       const json = await res.json();
 
@@ -236,18 +233,44 @@ export default function OwnerOrdersPage() {
         toast.error("Could not load riders: " + (json.error ?? "Unknown error"));
         setRiders([]);
       } else {
-        // Only show riders who are Online (is_available=true) and have an active account
         const online = (json.riders ?? []).filter(
           (r: any) => r.is_available === true && r.account_status === "active"
         );
-        setRiders(online.map((r: any) => ({
-          id: r.id,
-          name: r.name ?? "Unnamed",
-          phone: r.phone ?? "—",
-          vehicle_type: r.vehicle_type ?? "bike",
-          is_available: r.is_available,
-          total_deliveries: r.total_deliveries ?? 0,
-        })));
+
+        // Check which riders are currently busy (have an active non-delivered order)
+        const riderList: Rider[] = await Promise.all(
+          online.map(async (r: any) => {
+            try {
+              const busyRes  = await fetch(`/api/owner/riders/${r.id}`);
+              const busyJson = await busyRes.json();
+              // stats.active_orders might exist — or we check delivery_tracking via API
+              // Simpler: call the assign API in dry-run? No — instead check via stats
+              const isBusy   = (busyJson?.stats?.active_orders ?? 0) > 0;
+              return {
+                id: r.id,
+                name: r.name ?? "Unnamed",
+                phone: r.phone ?? "—",
+                vehicle_type: r.vehicle_type ?? "bike",
+                is_available: r.is_available,
+                total_deliveries: r.total_deliveries ?? 0,
+                is_busy: isBusy,
+                active_order: busyJson?.stats?.active_order_number ?? null,
+              };
+            } catch {
+              return {
+                id: r.id,
+                name: r.name ?? "Unnamed",
+                phone: r.phone ?? "—",
+                vehicle_type: r.vehicle_type ?? "bike",
+                is_available: r.is_available,
+                total_deliveries: r.total_deliveries ?? 0,
+                is_busy: false,
+              };
+            }
+          })
+        );
+        // Sort: free riders first, busy riders at bottom
+        setRiders(riderList.sort((a, b) => (a.is_busy ? 1 : 0) - (b.is_busy ? 1 : 0)));
       }
     } catch (err: any) {
       toast.error("Could not load riders: " + err.message);
@@ -280,7 +303,15 @@ export default function OwnerOrdersPage() {
         }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Assignment failed");
+      if (!res.ok) {
+        if (res.status === 409) {
+          // Rider busy — show clear Hindi message
+          toast.error(json.message ?? "Rider abhi busy hai! Pehle delivery complete karne do.", { duration: 6000 });
+        } else {
+          throw new Error(json.error ?? "Assignment failed");
+        }
+        return;
+      }
 
       // Optimistic UI update — mark as out-for-delivery
       setOrders((prev) => prev.map((o) =>
@@ -662,16 +693,32 @@ export default function OwnerOrdersPage() {
               ) : (
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {riders.map((rider) => (
-                    <button key={rider.id} onClick={() => setSelectedRider(rider.id)}
-                      className="w-full flex items-center gap-3 p-3.5 rounded-xl text-left transition-all"
+                    <button key={rider.id}
+                      onClick={() => !rider.is_busy && setSelectedRider(rider.id)}
+                      disabled={rider.is_busy}
+                      className={cn("w-full flex items-center gap-3 p-3.5 rounded-xl text-left transition-all",
+                        rider.is_busy ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
+                      )}
                       style={selectedRider === rider.id
                         ? { background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.4)" }
+                        : rider.is_busy
+                        ? { background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.2)" }
                         : { background: "var(--bg-secondary)", border: "1px solid var(--border)" }}>
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-                        style={{ background: "rgba(99,102,241,0.1)" }}>🛵</div>
+                        style={{ background: rider.is_busy ? "rgba(239,68,68,0.1)" : "rgba(99,102,241,0.1)" }}>
+                        {rider.is_busy ? "🔴" : "🛵"}
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>{rider.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>{rider.name}</p>
+                          {rider.is_busy && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">BUSY</span>
+                          )}
+                        </div>
                         <p className="text-xs" style={{ color: "var(--text-muted)" }}>📞 {rider.phone}</p>
+                        {rider.is_busy && (
+                          <p className="text-[10px] text-red-500 font-medium mt-0.5">⚠️ Abhi delivery pe hai — assign nahi kar sakte</p>
+                        )}
                       </div>
                       {selectedRider === rider.id && (
                         <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#6366f1" }}>
