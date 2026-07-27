@@ -256,36 +256,51 @@ export default function CheckoutAddressPage() {
 
     let lat: number | null = null;
     let lng: number | null = null;
+    let formattedAddress: string | null = null;
 
-    try {
-      // Include User-Agent (required by Nominatim ToS) and restrict to India for accuracy
-      const addressQuery = `${line1.trim()}, ${city.trim()}, ${stateName.trim()} ${pincode.trim()}`;
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressQuery)}&countrycodes=in&limit=1`,
-        { headers: { "User-Agent": "RoyalZaika-FoodApp/1.0", "Accept-Language": "en" } }
-      );
-      if (res.ok) {
+    // ── Mandatory geocoding validation ─────────────────────────────
+    // Try multiple query formats to maximize chance of resolving the address.
+    const pinOnly   = pincode.trim();
+    const fullQuery = `${line1.trim()}, ${city.trim()}, ${stateName.trim()} ${pinOnly}, India`;
+    const cityQuery = `${city.trim()}, ${stateName.trim()} ${pinOnly}, India`;
+
+    const tryGeocode = async (query: string): Promise<{ lat: number; lng: number; display: string } | null> => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=in&limit=1&addressdetails=1`,
+          { headers: { "User-Agent": "RoyalZaika-FoodApp/1.0", "Accept-Language": "en" } }
+        );
+        if (!res.ok) return null;
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          const parsedLat = parseFloat(data[0].lat);
-          const parsedLng = parseFloat(data[0].lon);
-          if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
-            lat = parsedLat;
-            lng = parsedLng;
-          }
-        }
+        if (!Array.isArray(data) || data.length === 0) return null;
+        const parsedLat = parseFloat(data[0].lat);
+        const parsedLng = parseFloat(data[0].lon);
+        if (isNaN(parsedLat) || isNaN(parsedLng)) return null;
+        return { lat: parsedLat, lng: parsedLng, display: data[0].display_name ?? query };
+      } catch {
+        return null;
       }
-    } catch (e) {
-      console.warn("[saveAddress] Geocoding failed:", e);
+    };
+
+    // Try full address first, fall back to city+pincode
+    let geocodeResult = await tryGeocode(fullQuery);
+    if (!geocodeResult) {
+      geocodeResult = await tryGeocode(cityQuery);
     }
 
-    // If geocoding failed, save the address WITHOUT coordinates.
-    // The auto-geocoding effect will retry when the user selects this address.
-    // Do NOT block the save — a missing pincode or Nominatim rate-limit
-    // should never prevent a customer from saving their address.
-    if (lat === null || lng === null) {
-      console.warn("[saveAddress] Geocoding returned no result — saving without coordinates");
+    if (!geocodeResult) {
+      // Address could not be verified — REJECT save
+      toast.error(
+        "Please enter a valid address that can be located on Google Maps.",
+        { duration: 5000 }
+      );
+      setSavingNew(false);
+      return;
     }
+
+    lat = geocodeResult.lat;
+    lng = geocodeResult.lng;
+    formattedAddress = geocodeResult.display;
 
     const isFirst = addresses.length === 0;
     let savedAddr: Address | null = null;
@@ -300,7 +315,7 @@ export default function CheckoutAddressPage() {
         })
         .eq("id", editId).select("*").single();
       if (error) { toast.error("Update failed: " + error.message); }
-      else { savedAddr = data as Address; toast.success("Address updated ✅"); }
+      else { savedAddr = data as Address; toast.success("Address verified & updated ✅"); }
     } else {
       const { data, error } = await supabase.from("addresses").insert({
         user_id: user.id, label,
@@ -311,7 +326,7 @@ export default function CheckoutAddressPage() {
         is_default: isFirst,
       }).select("*").single();
       if (error) { toast.error("Save failed: " + error.message); }
-      else { savedAddr = data as Address; toast.success("Address saved ✅"); }
+      else { savedAddr = data as Address; toast.success("Address verified & saved ✅"); }
     }
 
     setSavingNew(false);
@@ -740,9 +755,13 @@ export default function CheckoutAddressPage() {
             <button onClick={saveAddress} disabled={savingNew}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white gradient-brand transition-all hover:opacity-90 disabled:opacity-60">
               {savingNew ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={15} />}
-              {savingNew ? "Saving..." : editMode ? "Update Address" : "Save & Select"}
+              {savingNew ? "Verifying address..." : editMode ? "Update Address" : "Save & Select"}
             </button>
           </div>
+          {/* Verification note */}
+          <p className="text-xs text-center" style={{ color: "#6b7280" }}>
+            🔍 Your address will be verified on map before saving
+          </p>
         </div>
       )}
 
