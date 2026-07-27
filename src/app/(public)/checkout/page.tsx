@@ -75,7 +75,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!user)         { router.push("/auth/login");       return; }
-    if (!items.length) { router.push("/cart");             return; }
+    if (!items.length && !placing) { router.push("/cart");             return; }
 
     // Read address selected at /checkout/address
     const stored = sessionStorage.getItem(ADDRESS_SESSION_KEY);
@@ -117,7 +117,7 @@ export default function CheckoutPage() {
         sessionStorage.setItem("cod_popup_shown", "1");
       }
     } catch { router.push("/checkout/address"); }
-  }, [user, authLoading, items.length, router]);
+  }, [user, authLoading, items.length, router, placing]);
 
   async function placeOrder() {
     if (!user) return;
