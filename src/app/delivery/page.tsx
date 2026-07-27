@@ -624,12 +624,26 @@ export default function DeliveryDashboard() {
                       </div>
                     </div>
                     
-                    <button
-                      onClick={() => openGoogleMaps(addr)}
-                      className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-orange-600 transition-colors hover:bg-orange-50"
-                      style={{ borderTop: "1px solid rgba(249,115,22,0.15)", background: "var(--accent-peach)" }}>
-                      <Navigation size={15} /> 🗺️ Navigate with Google Maps
-                    </button>
+                    {/* Navigate button — only enabled after picking up */}
+                    {tracking.status === "assigned" ? (
+                      <div className="w-full flex flex-col items-center gap-1.5 py-3 px-4"
+                        style={{ borderTop: "1px solid rgba(249,115,22,0.15)", background: "rgba(249,115,22,0.04)" }}>
+                        <div className="flex items-center justify-center gap-2 text-slate-400 text-sm font-bold">
+                          <Navigation size={15} className="text-slate-300" />
+                          <span>🗺️ Navigate with Google Maps</span>
+                        </div>
+                        <p className="text-[11px] text-orange-500 font-semibold text-center">
+                          ⚠️ Pehle order pickup karein, tab navigate ho sakenge
+                        </p>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => openGoogleMaps(addr)}
+                        className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-orange-600 transition-colors hover:bg-orange-50"
+                        style={{ borderTop: "1px solid rgba(249,115,22,0.15)", background: "var(--accent-peach)" }}>
+                        <Navigation size={15} /> 🗺️ Navigate with Google Maps
+                      </button>
+                    )}
                   </div>
 
                   {/* Customer Instructions */}
