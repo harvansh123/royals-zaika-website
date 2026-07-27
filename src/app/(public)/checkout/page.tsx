@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/stores/cartStore";
 import { useAuthStore } from "@/stores/authStore";
@@ -47,6 +47,7 @@ export default function CheckoutPage() {
 
   const [payMethod,       setPayMethod]       = useState<PayMethod>("cod");  // default COD
   const [placing,         setPlacing]         = useState(false);
+  const orderPlacedRef = useRef(false); // prevents redirect to /cart after clearCart()
   const [imgErrors,       setImgErrors]       = useState<Record<string, boolean>>({});
   const [deliveryAddress, setDeliveryAddress] = useState<any>(null);
   const [settings,        setSettings]        = useState<RestaurantSettings | null>(null);
@@ -75,7 +76,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!user)         { router.push("/auth/login");       return; }
-    if (!items.length && !placing) { router.push("/cart");             return; }
+    if (!items.length && !orderPlacedRef.current) { router.push("/cart"); return; }
 
     // Read address selected at /checkout/address
     const stored = sessionStorage.getItem(ADDRESS_SESSION_KEY);
@@ -117,7 +118,7 @@ export default function CheckoutPage() {
         sessionStorage.setItem("cod_popup_shown", "1");
       }
     } catch { router.push("/checkout/address"); }
-  }, [user, authLoading, items.length, router, placing]);
+  }, [user, authLoading, items.length, router]);
 
   async function placeOrder() {
     if (!user) return;
@@ -236,6 +237,7 @@ export default function CheckoutPage() {
           body:    JSON.stringify({ orderNumber: order.order_number, orderId: order.id }),
         }).catch(() => {});
 
+        orderPlacedRef.current = true;
         clearCart();
         sessionStorage.removeItem(ADDRESS_SESSION_KEY); // clear after order placed
         router.push(`/order-confirmed/${order.id}`);
@@ -264,6 +266,7 @@ export default function CheckoutPage() {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ orderId: order.id }),
         });
+        orderPlacedRef.current = true;
         clearCart();
         sessionStorage.removeItem(ADDRESS_SESSION_KEY);
         toast("Razorpay not set up — COD applied ✅");
@@ -304,6 +307,7 @@ export default function CheckoutPage() {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ orderId: order.id }),
           });
+          orderPlacedRef.current = true;
           clearCart();
           sessionStorage.removeItem(ADDRESS_SESSION_KEY); // clear after order placed
           router.push(`/order-confirmed/${order.id}`);
