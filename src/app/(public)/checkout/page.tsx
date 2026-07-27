@@ -113,12 +113,7 @@ export default function CheckoutPage() {
         .then(d => setActiveOffer(d.offer ?? null))
         .catch(() => {});
 
-      // Show COD-only popup once per checkout session
-      const popupShown = sessionStorage.getItem("cod_popup_shown");
-      if (!popupShown) {
-        setShowCodPopup(true);
-        sessionStorage.setItem("cod_popup_shown", "1");
-      }
+      // COD popup will be shown when user navigates to payment step
     } catch { router.push("/checkout/address"); }
   }, [user, authLoading, items.length, router]);
 
@@ -536,7 +531,15 @@ export default function CheckoutPage() {
 
           {/* Continue to Payment Button */}
           <button
-            onClick={() => setCheckoutStep("payment")}
+            onClick={() => {
+              setCheckoutStep("payment");
+              // Show COD-only popup once per checkout session — only on payment step
+              const popupShown = sessionStorage.getItem("cod_popup_shown");
+              if (!popupShown) {
+                setShowCodPopup(true);
+                sessionStorage.setItem("cod_popup_shown", "1");
+              }
+            }}
             disabled={!restaurantIsOpen || !deliveryAddress?.delivery_distance_km}
             className="w-full flex items-center justify-center gap-3 py-4 text-base rounded-2xl font-bold text-white transition-all disabled:opacity-60"
             style={{ background: "linear-gradient(135deg,#f97316,#dc2626)" }}>
