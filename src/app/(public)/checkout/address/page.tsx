@@ -41,6 +41,71 @@ function LabelIcon({ label }: { label: string }) {
 
 type GpsStep = "idle" | "requesting" | "fetching" | "done" | "error" | "blocked";
 
+// ── Multi-strategy geocoder (most precise → least precise) ──────────────
+// Indian addresses are often non-standard; we try progressively simpler
+// queries so that at minimum the pincode gives an area-level location.
+async function tryMultiStrategyGeocode(
+  line1: string,
+  city: string,
+  state: string,
+  pincode: string
+): Promise<{ lat: number; lng: number; accuracy: "precise" | "area" | "pincode" } | null> {
+  const nominatim = async (q: string) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=in&limit=1&addressdetails=1`,
+        { headers: { "User-Agent": "RoyalZaika-FoodApp/1.0", "Accept-Language": "en" } }
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) return null;
+      const lat = parseFloat(data[0].lat);
+      const lng = parseFloat(data[0].lon);
+      if (isNaN(lat) || isNaN(lng)) return null;
+      return { lat, lng };
+    } catch { return null; }
+  };
+
+  const pin  = pincode.trim();
+  const cty  = city.trim();
+  const st   = state.trim();
+  const l1   = line1.trim();
+
+  // Strategy 1 — full address (most precise)
+  if (l1 && cty && st && pin) {
+    const r = await nominatim(`${l1}, ${cty}, ${st} ${pin}, India`);
+    if (r) return { ...r, accuracy: "precise" };
+  }
+
+  // Strategy 2 — street/locality + city + pincode (skip house number junk)
+  // Extract just the locality part (everything after first comma if any)
+  const localityPart = l1.includes(",") ? l1.split(",").slice(1).join(",").trim() : l1;
+  if (localityPart && cty && pin) {
+    const r = await nominatim(`${localityPart}, ${cty}, ${st}, India`);
+    if (r) return { ...r, accuracy: "precise" };
+  }
+
+  // Strategy 3 — city + state + pincode (area-level)
+  if (cty && st && pin) {
+    const r = await nominatim(`${cty}, ${st} ${pin}, India`);
+    if (r) return { ...r, accuracy: "area" };
+  }
+
+  // Strategy 4 — pincode + state only (postal area fallback)
+  if (pin && pin.length === 6) {
+    const r = await nominatim(`${pin}, ${st}, India`);
+    if (r) return { ...r, accuracy: "pincode" };
+  }
+
+  // Strategy 5 — pincode only
+  if (pin && pin.length === 6) {
+    const r = await nominatim(`${pin} India`);
+    if (r) return { ...r, accuracy: "pincode" };
+  }
+
+  return null;
+}
+
 export default function CheckoutAddressPage() {
   const router             = useRouter();
   const { user, loading: authLoading } = useAuthStore();
@@ -126,7 +191,7 @@ export default function CheckoutAddressPage() {
   }, [selectedAddr, settings]);
 
   // Auto-geocode a selected address that has no stored coordinates.
-  // Nominatim is called here (not at save-time) so saving is never blocked.
+  // Uses multi-strategy so even partially-typed addresses get resolved.
   // On success: distance is calculated and the address record is silently updated.
   useEffect(() => {
     if (!selectedAddr || selectedAddr.latitude || !settings) {
@@ -135,30 +200,27 @@ export default function CheckoutAddressPage() {
     }
     let cancelled = false;
     setGeocodingAddr(true);
-    const q = `${selectedAddr.address_line1}, ${selectedAddr.city}, ${selectedAddr.state} ${selectedAddr.pincode}`;
-    fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=in&limit=1`,
-      { headers: { "User-Agent": "RoyalZaika-FoodApp/1.0", "Accept-Language": "en" } }
-    )
-      .then(r => r.json())
-      .then(data => {
-        if (cancelled || !Array.isArray(data) || data.length === 0) return;
-        const lat = parseFloat(data[0].lat);
-        const lng = parseFloat(data[0].lon);
-        if (isNaN(lat) || isNaN(lng)) return;
-        const dist = haversineKm(settings.restaurant_lat, settings.restaurant_lng, lat, lng);
-        setDistanceKm(dist);
-        setDeliveryDistance(dist);
-        setIsDeliverable(dist <= settings.delivery_radius_km);
-        // ROOT CAUSE FIX: update selectedAddr state with resolved coordinates so that
-        // confirmAndContinue includes lat/lng in the sessionStorage payload.
-        // Without this, addr.latitude was null and checkout showed "Address Not Verified".
-        setSelectedAddr(prev => prev ? { ...prev, latitude: lat, longitude: lng } : prev);
-        // Silently persist coordinates to DB so next selection is instant
-        supabase.from("addresses").update({ latitude: lat, longitude: lng }).eq("id", selectedAddr.id);
-      })
-      .catch(() => { /* geocoding failed — distanceKm stays null, customer cannot proceed */ })
-      .finally(() => { if (!cancelled) setGeocodingAddr(false); });
+
+    tryMultiStrategyGeocode(
+      selectedAddr.address_line1,
+      selectedAddr.city,
+      selectedAddr.state,
+      selectedAddr.pincode
+    ).then(result => {
+      if (cancelled || !result) return;
+      const { lat, lng } = result;
+      const dist = haversineKm(settings.restaurant_lat, settings.restaurant_lng, lat, lng);
+      setDistanceKm(dist);
+      setDeliveryDistance(dist);
+      setIsDeliverable(dist <= settings.delivery_radius_km);
+      // Update selectedAddr with resolved coordinates so confirmAndContinue works
+      setSelectedAddr(prev => prev ? { ...prev, latitude: lat, longitude: lng } : prev);
+      // Silently persist coordinates to DB so next selection is instant
+      supabase.from("addresses").update({ latitude: lat, longitude: lng }).eq("id", selectedAddr.id);
+    })
+    .catch(() => { /* all geocoding strategies failed — distanceKm stays null */ })
+    .finally(() => { if (!cancelled) setGeocodingAddr(false); });
+
     return () => { cancelled = true; };
   }, [selectedAddr?.id, settings]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -201,7 +263,14 @@ export default function CheckoutAddressPage() {
   function confirmAndContinue(addr: Address) {
     // Distance calculation is MANDATORY — cannot proceed without it.
     if (distanceKm === null) {
-      toast.error("Delivery distance could not be calculated. Please edit your address, ensure it has a valid pincode, or use GPS.");
+      if (geocodingAddr) {
+        toast.error("Please wait — we are verifying your address location...");
+      } else {
+        toast.error(
+          "We couldn't locate your address on the map. Please check your pincode and city, or use the GPS tab to detect your location automatically.",
+          { duration: 7000 }
+        );
+      }
       return;
     }
     if (!isDeliverable) {
@@ -252,53 +321,28 @@ export default function CheckoutAddressPage() {
       toast.error("Please fill House/Street, City, State and Pincode");
       return;
     }
-    setSavingNew(true);
-
-    let lat: number | null = null;
-    let lng: number | null = null;
-    let formattedAddress: string | null = null;
-
-    // ── Mandatory geocoding validation ─────────────────────────────
-    // IMPORTANT: We ONLY use the full address query — no city-level fallback.
-    // A city+pincode fallback would return city-center coordinates which can be
-    // 2–4 km off from the actual address, causing valid orders to be rejected.
-    const pinOnly   = pincode.trim();
-    const fullQuery = `${line1.trim()}, ${city.trim()}, ${stateName.trim()} ${pinOnly}, India`;
-
-    const tryGeocode = async (query: string): Promise<{ lat: number; lng: number; display: string } | null> => {
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=in&limit=1&addressdetails=1`,
-          { headers: { "User-Agent": "RoyalZaika-FoodApp/1.0", "Accept-Language": "en" } }
-        );
-        if (!res.ok) return null;
-        const data = await res.json();
-        if (!Array.isArray(data) || data.length === 0) return null;
-        const parsedLat = parseFloat(data[0].lat);
-        const parsedLng = parseFloat(data[0].lon);
-        if (isNaN(parsedLat) || isNaN(parsedLng)) return null;
-        return { lat: parsedLat, lng: parsedLng, display: data[0].display_name ?? query };
-      } catch {
-        return null;
-      }
-    };
-
-    // Only full-address geocoding — no city-level fallback to avoid imprecise coordinates
-    const geocodeResult = await tryGeocode(fullQuery);
-
-    if (!geocodeResult) {
-      // Address could not be precisely verified — REJECT save
-      toast.error(
-        "Address could not be located on the map. Please include your street/road name, area/locality, city, and pincode for accurate delivery distance.",
-        { duration: 6000 }
-      );
-      setSavingNew(false);
+    if (pincode.trim().length !== 6 || !/^\d+$/.test(pincode.trim())) {
+      toast.error("Please enter a valid 6-digit pincode");
       return;
     }
+    setSavingNew(true);
 
-    lat = geocodeResult.lat;
-    lng = geocodeResult.lng;
-    formattedAddress = geocodeResult.display;
+    // ── Multi-strategy geocoding (best-effort — never blocks save) ─────────
+    // We try from most-precise to least-precise. Even a pincode-level match
+    // is enough to verify the delivery zone and calculate distance.
+    const geocodeResult = await tryMultiStrategyGeocode(
+      line1, city, stateName, pincode
+    );
+
+    const lat = geocodeResult?.lat ?? null;
+    const lng = geocodeResult?.lng ?? null;
+
+    // Pick a user-friendly save message based on geocoding accuracy
+    const successMsg =
+      !geocodeResult            ? "Address saved! We'll verify delivery distance when you select it. ✅" :
+      geocodeResult.accuracy === "precise" ? "Address verified & saved ✅" :
+      geocodeResult.accuracy === "area"    ? "Address saved ✅ (matched to your area)" :
+                                             "Address saved ✅ (matched to your pincode area)";
 
     const isFirst = addresses.length === 0;
     let savedAddr: Address | null = null;
@@ -313,7 +357,10 @@ export default function CheckoutAddressPage() {
         })
         .eq("id", editId).select("*").single();
       if (error) { toast.error("Update failed: " + error.message); }
-      else { savedAddr = data as Address; toast.success("Address verified & updated ✅"); }
+      else {
+        savedAddr = data as Address;
+        geocodeResult ? toast.success(successMsg) : toast(successMsg, { icon: "⚠️" });
+      }
     } else {
       const { data, error } = await supabase.from("addresses").insert({
         user_id: user.id, label,
@@ -324,7 +371,10 @@ export default function CheckoutAddressPage() {
         is_default: isFirst,
       }).select("*").single();
       if (error) { toast.error("Save failed: " + error.message); }
-      else { savedAddr = data as Address; toast.success("Address verified & saved ✅"); }
+      else {
+        savedAddr = data as Address;
+        geocodeResult ? toast.success(successMsg) : toast(successMsg, { icon: "⚠️" });
+      }
     }
 
     setSavingNew(false);
@@ -753,12 +803,12 @@ export default function CheckoutAddressPage() {
             <button onClick={saveAddress} disabled={savingNew}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white gradient-brand transition-all hover:opacity-90 disabled:opacity-60">
               {savingNew ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={15} />}
-              {savingNew ? "Verifying address..." : editMode ? "Update Address" : "Save & Select"}
+            {savingNew ? "Saving address..." : editMode ? "Update Address" : "Save & Select"}
             </button>
           </div>
           {/* Verification note */}
           <p className="text-xs text-center" style={{ color: "#6b7280" }}>
-            🔍 Your address will be verified on map before saving
+            🔍 We'll try to match your address on the map. If your exact street isn't found, we'll use your pincode to estimate the delivery zone.
           </p>
         </div>
       )}
