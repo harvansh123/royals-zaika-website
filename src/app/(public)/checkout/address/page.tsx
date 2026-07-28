@@ -119,6 +119,7 @@ export default function CheckoutAddressPage() {
   const [activeTab,    setActiveTab]    = useState<Tab>("saved");
   const [selectedAddr, setSelectedAddr] = useState<Address | null>(null);
   const [deletingId,   setDeletingId]   = useState<string | null>(null);
+  const [manualUnlocked, setManualUnlocked] = useState(false); // GPS is default; manual unlocked on demand
 
   // ── Form (new / edit) ────────────────────────────────────────
   const [editMode,  setEditMode]  = useState(false);
@@ -257,7 +258,7 @@ export default function CheckoutAddressPage() {
   }, [loadAddresses]);
 
   useEffect(() => {
-    if (!loadingAddrs && addresses.length === 0) setActiveTab("new");
+    if (!loadingAddrs && addresses.length === 0) setActiveTab("gps"); // GPS is default for new users
   }, [loadingAddrs, addresses.length]);
 
   function confirmAndContinue(addr: Address) {
@@ -621,17 +622,22 @@ export default function CheckoutAddressPage() {
       <div className="flex rounded-2xl overflow-hidden mb-5"
         style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
         {([
-          { id: "saved" as Tab, label: "Saved",   icon: "📋" },
-          { id: "new"   as Tab, label: "Add New",  icon: "➕" },
-          { id: "gps"   as Tab, label: "Use GPS",  icon: "📍" },
-        ]).map(({ id, label, icon }) => (
+          { id: "saved" as Tab, label: "Saved",    icon: "📋" },
+          { id: "gps"   as Tab, label: "Use GPS ★", icon: "📍", highlight: true },
+          { id: "new"   as Tab, label: "Manual 🔒",  icon: "➕" },
+        ]).map(({ id, label, icon, highlight }) => (
           <button key={id}
-            onClick={() => { setActiveTab(id); if (id === "new") resetForm(); if (id === "gps") { setGpsStep("idle"); setGpsError(""); setGpsAddr(null); }}}
+            onClick={() => {
+              setActiveTab(id);
+              if (id === "new") { resetForm(); /* keep manualUnlocked as-is */ }
+              if (id === "gps") { setGpsStep("idle"); setGpsError(""); setGpsAddr(null); }
+            }}
             className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-semibold transition-all"
             style={{
-              color:     activeTab === id ? "#f97316" : "#6b7280",
-              background: activeTab === id ? "rgba(249,115,22,0.08)" : "transparent",
-              borderBottom: activeTab === id ? "2px solid #f97316" : "2px solid transparent",
+              color:        activeTab === id ? (highlight ? "#22c55e" : "#f97316") : "#6b7280",
+              background:   activeTab === id ? (highlight ? "rgba(34,197,94,0.08)" : "rgba(249,115,22,0.08)") : "transparent",
+              borderBottom: activeTab === id ? (highlight ? "2px solid #22c55e" : "2px solid #f97316") : "2px solid transparent",
+              opacity:      id === "new" && !manualUnlocked ? 0.55 : 1,
             }}>
             {icon} {label}
           </button>
@@ -648,10 +654,10 @@ export default function CheckoutAddressPage() {
             <div className="text-center py-12">
               <MapPin size={40} className="text-gray-700 mx-auto mb-3" />
               <p className="text-gray-400 font-semibold mb-1">No saved addresses</p>
-              <p className="text-gray-600 text-sm mb-4">Add your first delivery address to continue</p>
-              <button onClick={() => { setActiveTab("new"); resetForm(); }}
-                className="text-orange-400 text-sm font-semibold hover:text-orange-300 transition-colors">
-                ➕ Add Address
+              <p className="text-gray-600 text-sm mb-4">Use GPS to quickly add your location</p>
+              <button onClick={() => { setActiveTab("gps"); setGpsStep("idle"); setGpsError(""); setGpsAddr(null); }}
+                className="text-green-400 text-sm font-semibold hover:text-green-300 transition-colors">
+                📍 Use GPS Location
               </button>
             </div>
           ) : (
@@ -721,10 +727,10 @@ export default function CheckoutAddressPage() {
           )}
 
           {addresses.length > 0 && (
-            <button onClick={() => { setActiveTab("new"); resetForm(); }}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm text-gray-400 hover:text-orange-400 transition-colors"
+            <button onClick={() => { setActiveTab("gps"); setGpsStep("idle"); setGpsError(""); setGpsAddr(null); }}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm text-gray-400 hover:text-green-400 transition-colors"
               style={{ border: "1px dashed rgba(255,255,255,0.1)" }}>
-              <Plus size={14} /> Add Another Address
+              📍 Add Another via GPS
             </button>
           )}
         </div>
@@ -732,9 +738,49 @@ export default function CheckoutAddressPage() {
 
       {activeTab === "new" && (
         <div className="space-y-4 mb-5">
+
+          {/* GPS Recommendation Lock Screen — shown until user explicitly unlocks */}
+          {!manualUnlocked && !editMode && (
+            <div className="rounded-2xl p-6 text-center"
+              style={{ background: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.2)" }}>
+              <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+                style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.25)" }}>
+                <span className="text-3xl">📍</span>
+              </div>
+              <p className="text-white font-bold text-base mb-1">GPS se location dena zyada asaan hai!</p>
+              <p className="text-gray-400 text-sm mb-1 px-4">
+                Aapko kuch type nahi karna padega — GPS automatically aapka exact address detect kar leta hai.
+              </p>
+              <p className="text-gray-600 text-xs mb-6 px-4">
+                Works on Chrome, Safari, Firefox — sirf ek tap mein!
+              </p>
+              <button
+                onClick={() => { setActiveTab("gps"); setGpsStep("idle"); setGpsError(""); setGpsAddr(null); }}
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-white mb-4"
+                style={{ background: "linear-gradient(135deg, #22c55e, #16a34a)" }}>
+                📍 Use GPS Location (Recommended)
+              </button>
+              <button
+                onClick={() => setManualUnlocked(true)}
+                className="text-xs text-gray-600 hover:text-gray-400 transition-colors underline underline-offset-2">
+                Address manually type karna hai? Click here
+              </button>
+            </div>
+          )}
+
+          {/* Manual form — shown only when editMode OR user explicitly unlocked */}
+          {(manualUnlocked || editMode) && (
+            <>
           {editMode && (
             <div className="flex items-center gap-2 text-xs text-orange-400 bg-orange-500/10 px-3 py-2 rounded-xl">
               <AlertCircle size={13} /> Editing address: {label}
+            </div>
+          )}
+          {!editMode && manualUnlocked && (
+            <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-500/10 px-3 py-2 rounded-xl">
+              <AlertCircle size={13} /> Manual entry — GPS use karna zyada accurate hai
+              <button onClick={() => { setActiveTab("gps"); setGpsStep("idle"); setGpsError(""); setGpsAddr(null); }}
+                className="ml-auto text-green-400 font-semibold hover:text-green-300 underline text-xs">Use GPS</button>
             </div>
           )}
 
@@ -810,6 +856,8 @@ export default function CheckoutAddressPage() {
           <p className="text-xs text-center" style={{ color: "#6b7280" }}>
             🔍 We'll try to match your address on the map. If your exact street isn't found, we'll use your pincode to estimate the delivery zone.
           </p>
+          </>
+          )}
         </div>
       )}
 
