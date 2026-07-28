@@ -259,10 +259,11 @@ export default function CheckoutAddressPage() {
     let formattedAddress: string | null = null;
 
     // ── Mandatory geocoding validation ─────────────────────────────
-    // Try multiple query formats to maximize chance of resolving the address.
+    // IMPORTANT: We ONLY use the full address query — no city-level fallback.
+    // A city+pincode fallback would return city-center coordinates which can be
+    // 2–4 km off from the actual address, causing valid orders to be rejected.
     const pinOnly   = pincode.trim();
     const fullQuery = `${line1.trim()}, ${city.trim()}, ${stateName.trim()} ${pinOnly}, India`;
-    const cityQuery = `${city.trim()}, ${stateName.trim()} ${pinOnly}, India`;
 
     const tryGeocode = async (query: string): Promise<{ lat: number; lng: number; display: string } | null> => {
       try {
@@ -282,17 +283,14 @@ export default function CheckoutAddressPage() {
       }
     };
 
-    // Try full address first, fall back to city+pincode
-    let geocodeResult = await tryGeocode(fullQuery);
-    if (!geocodeResult) {
-      geocodeResult = await tryGeocode(cityQuery);
-    }
+    // Only full-address geocoding — no city-level fallback to avoid imprecise coordinates
+    const geocodeResult = await tryGeocode(fullQuery);
 
     if (!geocodeResult) {
-      // Address could not be verified — REJECT save
+      // Address could not be precisely verified — REJECT save
       toast.error(
-        "Please enter a valid address that can be located on Google Maps.",
-        { duration: 5000 }
+        "Address could not be located on the map. Please include your street/road name, area/locality, city, and pincode for accurate delivery distance.",
+        { duration: 6000 }
       );
       setSavingNew(false);
       return;
