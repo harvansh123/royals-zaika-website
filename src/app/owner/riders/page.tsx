@@ -64,6 +64,13 @@ export default function OwnerRidersPage() {
   const [suspendEnd,    setSuspendEnd]    = useState("");
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Delivery time analytics
+  const [analytics, setAnalytics] = useState<{
+    overall: { totalDelivered: number; todayAvgMinutes: number | null; weekAvgMinutes: number | null; monthAvgMinutes: number | null };
+    riderAnalytics: { rider_id: string; rider_name: string; total_deliveries: number; avg_duration_minutes: number | null }[];
+  } | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
   useEffect(() => {
     if (!authLoading && (!user || (user.role !== "restaurant_owner" && user.role !== "admin"))) {
       router.push("/auth/login");
@@ -87,7 +94,16 @@ export default function OwnerRidersPage() {
   }, []);
 
   useEffect(() => {
-    if (user?.role === "restaurant_owner" || user?.role === "admin") loadRiders();
+    if (user?.role === "restaurant_owner" || user?.role === "admin") {
+      loadRiders();
+      // Fetch delivery time analytics
+      setAnalyticsLoading(true);
+      fetch("/api/owner/rider-analytics")
+        .then(r => r.json())
+        .then(d => { if (d.overall) setAnalytics(d); })
+        .catch(() => {})
+        .finally(() => setAnalyticsLoading(false));
+    }
   }, [user, loadRiders]);
 
   // ── Supabase Realtime — delivery_partners ───────────────────────────────
@@ -248,6 +264,87 @@ export default function OwnerRidersPage() {
             <p className="text-xs" style={{ color: "var(--text-muted)" }}>{label}</p>
           </div>
         ))}
+      </div>
+
+      {/* ── Delivery Time Analytics ───────────────────────────────── */}
+      <div className="mb-6 rounded-2xl p-5" style={cardStyle}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-base flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
+            ⏱️ Delivery Time Analytics
+          </h2>
+          {analytics?.overall?.totalDelivered != null && (
+            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
+              {analytics.overall.totalDelivered} Total Delivered
+            </span>
+          )}
+        </div>
+
+        {/* Overall avg stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+          {[
+            { label: "Today Avg",   value: analytics?.overall?.todayAvgMinutes,  icon: "🌅", color: "text-orange-600" },
+            { label: "This Week",   value: analytics?.overall?.weekAvgMinutes,   icon: "📅", color: "text-blue-600"   },
+            { label: "This Month",  value: analytics?.overall?.monthAvgMinutes,  icon: "📆", color: "text-indigo-600" },
+            { label: "All-time Avg",
+              value: analytics?.riderAnalytics?.length
+                ? (() => {
+                    const withData = analytics.riderAnalytics.filter(r => r.avg_duration_minutes !== null);
+                    if (!withData.length) return null;
+                    const sum = withData.reduce((a, r) => a + (r.avg_duration_minutes ?? 0), 0);
+                    return Math.round((sum / withData.length) * 10) / 10;
+                  })()
+                : null,
+              icon: "📊", color: "text-green-600" },
+          ].map(({ label, value, icon, color }) => (
+            <div key={label} className="rounded-xl p-3 text-center"
+              style={{ background: "var(--bg-secondary)", border: "1px solid var(--border)" }}>
+              <p className="text-xl mb-1">{icon}</p>
+              <p className={`font-black text-lg ${color}`}>
+                {analyticsLoading ? "…" : value !== null && value !== undefined ? `${value} min` : "—"}
+              </p>
+              <p className="text-xs" style={{ color: "var(--text-muted)" }}>{label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Per-rider table */}
+        {analytics?.riderAnalytics && analytics.riderAnalytics.length > 0 && (
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Per Rider Average</p>
+            <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ background: "var(--bg-secondary)", borderBottom: "1px solid var(--border)" }}>
+                    <th className="text-left px-4 py-2 font-semibold text-xs" style={{ color: "var(--text-muted)" }}>Rider</th>
+                    <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: "var(--text-muted)" }}>Total</th>
+                    <th className="text-center px-4 py-2 font-semibold text-xs" style={{ color: "var(--text-muted)" }}>Avg Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {analytics.riderAnalytics
+                    .sort((a, b) => (a.avg_duration_minutes ?? 999) - (b.avg_duration_minutes ?? 999))
+                    .map((r, i) => (
+                      <tr key={r.rider_id}
+                        style={{ borderBottom: i < analytics.riderAnalytics.length - 1 ? "1px solid var(--border)" : undefined }}>
+                        <td className="px-4 py-2.5 font-medium" style={{ color: "var(--text-primary)" }}>{r.rider_name}</td>
+                        <td className="px-4 py-2.5 text-center text-xs font-semibold text-green-600">{r.total_deliveries}</td>
+                        <td className="px-4 py-2.5 text-center">
+                          {r.avg_duration_minutes !== null
+                            ? <span className="font-bold text-indigo-600">{r.avg_duration_minutes} min</span>
+                            : <span className="text-xs" style={{ color: "var(--text-muted)" }}>No data</span>
+                          }
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {!analyticsLoading && !analytics && (
+          <p className="text-sm text-center py-4" style={{ color: "var(--text-muted)" }}>No delivery data yet</p>
+        )}
       </div>
 
       {/* Search + Filters */}

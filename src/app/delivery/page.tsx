@@ -31,6 +31,12 @@ export default function DeliveryDashboard() {
   const [todayCount, setTodayCount] = useState(0);
   const [todayKm, setTodayKm]       = useState<number | null>(null);
   const [todayEarnings, setTodayEarnings] = useState<number | null>(null);
+  // Delivery time analytics
+  const [todayAvgMin,    setTodayAvgMin]    = useState<number | null>(null);
+  const [weekAvgMin,     setWeekAvgMin]     = useState<number | null>(null);
+  const [monthAvgMin,    setMonthAvgMin]    = useState<number | null>(null);
+  const [totalDeliveries, setTotalDeliveries] = useState<number>(0);
+  const [recentDeliveries, setRecentDeliveries] = useState<any[]>([]);
 
   // ── Rider alarm refs & state ──────────────────────────────────
   // Managed by GlobalAlarmProvider now
@@ -114,7 +120,12 @@ export default function DeliveryDashboard() {
       .then((r) => r.json())
       .then((d) => {
         if (d.todayDistanceKm !== undefined) setTodayKm(d.todayDistanceKm);
-        if (d.todayEarnings !== undefined) setTodayEarnings(d.todayEarnings);
+        if (d.todayEarnings   !== undefined) setTodayEarnings(d.todayEarnings);
+        if (d.todayAvgMinutes !== undefined) setTodayAvgMin(d.todayAvgMinutes);
+        if (d.weekAvgMinutes  !== undefined) setWeekAvgMin(d.weekAvgMinutes);
+        if (d.monthAvgMinutes !== undefined) setMonthAvgMin(d.monthAvgMinutes);
+        if (d.totalDeliveries !== undefined) setTotalDeliveries(d.totalDeliveries);
+        if (Array.isArray(d.recentDeliveries)) setRecentDeliveries(d.recentDeliveries);
       })
       .catch(() => {});
 
@@ -209,7 +220,12 @@ export default function DeliveryDashboard() {
       const res = await fetch(`/api/rider/stats?riderId=${user.id}`);
       const d   = await res.json();
       if (d.todayDistanceKm !== undefined) setTodayKm(d.todayDistanceKm);
-      if (d.todayEarnings !== undefined) setTodayEarnings(d.todayEarnings);
+      if (d.todayEarnings   !== undefined) setTodayEarnings(d.todayEarnings);
+      if (d.todayAvgMinutes !== undefined) setTodayAvgMin(d.todayAvgMinutes);
+      if (d.weekAvgMinutes  !== undefined) setWeekAvgMin(d.weekAvgMinutes);
+      if (d.monthAvgMinutes !== undefined) setMonthAvgMin(d.monthAvgMinutes);
+      if (d.totalDeliveries !== undefined) setTotalDeliveries(d.totalDeliveries);
+      if (Array.isArray(d.recentDeliveries)) setRecentDeliveries(d.recentDeliveries);
     } catch { /* non-critical */ }
   }
 
@@ -468,7 +484,35 @@ export default function DeliveryDashboard() {
         ))}
       </div>
 
-      {/* Refresh */}
+      {/* ── Delivery Time Analytics Section ───────────────────────── */}
+      <div className="mb-5 rounded-2xl p-4" style={{ background: "var(--card-bg)", border: "1px solid var(--border)" }}>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-bold text-sm flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
+            ⏱️ Delivery Time Analytics
+          </h2>
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">
+            {totalDeliveries} Total Delivered
+          </span>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { label: "Today Avg",    value: todayAvgMin,  icon: "🌅" },
+            { label: "This Week",    value: weekAvgMin,   icon: "📅" },
+            { label: "This Month",   value: monthAvgMin,  icon: "📆" },
+          ].map(({ label, value, icon }) => (
+            <div key={label} className="rounded-xl p-2.5 text-center"
+              style={{ background: "var(--bg-secondary)", border: "1px solid var(--border)" }}>
+              <p className="text-base mb-0.5">{icon}</p>
+              <p className="font-bold text-sm text-indigo-600">
+                {value !== null ? `${value} min` : "—"}
+              </p>
+              <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>{label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+
       <div className="flex items-center justify-between mb-4">
         {/* Tabs */}
         <div className="flex gap-2">
@@ -547,6 +591,35 @@ export default function DeliveryDashboard() {
                     </span>
                   </div>
                 </div>
+
+                {/* Delivery Duration Info — shown for completed orders */}
+                {tracking.status === "delivered" && (() => {
+                  // Try to find duration from recentDeliveries (loaded from stats API)
+                  const rec = recentDeliveries.find((r: any) => r.id === tracking.id);
+                  const dur  = rec?.delivery_duration_minutes ?? tracking.delivery_duration_minutes ?? null;
+                  const dist = rec?.delivery_distance_km ?? order?.delivery_distance_km ?? null;
+                  if (!dur && !dist) return null;
+                  return (
+                    <div className="mx-4 mt-3 rounded-xl p-3 flex items-center gap-4"
+                      style={{ background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.18)" }}>
+                      {dist != null && (
+                        <div className="text-center flex-1">
+                          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Distance</p>
+                          <p className="text-sm font-black text-blue-600">{dist} km</p>
+                        </div>
+                      )}
+                      {dist != null && dur != null && (
+                        <div className="w-px h-8" style={{ background: "var(--border)" }} />
+                      )}
+                      {dur != null && (
+                        <div className="text-center flex-1">
+                          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Duration</p>
+                          <p className="text-sm font-black text-indigo-600">{dur} min</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <div className="p-4 space-y-5">
                   {/* Customer Section */}

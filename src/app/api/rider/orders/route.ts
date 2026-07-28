@@ -146,7 +146,7 @@ export async function PATCH(req: NextRequest) {
     // 4. Verify this tracking row belongs to the authenticated rider (security check)
     const { data: tracking } = await adminClient
       .from("delivery_tracking")
-      .select("id, partner_id")
+      .select("id, partner_id, pickup_time")
       .eq("id", trackingId)
       .maybeSingle();
 
@@ -158,9 +158,34 @@ export async function PATCH(req: NextRequest) {
     }
 
     // 5. Update delivery_tracking using service-role (bypasses RLS)
+    // Store pickup_time when status = picked_up
+    // Store delivery_time + calculate duration when status = delivered
+    const now = new Date().toISOString();
+    const trackingUpdate: Record<string, any> = {
+      status:     trackingStatus,
+      updated_at: now,
+    };
+
+    if (trackingStatus === "picked_up") {
+      trackingUpdate.pickup_time = now;
+    }
+
+    if (trackingStatus === "delivered") {
+      trackingUpdate.delivery_time = now;
+      // Calculate duration in minutes from stored pickup_time
+      if (tracking?.pickup_time) {
+        const pickupMs  = new Date(tracking.pickup_time).getTime();
+        const deliveryMs = new Date(now).getTime();
+        const durationMin = Math.round(((deliveryMs - pickupMs) / 60000) * 100) / 100;
+        if (durationMin > 0 && durationMin < 1440) { // sanity: 0–24 hours
+          trackingUpdate.delivery_duration_minutes = durationMin;
+        }
+      }
+    }
+
     const { error: trackErr } = await adminClient
       .from("delivery_tracking")
-      .update({ status: trackingStatus, updated_at: new Date().toISOString() })
+      .update(trackingUpdate)
       .eq("id", trackingId);
 
     if (trackErr) {
@@ -250,6 +275,14 @@ export async function PATCH(req: NextRequest) {
           } else {
             console.log("[/api/rider/orders PATCH] Rider earnings saved for order:", orderId);
           }
+        }
+
+        // 9. Copy delivery_distance_km from order → delivery_tracking for analytics
+        if (orderRow?.delivery_distance_km) {
+          await adminClient
+            .from("delivery_tracking")
+            .update({ delivery_distance_km: orderRow.delivery_distance_km })
+            .eq("id", trackingId);
         }
       } catch (earnErr: any) {
         console.error("[/api/rider/orders PATCH] Rider earnings unexpected error:", earnErr.message);
