@@ -642,13 +642,13 @@ export default function OwnerOrdersPage() {
 
       {/* ══ ASSIGN RIDER MODAL (unchanged) ══ */}
       {assignModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4"
+          style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", paddingBottom: "max(12px, env(safe-area-inset-bottom, 12px))" }}>
           <div className="w-full max-w-md rounded-3xl overflow-hidden flex flex-col"
             style={{
               background: "var(--card-bg)",
               border: "1px solid var(--border)",
-              maxHeight: "90dvh",
+              maxHeight: "min(90dvh, calc(100svh - env(safe-area-inset-bottom, 0px) - 24px))",
             }}>
 
             <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
@@ -691,7 +691,7 @@ export default function OwnerOrdersPage() {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-64 overflow-y-auto">
+                <div className="space-y-2 overflow-y-auto">
                   {riders.map((rider) => (
                     <button key={rider.id}
                       onClick={() => !rider.is_busy && setSelectedRider(rider.id)}
