@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
-import { haversineKm, RestaurantSettings } from "@/lib/haversine";
+import { RestaurantSettings } from "@/lib/haversine";
+import { getRouteDistanceKm } from "@/lib/routeDistance";
 
 // ── Session-storage key ──────────────────────────────────────────
 export const ADDRESS_SESSION_KEY = "cj_delivery_address";
@@ -168,6 +169,7 @@ export default function CheckoutAddressPage() {
   }, []);
 
   // Recalculate Distance when Address or Settings changes (for addresses WITH coordinates)
+  // Uses Google Maps Routes API (driving distance) with haversine fallback.
   useEffect(() => {
     if (!selectedAddr || !settings) {
       setDistanceKm(null);
@@ -176,13 +178,22 @@ export default function CheckoutAddressPage() {
       return;
     }
     if (selectedAddr.latitude && selectedAddr.longitude) {
-      const dist = haversineKm(
+      let cancelled = false;
+      setGeocodingAddr(true);
+      getRouteDistanceKm(
         settings.restaurant_lat, settings.restaurant_lng,
-        selectedAddr.latitude, selectedAddr.longitude
-      );
-      setDistanceKm(dist);
-      setDeliveryDistance(dist);
-      setIsDeliverable(dist <= settings.delivery_radius_km);
+        selectedAddr.latitude,    selectedAddr.longitude
+      ).then(dist => {
+        if (cancelled) return;
+        setDistanceKm(dist);
+        setDeliveryDistance(dist);
+        setIsDeliverable(dist <= settings.delivery_radius_km);
+      }).catch(() => {
+        // getRouteDistanceKm already has internal fallback; this branch is unreachable
+      }).finally(() => {
+        if (!cancelled) setGeocodingAddr(false);
+      });
+      return () => { cancelled = true; };
     } else {
       // No coordinates — auto-geocoding effect below will handle it
       setDistanceKm(null);
@@ -192,8 +203,7 @@ export default function CheckoutAddressPage() {
   }, [selectedAddr, settings]);
 
   // Auto-geocode a selected address that has no stored coordinates.
-  // Uses multi-strategy so even partially-typed addresses get resolved.
-  // On success: distance is calculated and the address record is silently updated.
+  // After Nominatim resolves lat/lng → calls Google Routes API for driving distance.
   useEffect(() => {
     if (!selectedAddr || selectedAddr.latitude || !settings) {
       setGeocodingAddr(false);
@@ -202,25 +212,32 @@ export default function CheckoutAddressPage() {
     let cancelled = false;
     setGeocodingAddr(true);
 
-    tryMultiStrategyGeocode(
-      selectedAddr.address_line1,
-      selectedAddr.city,
-      selectedAddr.state,
-      selectedAddr.pincode
-    ).then(result => {
+    async function geocodeAndCalcDistance() {
+      const result = await tryMultiStrategyGeocode(
+        selectedAddr!.address_line1,
+        selectedAddr!.city,
+        selectedAddr!.state,
+        selectedAddr!.pincode
+      );
       if (cancelled || !result) return;
       const { lat, lng } = result;
-      const dist = haversineKm(settings.restaurant_lat, settings.restaurant_lng, lat, lng);
+      // Google driving distance (with haversine fallback inside getRouteDistanceKm)
+      const dist = await getRouteDistanceKm(
+        settings!.restaurant_lat, settings!.restaurant_lng, lat, lng
+      );
+      if (cancelled) return;
       setDistanceKm(dist);
       setDeliveryDistance(dist);
-      setIsDeliverable(dist <= settings.delivery_radius_km);
+      setIsDeliverable(dist <= settings!.delivery_radius_km);
       // Update selectedAddr with resolved coordinates so confirmAndContinue works
       setSelectedAddr(prev => prev ? { ...prev, latitude: lat, longitude: lng } : prev);
       // Silently persist coordinates to DB so next selection is instant
-      supabase.from("addresses").update({ latitude: lat, longitude: lng }).eq("id", selectedAddr.id);
-    })
-    .catch(() => { /* all geocoding strategies failed — distanceKm stays null */ })
-    .finally(() => { if (!cancelled) setGeocodingAddr(false); });
+      supabase.from("addresses").update({ latitude: lat, longitude: lng }).eq("id", selectedAddr!.id);
+    }
+
+    geocodeAndCalcDistance()
+      .catch(() => { /* all strategies failed — distanceKm stays null */ })
+      .finally(() => { if (!cancelled) setGeocodingAddr(false); });
 
     return () => { cancelled = true; };
   }, [selectedAddr?.id, settings]); // eslint-disable-line react-hooks/exhaustive-deps

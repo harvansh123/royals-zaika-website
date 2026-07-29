@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import Image from "next/image";
 import { ADDRESS_SESSION_KEY } from "@/app/(public)/checkout/address/page";
-import { haversineKm, RestaurantSettings } from "@/lib/haversine";
+import { RestaurantSettings } from "@/lib/haversine";
 import { getDeliveryPricing } from "@/lib/deliveryPricing";
 import { useRestaurantStatus } from "@/hooks/useRestaurantStatus";
 import ClosedPopup from "@/components/restaurant/ClosedPopup";
@@ -97,12 +97,12 @@ export default function CheckoutPage() {
         .then(data => {
           if (data) {
             setSettings(data);
-            if (addr.latitude && addr.longitude) {
-              const dist = haversineKm(data.restaurant_lat, data.restaurant_lng, addr.latitude, addr.longitude);
-              if (dist > data.delivery_radius_km) {
-                toast.error(`Sorry, delivery is only available within ${data.delivery_radius_km} KM. This address is outside our delivery area.`);
-                router.push("/checkout/address");
-              }
+            // Use the Google driving distance already calculated when the address was confirmed.
+            // deliveryAddress.delivery_distance_km is set by confirmAndContinue() in the address page.
+            const storedDist = addr.delivery_distance_km;
+            if (storedDist && storedDist > data.delivery_radius_km) {
+              toast.error(`Sorry, delivery is only available within ${data.delivery_radius_km} KM. This address is outside our delivery area.`);
+              router.push("/checkout/address");
             }
           }
         });
@@ -145,10 +145,9 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Final radius validation against current settings
-    if (settings && deliveryAddress.latitude && deliveryAddress.longitude) {
-      const dist = haversineKm(settings.restaurant_lat, settings.restaurant_lng, deliveryAddress.latitude, deliveryAddress.longitude);
-      if (dist > settings.delivery_radius_km) {
+    // Final radius validation using the Google driving distance stored at address selection
+    if (settings && deliveryAddress.delivery_distance_km) {
+      if (deliveryAddress.delivery_distance_km > settings.delivery_radius_km) {
         toast.error(`Address is outside delivery radius (${settings.delivery_radius_km} KM max).`);
         return;
       }
@@ -174,11 +173,9 @@ export default function CheckoutPage() {
       const actualCustomerFee = actualPricingForOrder?.customerFee ?? fee;
       const finalTotal = Math.max(0, sub + actualCustomerFee - discountAmt);
 
-      // Recalculate grand total using actual customer delivery charge (may be 0 for free delivery)
-      const distKmForOrder = settings && deliveryAddress.latitude && deliveryAddress.longitude
-        ? haversineKm(settings.restaurant_lat, settings.restaurant_lng, deliveryAddress.latitude, deliveryAddress.longitude)
-        : null;
-      const orderDistanceKm = distKmForOrder;
+      // Use the Google driving distance that was calculated (and stored) when the customer
+      // confirmed their delivery address. This is the single source of truth for order records.
+      const orderDistanceKm = deliveryAddress.delivery_distance_km ?? null;
 
       const pricing = getDeliveryPricing(orderDistanceKm, sub);
 
