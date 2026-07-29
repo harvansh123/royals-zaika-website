@@ -185,9 +185,9 @@ export default function EarningsAnalyticsPage() {
 
         {/* Right Col: Logs */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2"><CheckCircle size={18} /> Delivery Logs</h3>
-            <div className="relative w-64">
+            <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
               <input
                 type="text"
@@ -199,12 +199,71 @@ export default function EarningsAnalyticsPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+          {/* ── Mobile: Card layout ─────────────────────────── */}
+          <div className="md:hidden space-y-3">
+            {filteredLogs.length === 0 ? (
+              <div className="bg-white rounded-2xl border shadow-sm py-10 text-center text-slate-500 text-sm">
+                No logs found
+              </div>
+            ) : (
+              filteredLogs.map(log => {
+                const ownerContrib = log.orders?.owner_contribution ?? Math.max(0, log.payout_amount - (log.orders?.delivery_fee ?? 0));
+                const isFreeDelivery = (log.orders?.delivery_fee ?? -1) === 0;
+                return (
+                  <div key={log.id} className="bg-white rounded-2xl border shadow-sm p-4 space-y-3">
+                    {/* Row 1: Date + Order */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                        <Calendar size={12} className="text-slate-400 shrink-0" />
+                        <span>
+                          {new Date(log.earned_at).toLocaleString("en-IN", {
+                            day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit"
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className="text-orange-600 font-mono text-xs font-bold">#{log.orders?.order_number}</span>
+                        {isFreeDelivery && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">FREE DELIVERY</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Row 2: Rider + Distance */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-slate-400 mb-0.5">Rider</p>
+                        <p className="font-semibold text-slate-800 text-sm">{log.users?.name || "Unknown"}</p>
+                      </div>
+                      <span className="inline-block bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full text-xs font-medium border">
+                        {log.distance_range || `${log.distance_km} km`}
+                      </span>
+                    </div>
+
+                    {/* Row 3: Amounts */}
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                      <div className="text-center bg-emerald-50 rounded-xl p-2.5">
+                        <p className="text-[10px] text-emerald-600 font-medium uppercase tracking-wide mb-0.5">Rider Payout</p>
+                        <p className="text-lg font-black text-emerald-600">₹{log.payout_amount}</p>
+                      </div>
+                      <div className="text-center bg-blue-50 rounded-xl p-2.5">
+                        <p className="text-[10px] text-blue-600 font-medium uppercase tracking-wide mb-0.5">Owner Contrib.</p>
+                        <p className="text-lg font-black text-blue-600">₹{ownerContrib.toFixed(0)}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* ── Desktop: Table layout ──────────────────────── */}
+          <div className="hidden md:block bg-white rounded-2xl border shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 text-slate-600 border-b">
                   <tr>
-                    <th className="px-4 py-3 font-semibold">Date & Time</th>
+                    <th className="px-4 py-3 font-semibold">Date &amp; Time</th>
                     <th className="px-4 py-3 font-semibold">Rider</th>
                     <th className="px-4 py-3 font-semibold">Order</th>
                     <th className="px-4 py-3 font-semibold text-right">Distance</th>
