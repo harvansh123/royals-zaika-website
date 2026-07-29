@@ -69,6 +69,8 @@ export function GlobalAlarmProvider({ children }: { children: React.ReactNode })
   const [newOrderNums, setNewOrderNums] = useState<string[]>([]);
   // For Rider
   const [riderAlarmActive, setRiderAlarmActive] = useState(false);
+  // For Customer
+  const [cancelledOrder, setCancelledOrder] = useState<{ orderNumber: string; reason: string | null } | null>(null);
 
   const stopAlarmRef = useRef<(() => void) | null>(null);
   const hasShownPermRef = useRef(false);
@@ -149,6 +151,31 @@ export function GlobalAlarmProvider({ children }: { children: React.ReactNode })
               "🛕 New Delivery Assigned!",
               "You have a new order to pick up. Open your dashboard to accept."
             );
+          }
+        )
+        .subscribe();
+    } else if (user.role === "customer") {
+      // ── Customer Alarm ──────────────────────────────────
+      channel = supabase
+        .channel("global-customer-alarm")
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "orders", filter: `user_id=eq.${user.id}` },
+          (payload) => {
+            const oldRecord = payload.old as { status?: string };
+            const newRecord = payload.new as { status?: string; order_number?: string; cancellation_reason?: string };
+            
+            if (newRecord.status === "cancelled" && oldRecord.status !== "cancelled") {
+              setCancelledOrder({
+                orderNumber: newRecord.order_number ?? "Unknown",
+                reason: newRecord.cancellation_reason ?? "No reason provided",
+              });
+              
+              showBrowserNotification(
+                "❌ Order Cancelled",
+                `Your order #${newRecord.order_number ?? ""} has been cancelled. Reason: ${newRecord.cancellation_reason || "Not specified."}`
+              );
+            }
           }
         )
         .subscribe();
@@ -266,6 +293,37 @@ export function GlobalAlarmProvider({ children }: { children: React.ReactNode })
             >
               <BellOff size={16} />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Customer Cancellation Modal ────────────────────────────────── */}
+      {cancelledOrder && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                ❌
+              </div>
+              <h2 className="text-xl font-black text-slate-800 mb-2">Order Cancelled</h2>
+              <p className="text-sm font-medium text-slate-500 mb-4">
+                Your order <span className="text-slate-800 font-bold">#{cancelledOrder.orderNumber}</span> has been cancelled by the restaurant.
+              </p>
+              
+              <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-left mb-6">
+                <p className="text-xs font-bold text-red-500 uppercase tracking-wider mb-1">Reason</p>
+                <p className="text-sm text-red-900 font-medium">
+                  {cancelledOrder.reason || "Not specified by the restaurant."}
+                </p>
+              </div>
+
+              <button
+                onClick={() => setCancelledOrder(null)}
+                className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition-colors"
+              >
+                OK, got it
+              </button>
+            </div>
           </div>
         </div>
       )}
