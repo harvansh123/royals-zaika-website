@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/authStore";
 import { showBrowserNotification } from "@/lib/alarm";
 import { useRouter } from "next/navigation";
-import { formatPrice, formatDate } from "@/lib/utils";
+import { formatPrice, formatDate, playAlarmSound } from "@/lib/utils";
 import {
   requestNotificationPermission,
 } from "@/lib/alarm";
@@ -239,6 +239,9 @@ export default function DeliveryDashboard() {
                 </div>
               </div>
             ), { duration: 10000, position: "top-center" });
+
+            // Play alarm sound (5 beeps)
+            playAlarmSound();
 
             // Browser notification
             showBrowserNotification(
