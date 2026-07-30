@@ -319,7 +319,8 @@ export function GlobalAlarmProvider({ children }: { children: React.ReactNode })
 
               <button
                 onClick={() => setCancelledOrder(null)}
-                className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition-colors"
+                className="w-full font-bold py-3 rounded-xl transition-colors"
+                style={{ background: "#1e293b", color: "#ffffff" }}
               >
                 OK, got it
               </button>

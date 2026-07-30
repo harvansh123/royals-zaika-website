@@ -82,14 +82,17 @@ export default function TrackPage({ params }: { params: Promise<{ id: string }> 
 
     // Realtime subscription for live status updates
     const channel = supabase
-      .channel(`order-${id}`)
+      .channel(`order-track-${id}`)
       .on("postgres_changes", {
         event: "UPDATE",
         schema: "public",
         table: "orders",
         filter: `id=eq.${id}`,
-      }, (payload) => {
-        setOrder((prev) => prev ? { ...prev, ...payload.new } : null);
+      }, () => {
+        // Re-fetch the full order so tracking timeline updates correctly.
+        // We cannot rely solely on payload.new because Supabase Realtime
+        // only sends changed columns unless REPLICA IDENTITY FULL is set.
+        loadOrder();
       })
       .subscribe();
 
@@ -112,7 +115,7 @@ export default function TrackPage({ params }: { params: Promise<{ id: string }> 
 
   const currentIdx   = getStepIndex(order.status);
   const isCancelled  = order.status === "cancelled";
-  const cfg          = ORDER_STATUS_CONFIG[order.status];
+  const cfg          = ORDER_STATUS_CONFIG[order.status] ?? { label: order.status, color: "text-gray-400 bg-gray-400/10", icon: "📋" };
   const deliveryAddr = order.delivery_address as Record<string, string>;
 
   return (
