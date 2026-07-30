@@ -2,11 +2,11 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/authStore";
+import { showBrowserNotification } from "@/lib/alarm";
 import { useRouter } from "next/navigation";
 import { formatPrice, formatDate } from "@/lib/utils";
 import {
   requestNotificationPermission,
-  showBrowserNotification,
 } from "@/lib/alarm";
 import {
   MapPin, Package, CheckCircle, Loader2, Navigation,
@@ -194,8 +194,70 @@ export default function DeliveryDashboard() {
       }, fetchMyOrders)
       .subscribe();
 
+    // ── Listen for order cancellations ──────────────────────────────
+    // When owner cancels an order that was assigned to this rider,
+    // the 'orders' table gets updated with status = 'cancelled'.
+    // We listen to delivery_tracking for that rider and cross-check.
+    // Simpler: listen to orders table with a broad filter — but Supabase
+    // realtime only supports simple eq filters. So we listen to
+    // delivery_tracking UPDATE (status change propagates) + also
+    // listen to a dedicated channel on orders for this rider's active orders.
+    const cancelChannel = supabase
+      .channel(`rider-cancel-${user.id}`)
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "orders",
+      }, (payload) => {
+        const newRec = payload.new as { status?: string; order_number?: string; cancellation_reason?: string };
+        const oldRec = payload.old as { status?: string };
+
+        // Only react if this order just became cancelled AND we have it in our list
+        if (newRec.status === "cancelled" && oldRec.status !== "cancelled") {
+          // Check if this cancelled order belongs to this rider's active orders
+          setOrders((prevOrders) => {
+            const affected = prevOrders.find(
+              (o) => o.id === (payload.new as any).id ||
+                     o.order?.id === (payload.new as any).id
+            );
+            if (!affected) return prevOrders; // Not our order, ignore
+
+            // Show alert toast
+            toast.custom((t) => (
+              <div className={cn(
+                "flex items-center gap-4 px-5 py-4 rounded-2xl shadow-2xl border-2",
+                "bg-white border-red-400",
+                t.visible ? "" : "opacity-0"
+              )}>
+                <span className="text-3xl">❌</span>
+                <div>
+                  <p className="font-bold text-red-700 text-sm">Order Cancelled!</p>
+                  <p className="text-slate-600 text-xs">
+                    Order #{newRec.order_number ?? ""} has been cancelled.
+                    {newRec.cancellation_reason ? ` Reason: ${newRec.cancellation_reason}` : ""}
+                  </p>
+                </div>
+              </div>
+            ), { duration: 10000, position: "top-center" });
+
+            // Browser notification
+            showBrowserNotification(
+              "❌ Order Cancelled!",
+              `Order #${newRec.order_number ?? ""} cancelled. ${newRec.cancellation_reason || ""}`
+            );
+
+            return prevOrders;
+          });
+
+          // Refresh to remove cancelled order from active list
+          fetchMyOrders();
+        }
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(cancelChannel);
       if (watchId) navigator.geolocation.clearWatch(watchId);
     };
   }, [user, fetchMyOrders]);
