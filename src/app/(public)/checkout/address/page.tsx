@@ -495,9 +495,10 @@ export default function CheckoutAddressPage() {
 
       if (!phase2Tried && (err.code === 3 || err.code === 2)) {
         phase2Tried = true;
-        setGpsDebug((d) => `${d} | retrying_phase2`);
+        setGpsDebug((d) => `${d} | retrying_phase2_coarse`);
+        // Phase-2: slightly relaxed timeout with network-based fallback
         navigator.geolocation.getCurrentPosition(onSuccess, onFinalError,
-          { timeout: 18000, maximumAge: 0, enableHighAccuracy: true });
+          { timeout: 20000, maximumAge: 0, enableHighAccuracy: false });
         return;
       }
       onFinalError(err);
@@ -514,7 +515,7 @@ export default function CheckoutAddressPage() {
     };
 
     navigator.geolocation.getCurrentPosition(onSuccess, onError,
-      { timeout: 10000, maximumAge: 30000, enableHighAccuracy: false });
+      { timeout: 15000, maximumAge: 5000, enableHighAccuracy: true });
   }
 
   async function saveGpsAddress() {
