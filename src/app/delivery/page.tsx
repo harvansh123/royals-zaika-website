@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { formatPrice, formatDate, playAlarmSound } from "@/lib/utils";
 import {
   requestNotificationPermission,
+  startLoopingAlarm,
+  stopCurrentAlarm
 } from "@/lib/alarm";
 import {
   MapPin, Package, CheckCircle, Loader2, Navigation,
@@ -39,7 +41,8 @@ export default function DeliveryDashboard() {
   const [recentDeliveries, setRecentDeliveries] = useState<any[]>([]);
 
   // ── Rider alarm refs & state ──────────────────────────────────
-  // Managed by GlobalAlarmProvider now
+  const [cancelledOrder, setCancelledOrder] = useState<{ orderNumber: string; reason: string | null } | null>(null);
+  const stopCancelAlarmRef = useRef<(() => void) | null>(null);
 
   // OTP state per tracking-id
   const [otpInputs, setOtpInputs]   = useState<Record<string, string>>({});
@@ -222,26 +225,14 @@ export default function DeliveryDashboard() {
             );
             if (!affected) return prevOrders; // Not our order, ignore
 
-            // Show alert toast
-            toast.custom((t) => (
-              <div className={cn(
-                "flex items-center gap-4 px-5 py-4 rounded-2xl shadow-2xl border-2",
-                "bg-white border-red-400",
-                t.visible ? "" : "opacity-0"
-              )}>
-                <span className="text-3xl">❌</span>
-                <div>
-                  <p className="font-bold text-red-700 text-sm">Order Cancelled!</p>
-                  <p className="text-slate-600 text-xs">
-                    Order #{newRec.order_number ?? ""} has been cancelled.
-                    {newRec.cancellation_reason ? ` Reason: ${newRec.cancellation_reason}` : ""}
-                  </p>
-                </div>
-              </div>
-            ), { duration: 10000, position: "top-center" });
-
-            // Play alarm sound (5 beeps)
-            playAlarmSound();
+            // Start looping alarm and show modal
+            if (stopCancelAlarmRef.current) stopCancelAlarmRef.current();
+            stopCancelAlarmRef.current = startLoopingAlarm();
+            
+            setCancelledOrder({
+              orderNumber: newRec.order_number ?? "Unknown",
+              reason: newRec.cancellation_reason ?? null
+            });
 
             // Browser notification
             showBrowserNotification(
@@ -895,6 +886,42 @@ export default function DeliveryDashboard() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ── Cancellation Modal ────────────────────────────────── */}
+      {cancelledOrder && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                ❌
+              </div>
+              <h2 className="text-xl font-black text-slate-800 mb-2">Order Cancelled</h2>
+              <p className="text-sm font-medium text-slate-500 mb-4">
+                The assigned order <span className="text-slate-800 font-bold">#{cancelledOrder.orderNumber}</span> has been cancelled by the restaurant owner.
+              </p>
+              
+              <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-left mb-6">
+                <p className="text-xs font-bold text-red-500 uppercase tracking-wider mb-1">Reason</p>
+                <p className="text-sm text-red-900 font-medium">
+                  {cancelledOrder.reason || "Not specified by the restaurant."}
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  setCancelledOrder(null);
+                  if (stopCancelAlarmRef.current) stopCancelAlarmRef.current();
+                  stopCurrentAlarm();
+                }}
+                className="w-full font-bold py-3 rounded-xl transition-colors"
+                style={{ background: "#1e293b", color: "#ffffff" }}
+              >
+                OK, got it
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
