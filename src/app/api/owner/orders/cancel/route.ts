@@ -88,6 +88,14 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: updateErr.message }, { status: 500 });
     }
 
+    // 5.5 Clean up active delivery tracking so rider is freed immediately
+    await adminClient
+      .from("delivery_tracking")
+      .delete()
+      .eq("order_id", orderId)
+      .neq("status", "delivered");
+
+
     // 6. Send notification to customer
     await adminClient.from("notifications").insert({
       user_id: order.user_id,
