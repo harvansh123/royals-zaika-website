@@ -43,6 +43,7 @@ export default function DeliveryDashboard() {
   // ── Rider alarm refs & state ──────────────────────────────────
   const [cancelledOrder, setCancelledOrder] = useState<{ orderNumber: string; reason: string | null } | null>(null);
   const stopCancelAlarmRef = useRef<(() => void) | null>(null);
+  const seenOrdersRef = useRef<Set<string>>(new Set());
 
   // OTP state per tracking-id
   const [otpInputs, setOtpInputs]   = useState<Record<string, string>>({});
@@ -101,7 +102,12 @@ export default function DeliveryDashboard() {
       const res  = await fetch("/api/rider/orders", { credentials: "include" });
       const json = await res.json();
       if (res.ok) {
-        setOrders(json.orders ?? []);
+        const data = json.orders ?? [];
+        setOrders(data);
+        data.forEach((o: any) => {
+          if (o.order_id) seenOrdersRef.current.add(o.order_id);
+          if (o.order?.id) seenOrdersRef.current.add(o.order.id);
+        });
       } else {
         console.error("[fetchMyOrders] API error:", json.error);
         setOrders([]);
@@ -217,33 +223,26 @@ export default function DeliveryDashboard() {
 
         // Only react if this order just became cancelled AND we have it in our list
         if (newRec.status === "cancelled" && oldRec.status !== "cancelled") {
-          // Check if this cancelled order belongs to this rider's active orders
-          setOrders((prevOrders) => {
-            const affected = prevOrders.find(
-              (o) => o.id === (payload.new as any).id ||
-                     o.order?.id === (payload.new as any).id
-            );
-            if (!affected) return prevOrders; // Not our order, ignore
+          // Check if this cancelled order belongs to this rider's active orders (ever seen in this session)
+          const orderId = (payload.new as any).id;
+          if (!seenOrdersRef.current.has(orderId)) return; // Not our order, ignore
 
-            // Start looping alarm and show modal
-            if (stopCancelAlarmRef.current) stopCancelAlarmRef.current();
-            stopCancelAlarmRef.current = startLoopingAlarm();
-            
-            setCancelledOrder({
-              orderNumber: newRec.order_number ?? "Unknown",
-              reason: newRec.cancellation_reason ?? null
-            });
-
-            // Browser notification
-            showBrowserNotification(
-              "❌ Order Cancelled!",
-              `Order #${newRec.order_number ?? ""} cancelled. ${newRec.cancellation_reason || ""}`
-            );
-
-            return prevOrders;
+          // Start looping alarm and show modal
+          if (stopCancelAlarmRef.current) stopCancelAlarmRef.current();
+          stopCancelAlarmRef.current = startLoopingAlarm();
+          
+          setCancelledOrder({
+            orderNumber: newRec.order_number ?? "Unknown",
+            reason: newRec.cancellation_reason ?? null
           });
 
-          // Refresh to remove cancelled order from active list
+          // Browser notification
+          showBrowserNotification(
+            "❌ Order Cancelled!",
+            `Order #${newRec.order_number ?? ""} cancelled. ${newRec.cancellation_reason || ""}`
+          );
+
+          // Refresh to remove cancelled order from active list (if it hasn't been already)
           fetchMyOrders();
         }
       })
