@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin = createClient(
@@ -36,8 +36,8 @@ export async function GET() {
     const defaults = {
       id: 1,
       restaurant_name: "Royal Zaika",
-      restaurant_lat: 25.3176,
-      restaurant_lng: 82.9739,
+      restaurant_lat: 25.393867,
+      restaurant_lng: 81.861200,
       delivery_radius_km: 5.0,
       is_open: true,
       opening_time: "09:00",

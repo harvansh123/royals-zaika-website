@@ -32,8 +32,8 @@ export default function DeliverySettingsPage() {
   const [radius,     setRadius]     = useState("5.0");
 
   // Location state
-  const [markerPos,  setMarkerPos]  = useState<LatLng>({ lat: 25.3176, lng: 82.9739 });
-  const [mapCenter,  setMapCenter]  = useState<LatLng>({ lat: 25.3176, lng: 82.9739 });
+  const [markerPos,  setMarkerPos]  = useState<LatLng>({ lat: 25.393867, lng: 81.861200 });
+  const [mapCenter,  setMapCenter]  = useState<LatLng>({ lat: 25.393867, lng: 81.861200 });
   const [address,    setAddress]    = useState("");
   const [plusCode,   setPlusCode]   = useState("");
   const [geocoding,  setGeocoding]  = useState(false);
@@ -58,8 +58,8 @@ export default function DeliverySettingsPage() {
         const res = await fetch("/api/restaurant-settings");
         if (res.ok) {
           const data = await res.json();
-          const lat  = parseFloat(data.restaurant_lat)  || 25.3176;
-          const lng  = parseFloat(data.restaurant_lng)  || 82.9739;
+          const lat  = parseFloat(data.restaurant_lat)  || 25.393867;
+          const lng  = parseFloat(data.restaurant_lng)  || 81.861200;
           setMarkerPos({ lat, lng });
           setMapCenter({ lat, lng });
           setRadius(data.delivery_radius_km?.toString() || "5.0");
