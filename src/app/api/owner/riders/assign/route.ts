@@ -6,6 +6,18 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// GET /api/owner/riders/assign?orderId=xxx — fetch current assigned rider for an order
+export async function GET(req: NextRequest) {
+  const orderId = req.nextUrl.searchParams.get("orderId");
+  if (!orderId) return NextResponse.json({ partner_id: null });
+  const { data } = await supabaseAdmin
+    .from("delivery_tracking")
+    .select("partner_id")
+    .eq("order_id", orderId)
+    .maybeSingle();
+  return NextResponse.json({ partner_id: data?.partner_id ?? null });
+}
+
 // POST /api/owner/riders/assign — manually assign/reassign order to a rider
 export async function POST(req: NextRequest) {
   try {
@@ -114,6 +126,29 @@ export async function POST(req: NextRequest) {
 
     // Audit log on previous rider if reassigned
     if (previousRiderId && previousRiderId !== riderId) {
+      // Get order number for the notification message
+      const { data: orderRow2 } = await supabaseAdmin
+        .from("orders")
+        .select("order_number")
+        .eq("id", orderId)
+        .maybeSingle();
+
+      // ── Real-time alert on old rider's dashboard ────────────────
+      // Rider dashboard listens to notifications table (type = order_reassigned_away)
+      // and fires an alarm + blocking modal when this INSERT arrives.
+      await supabaseAdmin.from("notifications").insert({
+        user_id: previousRiderId,
+        title:   "Order Reassigned",
+        message: `Order #${orderRow2?.order_number ?? ""} has been reassigned to another rider. Reason: ${reason ?? "No reason provided"}`,
+        type:    "order_reassigned_away",
+        data: {
+          order_id:     orderId,
+          order_number: orderRow2?.order_number ?? "",
+          reason:       reason ?? "No reason provided",
+          owner_name:   ownerName ?? "Owner",
+        },
+      });
+
       await supabaseAdmin.from("rider_audit_logs").insert({
         rider_id:   previousRiderId,
         action:     "order_reassigned_away",
@@ -122,6 +157,7 @@ export async function POST(req: NextRequest) {
         metadata:   { order_id: orderId, new_rider_id: riderId },
       });
     }
+
 
     // Audit log on new rider
     await supabaseAdmin.from("rider_audit_logs").insert({

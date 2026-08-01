@@ -85,6 +85,10 @@ export default function OwnerOrdersPage() {
   const [ridersLoading, setRidersLoading] = useState(false);
   const [selectedRider, setSelectedRider] = useState<string | null>(null);
   const [assigning, setAssigning]         = useState(false);
+  // Reassignment extras
+  const [isReassigning, setIsReassigning]       = useState(false);
+  const [assignReason,  setAssignReason]         = useState("");
+  const [currentAssigneeId, setCurrentAssigneeId] = useState<string | null>(null);
 
   // Cancel order modal
   const [cancelModal, setCancelModal]     = useState<{ order: Order } | null>(null);
@@ -219,10 +223,26 @@ export default function OwnerOrdersPage() {
     setCancelling(false);
   }
 
-  async function openAssignModal(order: Order) {
+  async function openAssignModal(order: Order, reassign = false) {
     setAssignModal({ order });
     setSelectedRider(null);
+    setIsReassigning(reassign);
+    setAssignReason("");
+    setCurrentAssigneeId(null);
     setRidersLoading(true);
+
+    // If reassigning, fetch who is currently assigned
+    let currentRiderId: string | null = null;
+    if (reassign) {
+      try {
+        const dtRes = await fetch(`/api/owner/riders/assign?orderId=${order.id}`);
+        if (dtRes.ok) {
+          const dtJson = await dtRes.json();
+          currentRiderId = dtJson.partner_id ?? null;
+          setCurrentAssigneeId(currentRiderId);
+        }
+      } catch { /* ignore */ }
+    }
 
     try {
       // Fetch all online active riders
@@ -243,9 +263,9 @@ export default function OwnerOrdersPage() {
             try {
               const busyRes  = await fetch(`/api/owner/riders/${r.id}`);
               const busyJson = await busyRes.json();
-              // stats.active_orders might exist — or we check delivery_tracking via API
-              // Simpler: call the assign API in dry-run? No — instead check via stats
               const isBusy   = (busyJson?.stats?.active_orders ?? 0) > 0;
+              // If this is the current assignee, don't mark as busy (they're busy ON THIS order)
+              const isCurrentAssignee = r.id === currentRiderId;
               return {
                 id: r.id,
                 name: r.name ?? "Unnamed",
@@ -253,7 +273,7 @@ export default function OwnerOrdersPage() {
                 vehicle_type: r.vehicle_type ?? "bike",
                 is_available: r.is_available,
                 total_deliveries: r.total_deliveries ?? 0,
-                is_busy: isBusy,
+                is_busy: isBusy && !isCurrentAssignee,
                 active_order: busyJson?.stats?.active_order_number ?? null,
               };
             } catch {
@@ -269,8 +289,12 @@ export default function OwnerOrdersPage() {
             }
           })
         );
-        // Sort: free riders first, busy riders at bottom
-        setRiders(riderList.sort((a, b) => (a.is_busy ? 1 : 0) - (b.is_busy ? 1 : 0)));
+        // Sort: free riders first, then current assignee, busy riders at bottom
+        setRiders(riderList.sort((a, b) => {
+          if (a.id === currentRiderId) return -1;
+          if (b.id === currentRiderId) return 1;
+          return (a.is_busy ? 1 : 0) - (b.is_busy ? 1 : 0);
+        }));
       }
     } catch (err: any) {
       toast.error("Could not load riders: " + err.message);
@@ -281,18 +305,14 @@ export default function OwnerOrdersPage() {
 
   async function handleAssignRider() {
     if (!assignModal || !selectedRider) return;
+    if (isReassigning && !assignReason.trim()) {
+      toast.error("Reassignment ka reason likhna zaroori hai!");
+      return;
+    }
     setAssigning(true);
     try {
       const rider = riders.find((r) => r.id === selectedRider)!;
 
-      // FIX: Direct anon-key supabase.from("delivery_tracking").insert() fails silently
-      // due to RLS: "Delivery partners update tracking" policy only allows
-      //   partner_id = auth.uid()  OR  get_user_role() = 'admin'
-      // Owner has 'restaurant_owner' role — neither condition matches → INSERT blocked.
-      // This means the rider NEVER receives the order in their dashboard.
-      //
-      // Solution: use the existing /api/owner/riders/assign service-role endpoint
-      // which bypasses RLS entirely and correctly creates the delivery_tracking row.
       const res  = await fetch("/api/owner/riders/assign", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
@@ -300,6 +320,7 @@ export default function OwnerOrdersPage() {
           orderId:   assignModal.order.id,
           riderId:   selectedRider,
           ownerName: "Owner",
+          reason:    isReassigning ? assignReason.trim() : undefined,
         }),
       });
       const json = await res.json();
@@ -622,6 +643,15 @@ export default function OwnerOrdersPage() {
                         </button>
                       )}
 
+                      {/* picked_up / out_for_delivery → Reassign Rider */}
+                      {(order.status === "picked_up" || order.status === "out_for_delivery") && (
+                        <button onClick={() => openAssignModal(order, true)}
+                          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
+                          style={{ background: "linear-gradient(135deg,#f59e0b,#d97706)", color: "#fff", border: "1px solid rgba(245,158,11,0.4)" }}>
+                          🔄 Reassign to Another Rider
+                        </button>
+                      )}
+
                       {/* Cancel Order — available at every stage before delivered */}
                       {order.status !== "delivered" && order.status !== "cancelled" && (
                         <button
@@ -640,20 +670,21 @@ export default function OwnerOrdersPage() {
         </div>
       )}
 
-      {/* ══ ASSIGN RIDER MODAL (unchanged) ══ */}
-      {assignModal && (
+            {assignModal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4"
           style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", paddingBottom: "max(12px, env(safe-area-inset-bottom, 12px))" }}>
           <div className="w-full max-w-md rounded-3xl overflow-hidden flex flex-col"
             style={{
               background: "var(--card-bg)",
-              border: "1px solid var(--border)",
+              border: isReassigning ? "1px solid rgba(245,158,11,0.4)" : "1px solid var(--border)",
               maxHeight: "min(90dvh, calc(100svh - env(safe-area-inset-bottom, 0px) - 24px))",
             }}>
 
             <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
               <div>
-                <h2 className="font-bold text-base" style={{ color: "var(--text-primary)" }}>Assign Delivery Rider</h2>
+                <h2 className="font-bold text-base" style={{ color: "var(--text-primary)" }}>
+                  {isReassigning ? "🔄 Reassign Delivery Rider" : "Assign Delivery Rider"}
+                </h2>
                 <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
                   Order #{assignModal.order.order_number} · {formatPrice(assignModal.order.total_amount)}
                 </p>
@@ -675,10 +706,34 @@ export default function OwnerOrdersPage() {
                 </span>
               </div>
             )}
+            {/* Reassignment Reason field */}
+            {isReassigning && (
+              <div className="mx-5 mt-4">
+                <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5"
+                  style={{ color: "var(--text-muted)" }}>
+                  Reassignment Reason <span className="text-red-400">*</span>
+                </label>
+                <textarea
+                  value={assignReason}
+                  onChange={(e) => setAssignReason(e.target.value)}
+                  placeholder="e.g. Rider not responding, too far, etc."
+                  rows={2}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm resize-none outline-none"
+                  style={{
+                    background: "var(--bg-secondary)",
+                    border: assignReason.trim() ? "1px solid rgba(245,158,11,0.5)" : "1px solid var(--border)",
+                    color: "var(--text-primary)",
+                  }}
+                />
+                <p className="text-[11px] mt-1" style={{ color: "var(--text-muted)" }}>
+                  Purane rider ko ye reason dikhega uske dashboard par.
+                </p>
+              </div>
+            )}
 
             <div className="p-5 overflow-y-auto flex-1">
               <p className="text-xs font-semibold mb-3 uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
-                Available Riders
+                {isReassigning ? "Select New Rider" : "Available Riders"}
               </p>
               {ridersLoading ? (
                 <div className="flex justify-center py-8"><Loader2 size={28} className="animate-spin text-orange-500" /></div>
@@ -691,32 +746,43 @@ export default function OwnerOrdersPage() {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2 overflow-y-auto">
-                  {riders.map((rider) => (
+                  <div className="space-y-2 overflow-y-auto">
+                  {riders.map((rider) => {
+                    const isCurrentAssignee = rider.id === currentAssigneeId;
+                    const isDisabled = rider.is_busy || isCurrentAssignee;
+                    return (
                     <button key={rider.id}
-                      onClick={() => !rider.is_busy && setSelectedRider(rider.id)}
-                      disabled={rider.is_busy}
+                      onClick={() => !isDisabled && setSelectedRider(rider.id)}
+                      disabled={isDisabled}
                       className={cn("w-full flex items-center gap-3 p-3.5 rounded-xl text-left transition-all",
-                        rider.is_busy ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
+                        isDisabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
                       )}
                       style={selectedRider === rider.id
                         ? { background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.4)" }
+                        : isCurrentAssignee
+                        ? { background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.3)" }
                         : rider.is_busy
                         ? { background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.2)" }
                         : { background: "var(--bg-secondary)", border: "1px solid var(--border)" }}>
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-                        style={{ background: rider.is_busy ? "rgba(239,68,68,0.1)" : "rgba(99,102,241,0.1)" }}>
-                        {rider.is_busy ? "🔴" : "🛵"}
+                        style={{ background: isCurrentAssignee ? "rgba(245,158,11,0.1)" : rider.is_busy ? "rgba(239,68,68,0.1)" : "rgba(99,102,241,0.1)" }}>
+                        {isCurrentAssignee ? "⚠️" : rider.is_busy ? "🔴" : "🛵"}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>{rider.name}</p>
-                          {rider.is_busy && (
+                          {isCurrentAssignee && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">CURRENT</span>
+                          )}
+                          {!isCurrentAssignee && rider.is_busy && (
                             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">BUSY</span>
                           )}
                         </div>
                         <p className="text-xs" style={{ color: "var(--text-muted)" }}>📞 {rider.phone}</p>
-                        {rider.is_busy && (
+                        {isCurrentAssignee && (
+                          <p className="text-[10px] text-amber-600 font-medium mt-0.5">⚠️ Abhi yahi rider assigned hai — dusra select karein</p>
+                        )}
+                        {!isCurrentAssignee && rider.is_busy && (
                           <p className="text-[10px] text-red-500 font-medium mt-0.5">⚠️ Abhi delivery pe hai — assign nahi kar sakte</p>
                         )}
                       </div>
@@ -726,19 +792,20 @@ export default function OwnerOrdersPage() {
                         </div>
                       )}
                     </button>
-                  ))}
-                </div>
+                    );
+                  })}
+                  </div>
               )}
             </div>
 
               {riders.length > 0 && (
                 <div className="p-5 pt-3" style={{ borderTop: "1px solid var(--border)", background: "var(--card-bg)" }}>
-                  <button onClick={handleAssignRider} disabled={!selectedRider || assigning}
+                  <button onClick={handleAssignRider} disabled={!selectedRider || assigning || (isReassigning && !assignReason.trim())}
                     className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
-                    style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff" }}>
+                    style={{ background: isReassigning ? "linear-gradient(135deg,#f59e0b,#d97706)" : "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff" }}>
                     {assigning
-                      ? <><Loader2 size={16} className="animate-spin" /> Assigning...</>
-                      : <><UserCheck size={16} /> Assign & Send Out for Delivery</>}
+                      ? <><Loader2 size={16} className="animate-spin" /> {isReassigning ? "Reassigning..." : "Assigning..."}</>
+                      : <><UserCheck size={16} /> {isReassigning ? "Reassign Rider" : "Assign & Send Out for Delivery"}</>}
                   </button>
                 </div>
               )}

@@ -41,7 +41,12 @@ export default function DeliveryDashboard() {
   const [recentDeliveries, setRecentDeliveries] = useState<any[]>([]);
 
   // ── Rider alarm refs & state ──────────────────────────────────
-  const [cancelledOrder, setCancelledOrder] = useState<{ orderNumber: string; reason: string | null } | null>(null);
+  // cancelledOrder: used for both order-cancelled AND order-reassigned-away alerts
+  const [cancelledOrder, setCancelledOrder] = useState<{
+    orderNumber: string;
+    reason: string | null;
+    isReassignment?: boolean;
+  } | null>(null);
   const stopCancelAlarmRef = useRef<(() => void) | null>(null);
   const seenOrdersRef = useRef<Set<string>>(new Set());
 
@@ -248,9 +253,48 @@ export default function DeliveryDashboard() {
       })
       .subscribe();
 
+    // ── Listen for order reassignment (owner assigned to another rider) ───────
+    // When owner reassigns this rider's order to someone else, the assign API
+    // inserts a notification row (type='order_reassigned_away') for this rider.
+    // We listen to that INSERT and fire an alarm + blocking modal.
+    const reassignChannel = supabase
+      .channel(`rider-reassign-${user.id}`)
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "notifications",
+        filter: `user_id=eq.${user.id}`,
+      }, (payload) => {
+        const notif = payload.new as {
+          type?: string;
+          data?: { order_number?: string; reason?: string };
+        };
+        if (notif.type !== "order_reassigned_away") return;
+
+        // Fire looping alarm
+        if (stopCancelAlarmRef.current) stopCancelAlarmRef.current();
+        stopCancelAlarmRef.current = startLoopingAlarm();
+
+        setCancelledOrder({
+          orderNumber: notif.data?.order_number ?? "Unknown",
+          reason:      notif.data?.reason ?? null,
+          isReassignment: true,
+        });
+
+        showBrowserNotification(
+          "🔄 Order Reassigned!",
+          `Order #${notif.data?.order_number ?? ""} has been reassigned to another rider.`
+        );
+
+        // Refresh orders so the reassigned order disappears from this rider's list
+        fetchMyOrders();
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
       supabase.removeChannel(cancelChannel);
+      supabase.removeChannel(reassignChannel);
       if (watchId) navigator.geolocation.clearWatch(watchId);
     };
   }, [user, fetchMyOrders]);
@@ -893,17 +937,33 @@ export default function DeliveryDashboard() {
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
-                ❌
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl ${
+                cancelledOrder.isReassignment ? "bg-amber-100" : "bg-red-100"
+              }`}>
+                {cancelledOrder.isReassignment ? "🔄" : "❌"}
               </div>
-              <h2 className="text-xl font-black text-slate-800 mb-2">Order Cancelled</h2>
+              <h2 className={`text-xl font-black mb-2 ${
+                cancelledOrder.isReassignment ? "text-amber-700" : "text-slate-800"
+              }`}>
+                {cancelledOrder.isReassignment ? "Order Reassigned" : "Order Cancelled"}
+              </h2>
               <p className="text-sm font-medium text-slate-500 mb-4">
-                The assigned order <span className="text-slate-800 font-bold">#{cancelledOrder.orderNumber}</span> has been cancelled by the restaurant owner.
+                {cancelledOrder.isReassignment
+                  ? <>Order <span className="text-slate-800 font-bold">#{cancelledOrder.orderNumber}</span> dusre rider ko assign kar diya gaya hai.</>  
+                  : <>The assigned order <span className="text-slate-800 font-bold">#{cancelledOrder.orderNumber}</span> has been cancelled by the restaurant owner.</>}
               </p>
               
-              <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-left mb-6">
-                <p className="text-xs font-bold text-red-500 uppercase tracking-wider mb-1">Reason</p>
-                <p className="text-sm text-red-900 font-medium">
+              <div className={`border rounded-xl p-3 text-left mb-6 ${
+                cancelledOrder.isReassignment
+                  ? "bg-amber-50 border-amber-100"
+                  : "bg-red-50 border-red-100"
+              }`}>
+                <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${
+                  cancelledOrder.isReassignment ? "text-amber-500" : "text-red-500"
+                }`}>Reason</p>
+                <p className={`text-sm font-medium ${
+                  cancelledOrder.isReassignment ? "text-amber-900" : "text-red-900"
+                }`}>
                   {cancelledOrder.reason || "Not specified by the restaurant."}
                 </p>
               </div>
@@ -915,9 +975,9 @@ export default function DeliveryDashboard() {
                   stopCurrentAlarm();
                 }}
                 className="w-full font-bold py-3 rounded-xl transition-colors"
-                style={{ background: "#1e293b", color: "#ffffff" }}
+                style={{ background: cancelledOrder.isReassignment ? "#92400e" : "#1e293b", color: "#ffffff" }}
               >
-                OK, got it
+                OK, samajh gaya
               </button>
             </div>
           </div>
