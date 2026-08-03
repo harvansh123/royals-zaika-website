@@ -217,20 +217,21 @@ export default function AddressSelectionModal({ onClose }: Props) {
         const lng = pos.coords.longitude;
         setGpsLat(lat); setGpsLng(lng);
         try {
-          const res  = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
-            { headers: { "Accept-Language": "en" } }
-          );
+          // Use server-side reverse-geocode endpoint (tries Google first, then Nominatim)
+          // This gives proper Indian street names instead of generic area names
+          const res  = await fetch("/api/reverse-geocode", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ lat, lng }),
+          });
           const data = await res.json();
-          const a    = data.address ?? {};
           setGpsAddress({
             label:         "Current Location",
-            address_line1: [a.house_number, a.road, a.neighbourhood, a.suburb]
-                             .filter(Boolean).join(", ") || data.display_name?.split(",")[0] || "Current Location",
-            address_line2: a.quarter || a.village || null,
-            city:          a.city || a.town || a.county || "",
-            state:         a.state || "",
-            pincode:       a.postcode || "",
+            address_line1: data.address_line1 || "GPS Location",
+            address_line2: data.address_line2 || null,
+            city:          data.city          || "",
+            state:         data.state         || "",
+            pincode:       data.pincode        || "",
           });
         } catch {
           toast.error("Could not fetch address. Please enter manually.");
@@ -249,6 +250,7 @@ export default function AddressSelectionModal({ onClose }: Props) {
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   }
+
 
   async function saveGpsAddress() {
     if (!user || !gpsAddress) return;
