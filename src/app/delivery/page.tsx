@@ -66,6 +66,7 @@ export default function DeliveryDashboard() {
   } | null>(null);
   const [rejectReason, setRejectReason]   = useState("");
   const [rejectLoading, setRejectLoading] = useState(false);
+  const [showSuspendWarning, setShowSuspendWarning] = useState(false); // 2nd+ rejection penalty warning
 
   // ── Toggle Online / Offline ──────────────────────────────────────
   // Calls /api/rider/status PATCH, updates local state instantly.
@@ -427,8 +428,8 @@ export default function DeliveryDashboard() {
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
-  // ── Reject Order ────────────────────────────────────────────────
-  async function handleRejectOrder() {
+  // ── Reject Order (two-step: warn on 2nd+ rejection today) ──────────
+  async function handleRejectOrder(forceWithSuspension = false) {
     if (!rejectModal) return;
     if (!rejectReason.trim()) {
       toast.error("Rejection reason likhna zaruri hai");
@@ -441,21 +442,38 @@ export default function DeliveryDashboard() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          trackingId: rejectModal.trackingId,
-          orderId:    rejectModal.orderId,
-          reason:     rejectReason.trim(),
+          trackingId:          rejectModal.trackingId,
+          orderId:             rejectModal.orderId,
+          reason:              rejectReason.trim(),
+          forceWithSuspension,
         }),
       });
       const json = await res.json();
+
       if (!res.ok) {
         toast.error(json.error ?? "Order reject karne mein error");
         return;
       }
-      toast.success(`Order #${rejectModal.orderNumber} reject ho gaya. Owner reassign karega. ✅`);
-      // Remove this order from local state
+
+      // API says: show penalty warning first (2nd+ rejection today)
+      if (json.requiresWarning) {
+        setShowSuspendWarning(true);
+        return; // Don't close modal — wait for rider's decision
+      }
+
+      // Success — order rejected
+      if (json.suspended) {
+        toast.error(
+          `Order reject hua. ⚠️ Aapki ID 2 din ke liye suspend kar di gayi hai.`,
+          { duration: 8000 }
+        );
+      } else {
+        toast.success(`Order #${rejectModal.orderNumber} reject ho gaya. Owner reassign karega. ✅`);
+      }
       setOrders((prev) => prev.filter((t) => t.id !== rejectModal.trackingId));
       setRejectModal(null);
       setRejectReason("");
+      setShowSuspendWarning(false);
     } catch (err: any) {
       toast.error("Network error. Please try again.");
     } finally {
@@ -964,7 +982,7 @@ export default function DeliveryDashboard() {
       )}
 
       {/* ── Reject Order Modal ──────────────────────────── */}
-      {rejectModal && (
+      {rejectModal && !showSuspendWarning && (
         <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6">
@@ -1005,13 +1023,75 @@ export default function DeliveryDashboard() {
                   Wapas Jao
                 </button>
                 <button
-                  onClick={handleRejectOrder}
+                  onClick={() => handleRejectOrder(false)}
                   disabled={!rejectReason.trim() || rejectLoading}
                   className="flex-1 py-3 rounded-xl font-bold text-sm text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   style={{ background: rejectReason.trim() ? "#dc2626" : "#f87171" }}>
                   {rejectLoading
                     ? <><Loader2 size={15} className="animate-spin" /> Rejecting...</>
                     : <><XCircle size={15} /> Confirm Reject</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Suspension Warning Modal (2nd+ rejection today) ──── */}
+      {rejectModal && showSuspendWarning && (
+        <div className="fixed inset-0 z-[10002] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+
+              {/* Warning header */}
+              <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl">
+                ⚠️
+              </div>
+              <h2 className="text-xl font-black text-slate-800 mb-1 text-center">DHYAN DEIN!</h2>
+              <p className="text-sm text-slate-500 mb-4 text-center">
+                Aapne aaj pehle bhi ek order cancel kiya hai.
+              </p>
+
+              {/* Penalty details box */}
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4 mb-5 space-y-2">
+                <p className="text-xs font-black text-red-700 uppercase tracking-wider mb-2">Agar Abhi Cancel Karte Hain:</p>
+                <div className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5 shrink-0">🚫</span>
+                  <p className="text-sm font-semibold text-red-800">
+                    Aapki Rider ID <strong>2 din ke liye SUSPEND</strong> ho jayegi
+                  </p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5 shrink-0">💸</span>
+                  <p className="text-sm font-semibold text-red-800">
+                    Tatkaal reactivate karna ho toh{" "}
+                    <strong className="text-red-700">₹150 penalty</strong>{" "}
+                    charge lagegi (owner se contact karein)
+                  </p>
+                </div>
+              </div>
+
+              {/* Rejection reason recap */}
+              <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 mb-5">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Aapka Reason</p>
+                <p className="text-xs text-slate-700 font-medium">{rejectReason}</p>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setShowSuspendWarning(false); }}
+                  disabled={rejectLoading}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm bg-green-500 hover:bg-green-600 text-white transition-colors disabled:opacity-50">
+                  Wapas Jao
+                </button>
+                <button
+                  onClick={() => handleRejectOrder(true)}
+                  disabled={rejectLoading}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
+                  {rejectLoading
+                    ? <><Loader2 size={14} className="animate-spin" /> Wait...</>
+                    : <><XCircle size={14} /> Phir Bhi Cancel</>}
                 </button>
               </div>
             </div>
