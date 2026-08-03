@@ -12,7 +12,7 @@ import {
 } from "@/lib/alarm";
 import {
   MapPin, Package, CheckCircle, Loader2, Navigation,
-  Phone, RefreshCw, User, Copy, CreditCard, AlignLeft, Info, LogOut, BellOff, Banknote
+  Phone, RefreshCw, User, Copy, CreditCard, AlignLeft, Info, LogOut, BellOff, Banknote, XCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -59,6 +59,13 @@ export default function DeliveryDashboard() {
   const [signingOut, setSigningOut]       = useState(false);
   const [isRefreshing, setIsRefreshing]   = useState(false);
   const [activeTab, setActiveTab]         = useState<"active" | "completed">("active");
+
+  // ── Reject Order State ───────────────────────────────────────────
+  const [rejectModal, setRejectModal]     = useState<{
+    trackingId: string; orderId: string; orderNumber: string;
+  } | null>(null);
+  const [rejectReason, setRejectReason]   = useState("");
+  const [rejectLoading, setRejectLoading] = useState(false);
 
   // ── Toggle Online / Offline ──────────────────────────────────────
   // Calls /api/rider/status PATCH, updates local state instantly.
@@ -418,6 +425,42 @@ export default function DeliveryDashboard() {
       + `&dir_action=navigate`;   // Opens directly in turn-by-turn navigation mode
 
     window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  // ── Reject Order ────────────────────────────────────────────────
+  async function handleRejectOrder() {
+    if (!rejectModal) return;
+    if (!rejectReason.trim()) {
+      toast.error("Rejection reason likhna zaruri hai");
+      return;
+    }
+    setRejectLoading(true);
+    try {
+      const res = await fetch("/api/rider/reject-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          trackingId: rejectModal.trackingId,
+          orderId:    rejectModal.orderId,
+          reason:     rejectReason.trim(),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error ?? "Order reject karne mein error");
+        return;
+      }
+      toast.success(`Order #${rejectModal.orderNumber} reject ho gaya. Owner reassign karega. ✅`);
+      // Remove this order from local state
+      setOrders((prev) => prev.filter((t) => t.id !== rejectModal.trackingId));
+      setRejectModal(null);
+      setRejectReason("");
+    } catch (err: any) {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setRejectLoading(false);
+    }
   }
 
   async function verifyOtpAndDeliver(trackingId: string, orderId: string) {
@@ -866,10 +909,23 @@ export default function DeliveryDashboard() {
                   {/* Action Buttons */}
                   <div className="flex gap-2 pt-2">
                     {tracking.status === "assigned" && (
-                      <button onClick={() => updateDeliveryStatus(tracking.id, order.id, "picked_up", "out_for_delivery")}
-                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm bg-orange-500 hover:bg-orange-600 text-white transition-colors shadow-sm">
-                        <Package size={16} /> Picked Up
-                      </button>
+                      <>
+                        <button onClick={() => updateDeliveryStatus(tracking.id, order.id, "picked_up", "out_for_delivery")}
+                          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm bg-orange-500 hover:bg-orange-600 text-white transition-colors shadow-sm">
+                          <Package size={16} /> Picked Up
+                        </button>
+                        <button
+                          onClick={() => {
+                            setRejectModal({ trackingId: tracking.id, orderId: order.id, orderNumber: order?.order_number ?? "" });
+                            setRejectReason("");
+                          }}
+                          className="flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl font-bold text-sm border transition-colors"
+                          style={{ background: "#fff1f2", borderColor: "#fecdd3", color: "#dc2626" }}
+                          title="Order reject karein"
+                        >
+                          <XCircle size={15} /> Reject
+                        </button>
+                      </>
                     )}
 
                     {tracking.status === "picked_up" && (
@@ -904,6 +960,62 @@ export default function DeliveryDashboard() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ── Reject Order Modal ──────────────────────────── */}
+      {rejectModal && (
+        <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+              {/* Icon + Title */}
+              <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+                ❌
+              </div>
+              <h2 className="text-xl font-black text-slate-800 mb-1 text-center">Order Reject Karein?</h2>
+              <p className="text-sm text-slate-500 mb-5 text-center">
+                Order{" "}
+                <span className="font-bold text-slate-800">#{rejectModal.orderNumber}</span>{" "}
+                aapke dashboard se hata diya jayega.{" "}
+                Owner dusre rider ko assign karega.
+              </p>
+
+              {/* Reason input */}
+              <div className="mb-5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  Rejection Reason <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="e.g. Location bahut dur hai, area pata nahi, emergency hai..."
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value.slice(0, 200))}
+                  className="w-full rounded-xl px-3 py-2.5 text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-300/50 resize-none"
+                  style={{ background: "#f9fafb", color: "#0f172a" }}
+                />
+                <p className="text-xs text-slate-400 mt-1 text-right">{rejectReason.length}/200</p>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setRejectModal(null); setRejectReason(""); }}
+                  disabled={rejectLoading}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50">
+                  Wapas Jao
+                </button>
+                <button
+                  onClick={handleRejectOrder}
+                  disabled={!rejectReason.trim() || rejectLoading}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  style={{ background: rejectReason.trim() ? "#dc2626" : "#f87171" }}>
+                  {rejectLoading
+                    ? <><Loader2 size={15} className="animate-spin" /> Rejecting...</>
+                    : <><XCircle size={15} /> Confirm Reject</>}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

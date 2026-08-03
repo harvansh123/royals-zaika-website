@@ -67,6 +67,10 @@ export function GlobalAlarmProvider({ children }: { children: React.ReactNode })
 
   // For Owner
   const [newOrderNums, setNewOrderNums] = useState<string[]>([]);
+  // For Owner — rider rejection alerts
+  const [riderRejections, setRiderRejections] = useState<Array<{
+    orderNumber: string; riderName: string; reason: string; orderId: string;
+  }>>([]);
   // For Rider
   const [riderAlarmActive, setRiderAlarmActive] = useState(false);
   // For Customer
@@ -108,9 +112,10 @@ export function GlobalAlarmProvider({ children }: { children: React.ReactNode })
     }
 
     let channel: ReturnType<typeof supabase.channel> | null = null;
+    let notifChannel: ReturnType<typeof supabase.channel> | null = null;
 
     if (user.role === "restaurant_owner" || user.role === "admin") {
-      // ── Owner Alarm ──────────────────────────────────
+      // ── Owner Alarm — new orders ─────────────────────
       channel = supabase
         .channel("global-owner-alarm")
         .on(
@@ -134,6 +139,34 @@ export function GlobalAlarmProvider({ children }: { children: React.ReactNode })
           }
         )
         .subscribe();
+
+      // ── Owner Alarm — rider rejection notifications ───
+      notifChannel = supabase
+        .channel(`owner-rider-reject-${user.id}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+          (payload) => {
+            const notif = payload.new as any;
+            if (notif.type !== "rider_rejected_order") return;
+            setRiderRejections((prev) => [...prev, {
+              orderNumber: notif.data?.order_number ?? "",
+              riderName:   notif.data?.rider_name   ?? "Rider",
+              reason:      notif.data?.reason        ?? "",
+              orderId:     notif.data?.order_id      ?? "",
+            }]);
+            if (!stopAlarmRef.current) {
+              const stopFn = startLoopingAlarm();
+              stopAlarmRef.current = stopFn;
+            }
+            showBrowserNotification(
+              "⚠️ Rider ne Order Reject kiya!",
+              notif.message ?? `Order #${notif.data?.order_number} reject hua. Reassign karein.`
+            );
+          }
+        )
+        .subscribe();
+
     } else if (user.role === "delivery") {
       // ── Rider Alarm ──────────────────────────────────
       channel = supabase
@@ -206,6 +239,9 @@ export function GlobalAlarmProvider({ children }: { children: React.ReactNode })
       if (channel) {
         supabase.removeChannel(channel);
       }
+      if (notifChannel) {
+        supabase.removeChannel(notifChannel);
+      }
       if (typeof navigator !== "undefined" && navigator.serviceWorker) {
         navigator.serviceWorker.removeEventListener("message", handleMessage);
       }
@@ -217,7 +253,7 @@ export function GlobalAlarmProvider({ children }: { children: React.ReactNode })
     <>
       {children}
       
-      {/* ── Owner Banner ────────────────────────────────── */}
+      {/* ── Owner Banner — New Orders ───────────────────── */}
       {newOrderNums.length > 0 && (
         <div
           className="fixed top-14 left-0 right-0 z-[9999] flex items-center justify-between gap-2 px-3 sm:px-5 py-2.5"
@@ -251,6 +287,49 @@ export function GlobalAlarmProvider({ children }: { children: React.ReactNode })
             <button
               onClick={dismissAlarm}
               title="Dismiss alarm"
+              className="p-1.5 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-all"
+            >
+              <BellOff size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Owner Banner — Rider Rejection Alert ─────────── */}
+      {riderRejections.length > 0 && (
+        <div
+          className="fixed left-0 right-0 z-[9998] flex items-center justify-between gap-2 px-3 sm:px-5 py-2.5"
+          style={{
+            top: newOrderNums.length > 0 ? "7rem" : "3.5rem",
+            background: "linear-gradient(135deg, #d97706, #b45309)",
+            boxShadow: "0 4px 24px rgba(180,83,9,0.5)",
+            animation: "pulse 1s ease-in-out infinite",
+          }}
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-xl shrink-0" style={{ animation: "bounce 0.5s infinite alternate" }}>⚠️</span>
+            <div className="min-w-0">
+              <p className="font-black text-white text-xs sm:text-sm leading-tight">
+                {riderRejections.length === 1
+                  ? `${riderRejections[0].riderName} ne Order #${riderRejections[0].orderNumber} reject kiya!`
+                  : `${riderRejections.length} orders rider ne reject kiye!`}
+              </p>
+              <p className="text-amber-200 text-[10px] truncate max-w-[180px] sm:max-w-xs">
+                Reason: {riderRejections[riderRejections.length - 1]?.reason}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => { router.push("/owner/orders"); setRiderRejections([]); stopCurrentAlarm(); if (stopAlarmRef.current) stopAlarmRef.current = null; }}
+              className="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold text-amber-800 transition-all hover:opacity-90 whitespace-nowrap"
+              style={{ background: "white" }}
+            >
+              Reassign Rider
+            </button>
+            <button
+              onClick={() => { setRiderRejections([]); stopCurrentAlarm(); if (stopAlarmRef.current) stopAlarmRef.current = null; }}
+              title="Dismiss"
               className="p-1.5 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-all"
             >
               <BellOff size={16} />
