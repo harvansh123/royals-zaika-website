@@ -396,8 +396,6 @@ export default function DeliveryDashboard() {
     if (!addr) { toast.error("No delivery address available"); return; }
 
     // Build destination — prefer coordinates (highest accuracy) over text address.
-    // Note: delivery_address JSONB currently stores label/address_line1/city/state/pincode
-    // without lat/lng. Coordinate branch is ready for future use if coords are added.
     let destination = "";
     if (addr.latitude && addr.longitude) {
       destination = `${addr.latitude},${addr.longitude}`;
@@ -411,36 +409,13 @@ export default function DeliveryDashboard() {
       destination = encodeURIComponent(parts.join(", "));
     }
 
-    // Try to get rider's current GPS as the origin so Google Maps auto-calculates
-    // the route from the rider's live position. 3-second timeout — if GPS is
-    // unavailable, Google Maps will use the device's last known location.
-    let origin = "";
-    if (typeof navigator !== "undefined" && navigator.geolocation && window.isSecureContext) {
-      try {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            timeout: 3000,
-            maximumAge: 30000,
-            enableHighAccuracy: false,
-          })
-        );
-        origin = `${pos.coords.latitude},${pos.coords.longitude}`;
-      } catch {
-        // GPS unavailable or denied — Google Maps will use device location automatically
-      }
-    }
-
-    // CRITICAL FIX: `dir_action=navigate` opens Google Maps directly in turn-by-turn
-    // navigation mode (shows the Start button immediately) instead of the plain
-    // Directions preview. Works on Android, iOS (Google Maps app or browser), and desktop.
-    let url = `https://www.google.com/maps/dir/?api=1`
+    // Open Google Maps immediately — no GPS pre-fetch needed.
+    // Google Maps automatically uses the device's live location as origin when launched.
+    // Skipping getCurrentPosition eliminates the 3-second blocking delay on the Navigate button.
+    const url = `https://www.google.com/maps/dir/?api=1`
       + `&destination=${destination}`
       + `&travelmode=driving`
-      + `&dir_action=navigate`;         // ← This is the key fix
-
-    if (origin) {
-      url += `&origin=${origin}`;       // Rider's live GPS position as start point
-    }
+      + `&dir_action=navigate`;   // Opens directly in turn-by-turn navigation mode
 
     window.open(url, "_blank", "noopener,noreferrer");
   }
