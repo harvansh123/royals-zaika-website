@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, MapPin, Phone, Star, Award, Leaf, Users } from "lucide-react";
+import { ArrowRight, Phone, Star, Award, Leaf, Users } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import HeroStatusWidget from "@/components/restaurant/HeroStatusWidget";
 import { AuthRedirect } from "@/components/auth/AuthRedirect";
@@ -88,6 +88,11 @@ export default async function HomePage() {
 
         <div className="relative max-w-6xl mx-auto px-5 sm:px-8 py-20 w-full">
           <div className="max-w-3xl">
+            {/* ── Cloud kitchen delivery badge ── */}
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold mb-4"
+              style={{ background: "rgba(249,115,22,0.15)", border: "1px solid rgba(249,115,22,0.35)", color: "#FBBF24" }}>
+              🚚 Home Delivery Only
+            </div>
             {/* ── Dynamic restaurant status + CTA ── */}
             <HeroStatusWidget initialSettings={restaurantSettings} />
 
@@ -275,32 +280,33 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ══ VISIT US ══ — Deep charcoal with warm golden CTA */}
+      {/* ══ ORDER ONLINE ══ — Deep charcoal with warm golden CTA */}
       <section className="text-center py-20 px-5"
         style={{ background: "linear-gradient(135deg, #1F2937 0%, #111827 60%, #1a0e04 100%)" }}>
         <div className="max-w-2xl mx-auto">
-          <p className="text-5xl mb-4">🏮</p>
+          <p className="text-5xl mb-4">🚚</p>
           <h2 className="font-black text-3xl sm:text-4xl mb-4" style={{ fontFamily: "'Outfit', sans-serif", color: "#FFF8F0" }}>
-            Visit Us Today
+            Order Online Today
           </h2>
-          <p className="max-w-lg mx-auto mb-8" style={{ color: "#d1bfa8" }}>
-            Come and experience the warmth of our kitchen. Whether it is a family gathering,
-            a date, or a solo meal — Royal Zaika welcomes you with open arms.
+          <p className="max-w-lg mx-auto mb-2" style={{ color: "#d1bfa8" }}>
+            Royal Zaika is a <strong style={{ color: "#FBBF24" }}>Cloud Kitchen</strong> — we prepare fresh,
+            authentic North Indian food exclusively for <strong style={{ color: "#FBBF24" }}>Home Delivery</strong>.
+            No dine-in, no table booking — just great food delivered to your door.
+          </p>
+          <p className="text-sm mb-8" style={{ color: "#6B7280" }}>
+            📍 Kitchen: Chak Raghunath, Naini Station, Prayagraj, UP 221008
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="https://maps.google.com/?q=Naini Station,Prayagraj" target="_blank" rel="noreferrer"
+            <Link href="/menu"
               className="btn-primary inline-flex items-center justify-center gap-2 text-base py-3.5 px-8">
-              <MapPin size={18} /> Get Directions
-            </a>
+              🍽️ Order Now
+            </Link>
             <a href="tel:+917379294659"
               className="inline-flex items-center justify-center gap-2 text-base py-3.5 px-8 rounded-xl font-semibold transition-all hover:bg-white/10"
               style={{ border: "1px solid rgba(255,255,255,0.2)", color: "#FFF8F0", background: "rgba(255,255,255,0.06)" }}>
               <Phone size={18} /> +91 73792 94659
             </a>
           </div>
-          <p className="text-sm mt-8" style={{ color: "#6B7280" }}>
-            📍 Chak Raghunath, Naini Station, Prayagraj, Uttar Pradesh 221008
-          </p>
         </div>
       </section>
 

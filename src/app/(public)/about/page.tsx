@@ -3,9 +3,9 @@ import Link from "next/link";
 import { ArrowRight, Phone, MapPin, Clock, Award, Heart, Leaf, Shield } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "About Us | Royal Zaika — Authentic Indian Cuisine",
+  title: "About Us | Royal Zaika — Cloud Kitchen, Prayagraj",
   description:
-    "Learn the story of Royal Zaika — a family restaurant rooted in Varanasi's rich culinary tradition. Serving authentic North Indian food since 2010 with love, heritage, and quality.",
+    "Royal Zaika is a Cloud Kitchen in Prayagraj serving authentic North Indian food exclusively through Home Delivery. Fresh food made daily — order online and get it delivered to your door.",
 };
 
 
@@ -68,8 +68,14 @@ export default function AboutPage() {
           </h1>
           <p className="text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed" style={{ color: "#d1bfa8" }}>
             Royal Zaika was born from a simple belief — that real Indian food tells a story.
-            For over 1+ year, we've been sharing that story, one plate at a time.
+            We are a <strong style={{ color: "#FBBF24" }}>Cloud Kitchen</strong> in Prayagraj,
+            delivering fresh, authentic North Indian food straight to your doorstep.
           </p>
+          {/* Cloud Kitchen badge */}
+          <div className="inline-flex items-center gap-2 mt-6 px-5 py-2 rounded-full font-semibold text-sm"
+            style={{ background: "rgba(249,115,22,0.15)", border: "1px solid rgba(249,115,22,0.4)", color: "#FBBF24" }}>
+            🚚 Home Delivery Only — No Dine-in
+          </div>
         </div>
       </section>
 
@@ -85,9 +91,10 @@ export default function AboutPage() {
               <p className="text-3xl mb-4">🎯</p>
               <h3 className="font-bold text-2xl mb-3" style={{ fontFamily: "'Outfit', sans-serif", color: "#FFF8F0" }}>Our Mission</h3>
               <p className="leading-relaxed" style={{ color: "#d1bfa8" }}>
-                To preserve and celebrate the rich culinary heritage of North India by serving
+                To preserve and celebrate the rich culinary heritage of North India by delivering
                 food that is authentic in taste, honest in ingredients, and generous in spirit.
-                We exist to give every guest an experience that feels like home.
+                As a cloud kitchen, we focus entirely on what matters most — the quality of food
+                that arrives at your door.
               </p>
             </div>
 
@@ -97,9 +104,9 @@ export default function AboutPage() {
               <p className="text-3xl mb-4">🌟</p>
               <h3 className="font-bold text-2xl mb-3" style={{ fontFamily: "'Outfit', sans-serif", color: "#FFF8F0" }}>Our Vision</h3>
               <p className="leading-relaxed" style={{ color: "#d1bfa8" }}>
-                To be recognized as Varanasi's most trusted family restaurant — a place where
-                generations of customers return, memories are made, and the timeless art of
-                Indian cooking is kept alive for future generations.
+                To be recognized as Prayagraj’s most trusted cloud kitchen — where every online
+                order brings the warmth of a home-cooked meal. We keep the timeless art of
+                Indian cooking alive, one delivery at a time.
               </p>
             </div>
           </div>
@@ -160,23 +167,25 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ══════════════════ CONTACT / VISIT — Deep Charcoal ══════════════════ */}
+      {/* ════════════════════ ORDER ONLINE — Deep Charcoal ════════════════════ */}
       <section style={{ background: "#1F2937", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
         <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16">
-          <div className="text-center mb-12">
+          <div className="text-center mb-10">
             <h2 className="font-black text-3xl sm:text-4xl mb-3" style={{ fontFamily: "'Outfit', sans-serif", color: "#FFF8F0" }}>
-              Come, Be Our Guest
+              🚚 Order Fresh, Delivered to You
             </h2>
-            <p className="max-w-lg mx-auto" style={{ color: "#9ca3af" }}>
-              We'd love to welcome you. Find us in the heart of Naini, Prayagraj.
+            <p className="max-w-xl mx-auto" style={{ color: "#9ca3af" }}>
+              Royal Zaika is a <strong style={{ color: "#FBBF24" }}>delivery-only cloud kitchen</strong>.
+              We do not offer dine-in or table booking. All orders are placed online and delivered
+              fresh to your home within our delivery area.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 max-w-3xl mx-auto mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 max-w-3xl mx-auto mb-10">
             {[
-              { icon: MapPin, label: "Address",      value: "474 Chak Raghunath, Naini, Prayagraj" },
-              { icon: Phone,  label: "Phone",         value: "+91 73792 94659"                       },
-              { icon: Clock,  label: "Opening Hours", value: "Daily: 11:00 AM – 12:00 AM"           },
+              { icon: Phone,  label: "Call Us",         value: "+91 73792 94659"                       },
+              { icon: Clock,  label: "Order Hours",      value: "Daily: 11:00 AM – 12:00 AM"           },
+              { icon: MapPin, label: "Kitchen Location", value: "474 Chak Raghunath, Naini, Prayagraj" },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex flex-col items-center text-center p-6 rounded-2xl gap-3"
                 style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(251,191,36,0.15)" }}>
@@ -196,9 +205,9 @@ export default function AboutPage() {
               style={{ border: "1px solid rgba(255,255,255,0.18)", color: "#FFF8F0", background: "rgba(255,255,255,0.05)" }}>
               ← Back to Home
             </Link>
-            <Link href="/auth/signup"
+            <Link href="/menu"
               className="btn-primary inline-flex items-center justify-center gap-2 text-sm py-3 px-8">
-              Create an Account
+              🍽️ Order Now
               <ArrowRight size={16} />
             </Link>
           </div>
