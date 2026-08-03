@@ -42,70 +42,32 @@ function LabelIcon({ label }: { label: string }) {
 
 type GpsStep = "idle" | "requesting" | "fetching" | "done" | "error" | "blocked";
 
-// ── Multi-strategy geocoder (most precise → least precise) ──────────────
-// Indian addresses are often non-standard; we try progressively simpler
-// queries so that at minimum the pincode gives an area-level location.
+// ── Geocoding via server-side /api/geocode ──────────────────────────────
+// Server uses Google Geocoding API (primary) → Nominatim (fallback).
+// Never returns pincode-only coordinates — at minimum "area" accuracy is required.
 async function tryMultiStrategyGeocode(
   line1: string,
   city: string,
   state: string,
   pincode: string
 ): Promise<{ lat: number; lng: number; accuracy: "precise" | "area" | "pincode" } | null> {
-  const nominatim = async (q: string) => {
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=in&limit=1&addressdetails=1`,
-        { headers: { "User-Agent": "RoyalZaika-FoodApp/1.0", "Accept-Language": "en" } }
-      );
-      if (!res.ok) return null;
-      const data = await res.json();
-      if (!Array.isArray(data) || data.length === 0) return null;
-      const lat = parseFloat(data[0].lat);
-      const lng = parseFloat(data[0].lon);
-      if (isNaN(lat) || isNaN(lng)) return null;
-      return { lat, lng };
-    } catch { return null; }
-  };
-
-  const pin  = pincode.trim();
-  const cty  = city.trim();
-  const st   = state.trim();
-  const l1   = line1.trim();
-
-  // Strategy 1 — full address (most precise)
-  if (l1 && cty && st && pin) {
-    const r = await nominatim(`${l1}, ${cty}, ${st} ${pin}, India`);
-    if (r) return { ...r, accuracy: "precise" };
+  try {
+    const res = await fetch("/api/geocode", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ line1, city, state, pincode }),
+      signal:  AbortSignal.timeout(14000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    // lat: null means geocoding failed (e.g. only pincode-level match available)
+    if (!data.lat || !data.accuracy) return null;
+    return { lat: data.lat, lng: data.lng, accuracy: data.accuracy as "precise" | "area" };
+  } catch {
+    return null;
   }
-
-  // Strategy 2 — street/locality + city + pincode (skip house number junk)
-  // Extract just the locality part (everything after first comma if any)
-  const localityPart = l1.includes(",") ? l1.split(",").slice(1).join(",").trim() : l1;
-  if (localityPart && cty && pin) {
-    const r = await nominatim(`${localityPart}, ${cty}, ${st}, India`);
-    if (r) return { ...r, accuracy: "precise" };
-  }
-
-  // Strategy 3 — city + state + pincode (area-level)
-  if (cty && st && pin) {
-    const r = await nominatim(`${cty}, ${st} ${pin}, India`);
-    if (r) return { ...r, accuracy: "area" };
-  }
-
-  // Strategy 4 — pincode + state only (postal area fallback)
-  if (pin && pin.length === 6) {
-    const r = await nominatim(`${pin}, ${st}, India`);
-    if (r) return { ...r, accuracy: "pincode" };
-  }
-
-  // Strategy 5 — pincode only
-  if (pin && pin.length === 6) {
-    const r = await nominatim(`${pin} India`);
-    if (r) return { ...r, accuracy: "pincode" };
-  }
-
-  return null;
 }
+
 
 export default function CheckoutAddressPage() {
   const router             = useRouter();

@@ -48,7 +48,7 @@ export default function ProfilePage() {
   const [savingPass, setSavingPass]   = useState(false);
   const [newAddr, setNewAddr]         = useState({
     label: "Home", address_line1: "", address_line2: "",
-    city: "Varanasi", state: "Uttar Pradesh", pincode: "",
+    city: "", state: "", pincode: "",
     latitude: null as number | null, longitude: null as number | null,
   });
   const [showSupportModal, setShowSupportModal] = useState(false);
@@ -224,7 +224,7 @@ export default function ProfilePage() {
     if (error) { toast.error("Failed to save address"); return; }
     setAddresses((prev) => [data, ...prev]);
     setShowAddForm(false);
-    setNewAddr({ label: "Home", address_line1: "", address_line2: "", city: "Varanasi", state: "Uttar Pradesh", pincode: "", latitude: null, longitude: null });
+    setNewAddr({ label: "Home", address_line1: "", address_line2: "", city: "", state: "", pincode: "", latitude: null, longitude: null });
     toast.success("Address saved! 📍");
   }
 

@@ -148,26 +148,51 @@ export default function AddressSelectionModal({ onClose }: Props) {
       return;
     }
     setSavingNew(true);
+
+    // Geocode the address via server-side /api/geocode (Google → Nominatim fallback)
+    let lat: number | null = null;
+    let lng: number | null = null;
+    try {
+      const geoRes = await fetch("/api/geocode", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ line1: line1.trim(), city: city.trim(), state: state.trim(), pincode: pincode.trim() }),
+        signal:  AbortSignal.timeout(12000),
+      });
+      if (geoRes.ok) {
+        const geoData = await geoRes.json();
+        if (geoData.lat && geoData.accuracy) {
+          lat = geoData.lat;
+          lng = geoData.lng;
+        }
+      }
+    } catch { /* geocoding failure — save without coords, auto-geocode at selection time */ }
+
     const payload = {
       user_id: user.id,
       label, address_line1: line1.trim(),
       address_line2: line2.trim() || null,
       city: city.trim(), state: state.trim(), pincode: pincode.trim(),
+      latitude:  lat,
+      longitude: lng,
       is_default: addresses.length === 0,
     };
 
     let savedId: string | null = null;
     if (editMode && editId) {
       const { data, error } = await supabase.from("addresses")
-        .update({ label, address_line1: line1.trim(), address_line2: line2.trim() || null,
-          city: city.trim(), state: state.trim(), pincode: pincode.trim() })
+        .update({
+          label, address_line1: line1.trim(), address_line2: line2.trim() || null,
+          city: city.trim(), state: state.trim(), pincode: pincode.trim(),
+          latitude: lat, longitude: lng,
+        })
         .eq("id", editId).select("id").single();
       if (error) { toast.error("Failed to update: " + error.message); }
-      else { savedId = data.id; toast.success("Address updated! ✅"); }
+      else { savedId = data.id; toast.success(lat ? "Address updated & verified ✅" : "Address updated ✅"); }
     } else {
       const { data, error } = await supabase.from("addresses").insert(payload).select("id").single();
       if (error) { toast.error("Failed to save: " + error.message); }
-      else { savedId = data.id; toast.success("Address saved! ✅"); }
+      else { savedId = data.id; toast.success(lat ? "Address saved & verified ✅" : "Address saved ✅"); }
     }
 
     setSavingNew(false);
@@ -221,7 +246,7 @@ export default function AddressSelectionModal({ onClose }: Props) {
         };
         toast.error(msgs[err.code] ?? "Failed to get location");
       },
-      { timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   }
 

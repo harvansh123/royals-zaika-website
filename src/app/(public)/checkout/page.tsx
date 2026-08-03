@@ -207,8 +207,12 @@ export default function CheckoutPage() {
               city:          deliveryAddress.city,
               state:         deliveryAddress.state,
               pincode:       deliveryAddress.pincode,
+              // Verified coordinates — used by rider dashboard for GPS navigation
+              latitude:      (deliveryAddress as any).latitude  ?? null,
+              longitude:     (deliveryAddress as any).longitude ?? null,
             }
-          : { label: "Default", city: "Varanasi", state: "UP", pincode: "221001" },
+          : null,
+
       }).select("id,order_number").single();
 
       if (orderErr || !order) throw new Error(orderErr?.message ?? "Order failed");
