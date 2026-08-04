@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
     // ── Batch fetch delivery_tracking (all assigned statuses, last 30d) ──
     const { data: trackings } = await adminClient
       .from("delivery_tracking")
-      .select("id, partner_id, status, delivery_duration_minutes, created_at")
+      .select("id, partner_id, status, delivery_duration_minutes, created_at, updated_at")
       .in("partner_id", riderIds)
       .gte("created_at", thirtyDaysAgoStr);
 
@@ -116,16 +116,25 @@ export async function GET(req: NextRequest) {
       const rating = calcRating(assigned30, delivered30, avgDeliveryMin, rejections30);
       const meta   = getRatingMeta(rating);
 
+      // Last delivered timestamp — for round-robin ordering
+      const deliveredRows = riderTrackings
+        .filter(t => t.status === "delivered")
+        .sort((a, b) => new Date(b.updated_at ?? b.created_at).getTime() - new Date(a.updated_at ?? a.created_at).getTime());
+      const lastDeliveredAt = deliveredRows.length > 0
+        ? (deliveredRows[0].updated_at ?? deliveredRows[0].created_at)
+        : null;
+
       result[riderId] = {
         rating,
         label:            meta.label,
         color:            meta.color,
         bg:               meta.bg,
-        completionRate,                   // null if no data
-        avgDeliveryMin,                   // null if no data
+        completionRate,
+        avgDeliveryMin,
         rejectionCount30d: rejections30,
         totalAssigned30d:  assigned30,
         totalDelivered30d: delivered30,
+        lastDeliveredAt,                  // ISO string or null — for round-robin sort
       };
     }
 

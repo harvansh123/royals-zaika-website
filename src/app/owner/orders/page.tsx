@@ -46,6 +46,7 @@ type Rider = {
   is_busy?: boolean; active_order?: string;
   // Performance (fetched from /api/owner/riders/performance)
   rating?: number;
+  lastDeliveredAt?: string | null;          // for round-robin sort
   performance?: {
     label: string; color: string; bg: string;
     completionRate: number | null;
@@ -312,11 +313,36 @@ export default function OwnerOrdersPage() {
             const perfRes = await fetch(`/api/owner/riders/performance?riderIds=${encodeURIComponent(ids)}`);
             if (perfRes.ok) {
               const perfData = await perfRes.json();
-              setRiders(prev => prev.map(r =>
-                perfData[r.id]
-                  ? { ...r, rating: perfData[r.id].rating, performance: perfData[r.id] }
-                  : r
-              ));
+              // Merge performance data + re-sort by ROUND-ROBIN order
+              setRiders(prev => {
+                const merged = prev.map(r =>
+                  perfData[r.id]
+                    ? {
+                        ...r,
+                        rating:          perfData[r.id].rating,
+                        performance:     perfData[r.id],
+                        lastDeliveredAt: perfData[r.id].lastDeliveredAt ?? null,
+                      }
+                    : r
+                );
+                // Round-robin sort:
+                //   1. Current assignee always top (for reassign flow)
+                //   2. Free riders sorted by lastDeliveredAt ASC
+                //      — null (never delivered) = highest priority
+                //      — oldest delivery = next turn
+                //   3. Busy riders at the very bottom
+                return merged.sort((a, b) => {
+                  if (a.id === currentRiderId) return -1;
+                  if (b.id === currentRiderId) return 1;
+                  if (a.is_busy && !b.is_busy) return 1;
+                  if (!a.is_busy && b.is_busy) return -1;
+                  // Both free — sort by last delivery time ascending
+                  if (!a.lastDeliveredAt && !b.lastDeliveredAt) return 0;
+                  if (!a.lastDeliveredAt) return -1; // never delivered → highest priority
+                  if (!b.lastDeliveredAt) return 1;
+                  return new Date(a.lastDeliveredAt).getTime() - new Date(b.lastDeliveredAt).getTime();
+                });
+              });
             }
           }
         } catch { /* non-critical — UI works fine without performance data */ }
@@ -757,9 +783,16 @@ export default function OwnerOrdersPage() {
             )}
 
             <div className="p-5 overflow-y-auto flex-1">
-              <p className="text-xs font-semibold mb-3 uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
-                {isReassigning ? "Select New Rider" : "Available Riders"}
-              </p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+                  {isReassigning ? "Select New Rider" : "Available Riders"}
+                </p>
+                {!ridersLoading && riders.some(r => !r.is_busy && r.id !== currentAssigneeId) && (
+                  <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>
+                    🔄 Round-robin order
+                  </p>
+                )}
+              </div>
               {ridersLoading ? (
                 <div className="flex justify-center py-8"><Loader2 size={28} className="animate-spin text-orange-500" /></div>
               ) : riders.length === 0 ? (
@@ -772,9 +805,12 @@ export default function OwnerOrdersPage() {
                 </div>
               ) : (
                   <div className="space-y-2 overflow-y-auto">
-                  {riders.map((rider) => {
+                  {riders.map((rider, riderIndex) => {
                     const isCurrentAssignee = rider.id === currentAssigneeId;
                     const isDisabled = rider.is_busy || isCurrentAssignee;
+                    // First free non-assignee rider = next in round-robin
+                    const isNextUp = !isDisabled
+                      && riders.findIndex(r => !r.is_busy && r.id !== currentAssigneeId) === riderIndex;
                     return (
                     <button key={rider.id}
                       onClick={() => !isDisabled && setSelectedRider(rider.id)}
@@ -796,6 +832,13 @@ export default function OwnerOrdersPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>{rider.name}</p>
+                          {/* Next Up badge — round-robin */}
+                          {isNextUp && (
+                            <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full"
+                              style={{ background: "rgba(99,102,241,0.15)", color: "#6366f1" }}>
+                              🎯 Next Up
+                            </span>
+                          )}
                           {/* Performance Rating Badge */}
                           {rider.rating != null && !isCurrentAssignee && !rider.is_busy && (
                             <span
