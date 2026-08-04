@@ -44,6 +44,14 @@ type Rider = {
   id: string; name: string; phone: string;
   vehicle_type: string; is_available: boolean; total_deliveries: number;
   is_busy?: boolean; active_order?: string;
+  // Performance (fetched from /api/owner/riders/performance)
+  rating?: number;
+  performance?: {
+    label: string; color: string; bg: string;
+    completionRate: number | null;
+    avgDeliveryMin: number | null;
+    rejectionCount30d: number;
+  };
 };
 
 type Filter = "all" | "pending" | "preparing" | "delivered" | "cancelled";
@@ -290,11 +298,28 @@ export default function OwnerOrdersPage() {
           })
         );
         // Sort: free riders first, then current assignee, busy riders at bottom
-        setRiders(riderList.sort((a, b) => {
+        const sortedList = riderList.sort((a, b) => {
           if (a.id === currentRiderId) return -1;
           if (b.id === currentRiderId) return 1;
           return (a.is_busy ? 1 : 0) - (b.is_busy ? 1 : 0);
-        }));
+        });
+        setRiders(sortedList);
+
+        // Fetch performance scores for all riders (non-critical, fires in parallel)
+        try {
+          const ids = sortedList.map(r => r.id).join(",");
+          if (ids) {
+            const perfRes = await fetch(`/api/owner/riders/performance?riderIds=${encodeURIComponent(ids)}`);
+            if (perfRes.ok) {
+              const perfData = await perfRes.json();
+              setRiders(prev => prev.map(r =>
+                perfData[r.id]
+                  ? { ...r, rating: perfData[r.id].rating, performance: perfData[r.id] }
+                  : r
+              ));
+            }
+          }
+        } catch { /* non-critical — UI works fine without performance data */ }
       }
     } catch (err: any) {
       toast.error("Could not load riders: " + err.message);
@@ -769,8 +794,20 @@ export default function OwnerOrdersPage() {
                         {isCurrentAssignee ? "⚠️" : rider.is_busy ? "🔴" : "🛵"}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>{rider.name}</p>
+                          {/* Performance Rating Badge */}
+                          {rider.rating != null && !isCurrentAssignee && !rider.is_busy && (
+                            <span
+                              className="text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none"
+                              style={{
+                                background: rider.performance?.bg ?? "rgba(99,102,241,0.1)",
+                                color:      rider.performance?.color ?? "#6366f1",
+                              }}
+                            >
+                              ⭐ {rider.rating.toFixed(1)} · {rider.performance?.label ?? ""}
+                            </span>
+                          )}
                           {isCurrentAssignee && (
                             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">CURRENT</span>
                           )}
@@ -779,6 +816,20 @@ export default function OwnerOrdersPage() {
                           )}
                         </div>
                         <p className="text-xs" style={{ color: "var(--text-muted)" }}>📞 {rider.phone}</p>
+                        {/* Performance stats row (30-day window) */}
+                        {rider.performance && !isCurrentAssignee && !rider.is_busy && (
+                          <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
+                            {rider.performance.completionRate != null
+                              ? `${rider.performance.completionRate}% complete`
+                              : `${rider.total_deliveries} delivered`}
+                            {rider.performance.avgDeliveryMin != null
+                              ? ` · avg ${rider.performance.avgDeliveryMin}min`
+                              : ""}
+                            {rider.performance.rejectionCount30d > 0
+                              ? ` · ⚠️ ${rider.performance.rejectionCount30d} rejected`
+                              : ""}
+                          </p>
+                        )}
                         {isCurrentAssignee && (
                           <p className="text-[10px] text-amber-600 font-medium mt-0.5">⚠️ Abhi yahi rider assigned hai — dusra select karein</p>
                         )}
