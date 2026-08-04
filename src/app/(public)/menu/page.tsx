@@ -44,7 +44,8 @@ const FoodCard = memo(function FoodCard({ item, isOpen }: { item: MenuItem; isOp
   const updateQty = useCartStore((s) => s.updateQty);
   const { user } = useAuthStore();
   const router   = useRouter();
-  const [imgErr, setImgErr] = useState(false);
+  const [imgErr, setImgErr]           = useState(false);
+  const [descExpanded, setDescExpanded] = useState(false);
 
   const price = item.discounted_price ?? item.price;
   const hasDiscount = item.discounted_price && item.discounted_price < item.price;
@@ -110,9 +111,25 @@ const FoodCard = memo(function FoodCard({ item, isOpen }: { item: MenuItem; isOp
           )}
         </div>
 
-        {item.description && (
-          <p className="text-gray-500 text-sm leading-relaxed line-clamp-2">{item.description}</p>
-        )}
+        {item.description && (() => {
+          const TRIM_AT = 80;
+          const isLong  = item.description!.length > TRIM_AT;
+          return (
+            <p className="text-gray-500 text-sm leading-relaxed">
+              {!descExpanded && isLong
+                ? item.description!.slice(0, TRIM_AT) + "..."
+                : item.description}
+              {isLong && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setDescExpanded(v => !v); }}
+                  className="ml-1 text-orange-400 font-semibold hover:text-orange-300 transition-colors"
+                >
+                  {descExpanded ? "Less" : "More"}
+                </button>
+              )}
+            </p>
+          );
+        })()}
       </div>
 
       {/* Right: Image + Add button */}
