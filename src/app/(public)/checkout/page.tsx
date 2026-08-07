@@ -467,15 +467,21 @@ export default function CheckoutPage() {
             {/* Subtotal */}
             <div className="space-y-2 text-sm">
               <div className="flex justify-between text-gray-400">
-                <span>Items Subtotal</span>
+                <span>Items Total</span>
                 <span className="text-white font-medium">{formatPrice(sub)}</span>
               </div>
 
-              {/* Delivery Fee with distance info */}
+              {/* Restaurant Packaging Charge */}
+              <div className="flex justify-between text-gray-400">
+                <span>Restaurant Packaging Charge</span>
+                <span className="text-green-400 font-medium">₹0</span>
+              </div>
+
+              {/* Delivery Partner Fee with distance info */}
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-1.5 text-gray-400">
                   <MapPin size={13} className="text-orange-400" />
-                  <span>Delivery Fee</span>
+                  <span>Delivery Partner Fee</span>
                   {pricing && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 font-semibold">
                       {pricing.rangeLabel}
@@ -485,6 +491,18 @@ export default function CheckoutPage() {
                 <span className={pricing?.isFreeDelivery ? "text-green-400 font-bold" : fee === 0 ? "text-green-400 font-semibold" : "text-white font-medium"}>
                   {pricing?.isFreeDelivery ? "FREE 🎉" : fee === 0 ? "FREE" : formatPrice(fee)}
                 </span>
+              </div>
+
+              {/* Platform Fee */}
+              <div className="flex justify-between text-gray-400">
+                <span>Platform Fee</span>
+                <span className="text-green-400 font-medium">₹0</span>
+              </div>
+
+              {/* GST / Tax */}
+              <div className="flex justify-between text-gray-400">
+                <span>GST &amp; Taxes</span>
+                <span className="text-green-400 font-medium">₹0</span>
               </div>
 
               {/* Free Delivery Banner */}
@@ -506,7 +524,7 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {/* Offer Discount */}
+              {/* Offer Discount — only shown when an offer is applied */}
               {offerDiscount > 0 && (
                 <div className="flex justify-between items-center py-2 px-3 rounded-xl"
                   style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)" }}>
