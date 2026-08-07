@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase/client";
 import { Order, OrderItem } from "@/lib/database.types";
 import { formatPrice, formatDate, ORDER_STATUS_CONFIG } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Loader2, Phone, MapPin, Shield } from "lucide-react";
+import { ChevronLeft, Loader2, Phone, MapPin, Shield, Bike } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -34,6 +34,11 @@ export default function TrackPage({ params }: { params: Promise<{ id: string }> 
   const [order, setOrder] = useState<OrderWithItems | null>(null);
   const [loading, setLoading] = useState(true);
   const [otp, setOtp]         = useState<string | null>(null);
+  const [rider, setRider]     = useState<{
+    name: string; phone: string;
+    vehicle_type: string; vehicle_number: string | null;
+    tracking_status: string;
+  } | null>(null);
 
   async function loadOrder() {
     // Use service-role API — direct anon-key query on orders triggers order_items
@@ -48,6 +53,18 @@ export default function TrackPage({ params }: { params: Promise<{ id: string }> 
       console.error("[track] loadOrder error:", err);
     }
     setLoading(false);
+  }
+
+  // Fetch assigned rider info (shown when order is out for delivery)
+  async function fetchRider() {
+    try {
+      const res = await fetch(`/api/customer/rider-info?orderId=${id}`, { credentials: "same-origin" });
+      if (!res.ok) { setRider(null); return; }
+      const json = await res.json();
+      setRider(json.rider ?? null);
+    } catch {
+      setRider(null);
+    }
   }
 
   // Fetch OTP from notifications — SELECT works for own user (customer)
@@ -67,6 +84,7 @@ export default function TrackPage({ params }: { params: Promise<{ id: string }> 
 
   useEffect(() => {
     loadOrder();
+    fetchRider();
 
     // Poll for OTP — retry every 2s for up to 10s (OTP API may save slightly after redirect)
     fetchOtp().then((found) => {
@@ -80,8 +98,8 @@ export default function TrackPage({ params }: { params: Promise<{ id: string }> 
       }, 2000);
     });
 
-    // Realtime subscription for live status updates
-    const channel = supabase
+    // Realtime: re-fetch order when order status changes
+    const orderChannel = supabase
       .channel(`order-track-${id}`)
       .on("postgres_changes", {
         event: "UPDATE",
@@ -90,13 +108,29 @@ export default function TrackPage({ params }: { params: Promise<{ id: string }> 
         filter: `id=eq.${id}`,
       }, () => {
         // Re-fetch the full order so tracking timeline updates correctly.
-        // We cannot rely solely on payload.new because Supabase Realtime
-        // only sends changed columns unless REPLICA IDENTITY FULL is set.
         loadOrder();
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    // Realtime: re-fetch rider when delivery_tracking changes
+    // Handles: new assignment, reassignment (partner_id update), unassignment (DELETE)
+    const trackingChannel = supabase
+      .channel(`order-tracking-rider-${id}`)
+      .on("postgres_changes", {
+        event: "*",   // INSERT, UPDATE, DELETE
+        schema: "public",
+        table: "delivery_tracking",
+        filter: `order_id=eq.${id}`,
+      }, () => {
+        // Small delay so DB write completes before we re-query
+        setTimeout(fetchRider, 400);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(orderChannel);
+      supabase.removeChannel(trackingChannel);
+    };
   }, [id]);
 
   if (loading) return (
@@ -293,6 +327,58 @@ export default function TrackPage({ params }: { params: Promise<{ id: string }> 
           style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)" }}>
           <span className="text-green-400 text-lg">✅</span>
           <p className="text-xs text-green-400 font-medium">OTP verified — Order successfully delivered!</p>
+        </div>
+      )}
+
+      {/* ── Rider Info Card (shown when order is assigned/out for delivery) ── */}
+      {rider && !isCancelled && order.status !== "delivered" && (
+        <div className="rounded-2xl p-5 mb-5 animate-in fade-in duration-300"
+          style={{ background: "var(--card-bg)", border: "1px solid rgba(249,115,22,0.25)" }}>
+          <div className="flex items-center gap-2 mb-4">
+            <Bike size={18} className="text-orange-400" />
+            <h2 className="font-bold text-base" style={{ color: "var(--text-primary)" }}>Your Delivery Rider</h2>
+            {rider.tracking_status === "picked_up" && (
+              <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full"
+                style={{ background: "rgba(249,115,22,0.12)", color: "#f97316" }}>
+                🛵 On the way!
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* Avatar */}
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
+              style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.15)" }}>
+              {rider.vehicle_type === "bicycle" ? "🚲"
+               : rider.vehicle_type === "car"     ? "🚗"
+               : "🏍️"}
+            </div>
+
+            {/* Rider details */}
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-base" style={{ color: "var(--text-primary)" }}>{rider.name}</p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                {rider.vehicle_type.charAt(0).toUpperCase() + rider.vehicle_type.slice(1)}
+                {rider.vehicle_number ? ` · ${rider.vehicle_number}` : ""}
+              </p>
+              <p className="text-xs mt-0.5 font-medium" style={{ color: "var(--text-muted)" }}>
+                📞 {rider.phone}
+              </p>
+            </div>
+
+            {/* Call button */}
+            <a
+              href={`tel:${rider.phone}`}
+              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95"
+              style={{ background: "rgba(34,197,94,0.1)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.25)" }}
+            >
+              <Phone size={15} /> Call
+            </a>
+          </div>
+
+          <p className="text-[11px] mt-4 text-center" style={{ color: "var(--text-muted)" }}>
+            Agar aapka rider der kar raha hai toh directly call karein 📞
+          </p>
         </div>
       )}
 
