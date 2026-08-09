@@ -47,8 +47,11 @@ async function handler(request: NextRequest) {
   // ── Redirect staff from root '/' directly to their dashboard ─────────
   // When an owner/admin/delivery staff visits the website URL, they go
   // straight to their dashboard instead of the public home page.
+  // Exception: ?view=public allows staff to preview the public home page
+  // (used by the 'Home' link inside the owner/admin sidebar).
   if (pathname === "/") {
-    if (user) {
+    const viewPublic = request.nextUrl.searchParams.get("view") === "public";
+    if (user && !viewPublic) {
       const role = await getUserRole(user.id);
       if (role === "restaurant_owner") return NextResponse.redirect(new URL("/owner",    request.url));
       if (role === "admin")            return NextResponse.redirect(new URL("/admin",    request.url));

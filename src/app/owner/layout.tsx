@@ -94,7 +94,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
         {/* Public Site Links */}
         <div className="mt-auto pt-4 pb-2" style={{ borderTop: "1px solid var(--border)" }}>
           <p className="text-xs uppercase tracking-widest px-3 mb-2" style={{ color: "var(--text-muted)" }}>Public Site</p>
-          <a href="/menu" target="_blank" rel="noopener noreferrer"
+          <a href="/?view=public" target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all hover:bg-white/5"
             style={{ color: "var(--text-secondary)" }}>
             <Home size={16} /> Home
@@ -134,7 +134,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
           );
         })}
         {/* Public Site links at end of mobile nav */}
-        <a href="/menu" target="_blank" rel="noopener noreferrer"
+        <a href="/?view=public" target="_blank" rel="noopener noreferrer"
           className="flex-shrink-0 flex flex-col items-center justify-center py-2.5 px-3 gap-0.5 min-w-[52px]"
         >
           <Home size={20} style={{ color: "var(--text-muted)" }} />
