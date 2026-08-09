@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
 import { useCartStore } from "@/stores/cartStore";
@@ -100,6 +100,9 @@ export default function CheckoutAddressPage() {
   const [gpsError,   setGpsError]   = useState("");
   const [gpsDebug,   setGpsDebug]   = useState("");
   const [gpsRaw,     setGpsRaw]     = useState<{ lat: number; lng: number } | null>(null);
+  // Ref stores the SAME value as gpsRaw but synchronously — no stale-closure risk
+  // when saveGpsAddress() reads coordinates after async Nominatim call.
+  const gpsRawRef = useRef<{ lat: number; lng: number } | null>(null);
   const [gpsAddr,    setGpsAddr]    = useState<Partial<Address> | null>(null);
   const [gpsSaving,  setGpsSaving]  = useState(false);
   const [showDebug,  setShowDebug]  = useState(false);
@@ -372,6 +375,7 @@ export default function CheckoutAddressPage() {
     setGpsDebug("");
     setGpsAddr(null);
     setGpsRaw(null);
+    gpsRawRef.current = null;   // ← clear ref so old coords can never leak in
     setShowDebug(false);
 
     if (typeof window !== "undefined" && !window.isSecureContext) {
@@ -410,6 +414,9 @@ export default function CheckoutAddressPage() {
     }
 
     const geocode = async (lat: number, lng: number) => {
+      // Store in ref FIRST (synchronous) so saveGpsAddress always reads the
+      // correct coordinates regardless of React render timing.
+      gpsRawRef.current = { lat, lng };
       setGpsRaw({ lat, lng });
       setGpsStep("fetching");
       const res = await fetch(
@@ -476,8 +483,10 @@ export default function CheckoutAddressPage() {
       setGpsError(msgs[err.code] ?? `Location failed — error code ${err.code}: ${err.message}`);
     };
 
+    // maximumAge: 0 — FORCE a fresh GPS reading every time.
+    // Never allow the browser to return a cached position from a previous click.
     navigator.geolocation.getCurrentPosition(onSuccess, onError,
-      { timeout: 15000, maximumAge: 5000, enableHighAccuracy: true });
+      { timeout: 15000, maximumAge: 0, enableHighAccuracy: true });
   }
 
   async function saveGpsAddress() {
@@ -489,6 +498,16 @@ export default function CheckoutAddressPage() {
       setActiveTab("new");
       return;
     }
+
+    // Read from ref — synchronous, never stale.
+    // gpsRaw state may lag one render behind due to React batching;
+    // gpsRawRef.current is always the value set in the last geocode() call.
+    const freshCoords = gpsRawRef.current;
+    if (!freshCoords) {
+      toast.error("GPS coordinates not available. Please detect location again.");
+      return;
+    }
+
     setGpsSaving(true);
     const isFirst = addresses.length === 0;
     const { data, error } = await supabase.from("addresses").insert({
@@ -499,8 +518,8 @@ export default function CheckoutAddressPage() {
       city:          gpsAddr.city,
       state:         gpsAddr.state,
       pincode:       gpsAddr.pincode ?? "",
-      latitude:      gpsRaw?.lat ?? null,
-      longitude:     gpsRaw?.lng ?? null,
+      latitude:      freshCoords.lat,   // ← always the freshest GPS reading
+      longitude:     freshCoords.lng,   // ← always the freshest GPS reading
       is_default:    isFirst,
     }).select("*").single();
 
@@ -513,6 +532,7 @@ export default function CheckoutAddressPage() {
       setSelectedAddr(saved);
       setActiveTab("saved");
       setGpsStep("idle"); setGpsAddr(null); setGpsRaw(null);
+      gpsRawRef.current = null;
     }
     setGpsSaving(false);
   }

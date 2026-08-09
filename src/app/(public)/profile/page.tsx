@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -153,17 +153,32 @@ export default function ProfilePage() {
   }
 
   // ── Use Current Location ─────────────────────────────────────────────
+  // Refs hold the freshest GPS coords synchronously so the Supabase insert
+  // always uses the NEW reading, never a stale React state value.
+  const latRef = useRef<number | null>(null);
+  const lngRef = useRef<number | null>(null);
+
   async function handleUseLocation() {
     if (!navigator.geolocation) {
       toast.error("Geolocation not supported by your browser");
       return;
     }
+
+    // Clear previous coords before requesting fresh ones
+    latRef.current = null;
+    lngRef.current = null;
+
     setLocating(true);
     toast.loading("Getting your location...", { id: "location" });
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        const { latitude, longitude } = pos.coords;
+        // Capture fresh coords into local variables AND refs immediately
+        const latitude  = pos.coords.latitude;
+        const longitude = pos.coords.longitude;
+        latRef.current  = latitude;
+        lngRef.current  = longitude;
+
         try {
           // Reverse geocode using OpenStreetMap Nominatim (free, no API key)
           const res = await fetch(
@@ -173,21 +188,33 @@ export default function ProfilePage() {
           const geo = await res.json();
           const a   = geo.address ?? {};
 
-          setNewAddr((prev) => ({
-            ...prev,
+          // Set the full address using ONLY the fresh GPS data.
+          // Do NOT spread prev state — that risks mixing old coords with new address text.
+          setNewAddr({
+            label:         "Current Location",
             address_line1: [a.road, a.neighbourhood, a.suburb].filter(Boolean).join(", ") || geo.display_name?.split(",")[0] || "",
             address_line2: a.village || a.town || "",
-            city:    a.city || a.county || a.state_district || "Varanasi",
-            state:   a.state || "Uttar Pradesh",
-            pincode: a.postcode || "",
-            latitude,
-            longitude,
-          }));
+            city:          a.city || a.county || a.state_district || "Varanasi",
+            state:         a.state || "Uttar Pradesh",
+            pincode:       a.postcode || "",
+            latitude,    // ← fresh from this GPS call
+            longitude,   // ← fresh from this GPS call
+          });
           setShowAddForm(true);
           toast.success("Location detected! Please verify the address.", { id: "location" });
         } catch {
           toast.error("Could not fetch address. Fill manually.", { id: "location" });
-          setNewAddr((prev) => ({ ...prev, latitude, longitude }));
+          // Even on geocode failure, still persist the fresh GPS coords
+          setNewAddr({
+            label: "Current Location",
+            address_line1: "",
+            address_line2: "",
+            city: "",
+            state: "",
+            pincode: "",
+            latitude,    // ← fresh from this GPS call
+            longitude,   // ← fresh from this GPS call
+          });
           setShowAddForm(true);
         }
         setLocating(false);
@@ -195,10 +222,17 @@ export default function ProfilePage() {
       (err) => {
         setLocating(false);
         toast.dismiss("location");
+        // Do NOT save old coords as fallback on error — show error only.
+        latRef.current = null;
+        lngRef.current = null;
         if (err.code === 1) toast.error("Location permission denied. Please allow access in browser settings.");
         else toast.error("Could not get location. Please enter address manually.");
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,   // FORCE a fresh GPS reading every time — never use cached position
+      }
     );
   }
 
