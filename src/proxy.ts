@@ -44,6 +44,18 @@ async function handler(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // ── Redirect staff from root '/' directly to their dashboard ─────────
+  // When an owner/admin/delivery staff visits the website URL, they go
+  // straight to their dashboard instead of the public home page.
+  if (pathname === "/") {
+    if (user) {
+      const role = await getUserRole(user.id);
+      if (role === "restaurant_owner") return NextResponse.redirect(new URL("/owner",    request.url));
+      if (role === "admin")            return NextResponse.redirect(new URL("/admin",    request.url));
+      if (role === "delivery")         return NextResponse.redirect(new URL("/delivery", request.url));
+    }
+  }
+
   // ── Add Cache-Control: no-store to ALL protected pages ────────────────
   // This prevents browsers from storing these pages in the Back-Forward
   // Cache (bfcache). Without this, pressing Back after logout restores a
@@ -118,6 +130,8 @@ export default handler;
 
 export const config = {
   matcher: [
+    // Root — redirect staff to their dashboard
+    "/",
     // Staff dashboards
     "/admin/:path*",
     "/owner/:path*",

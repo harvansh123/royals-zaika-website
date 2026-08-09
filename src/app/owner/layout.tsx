@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { LayoutDashboard, ShoppingBag, UtensilsCrossed, LogOut, UserCircle, HelpCircle, MapPin, Users, Tag, Bell, BellOff, Star, Clock, DollarSign } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, UtensilsCrossed, LogOut, UserCircle, HelpCircle, MapPin, Users, Tag, Bell, BellOff, Star, Clock, DollarSign, Home, Info, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -90,6 +90,23 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
             );
           })}
         </nav>
+
+        {/* Public Site Links */}
+        <div className="mt-auto pt-4 pb-2" style={{ borderTop: "1px solid var(--border)" }}>
+          <p className="text-xs uppercase tracking-widest px-3 mb-2" style={{ color: "var(--text-muted)" }}>Public Site</p>
+          <a href="/menu" target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all hover:bg-white/5"
+            style={{ color: "var(--text-secondary)" }}>
+            <Home size={16} /> Home
+            <ExternalLink size={11} className="ml-auto opacity-50" />
+          </a>
+          <a href="/about" target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all hover:bg-white/5"
+            style={{ color: "var(--text-secondary)" }}>
+            <Info size={16} /> About
+            <ExternalLink size={11} className="ml-auto opacity-50" />
+          </a>
+        </div>
       </aside>
 
       {/* ── Main Content ──────────────────────────────────────────────── */}
@@ -116,6 +133,19 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
             </Link>
           );
         })}
+        {/* Public Site links at end of mobile nav */}
+        <a href="/menu" target="_blank" rel="noopener noreferrer"
+          className="flex-shrink-0 flex flex-col items-center justify-center py-2.5 px-3 gap-0.5 min-w-[52px]"
+        >
+          <Home size={20} style={{ color: "var(--text-muted)" }} />
+          <span className="text-[9px] font-medium whitespace-nowrap" style={{ color: "var(--text-muted)" }}>Home</span>
+        </a>
+        <a href="/about" target="_blank" rel="noopener noreferrer"
+          className="flex-shrink-0 flex flex-col items-center justify-center py-2.5 px-3 gap-0.5 min-w-[52px]"
+        >
+          <Info size={20} style={{ color: "var(--text-muted)" }} />
+          <span className="text-[9px] font-medium whitespace-nowrap" style={{ color: "var(--text-muted)" }}>About</span>
+        </a>
       </nav>
 
       {/* CSS keyframes for banner pulse animation */}
