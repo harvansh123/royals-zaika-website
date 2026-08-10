@@ -228,11 +228,9 @@ export default function ProfilePage() {
         if (err.code === 1) toast.error("Location permission denied. Please allow access in browser settings.");
         else toast.error("Could not get location. Please enter address manually.");
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,   // FORCE a fresh GPS reading every time — never use cached position
-      }
+      // Phase-1: GPS satellite (fast if available)
+      // Phase-2: network/WiFi location if satellite is slow (triggered via onError → retry)
+      { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
     );
   }
 

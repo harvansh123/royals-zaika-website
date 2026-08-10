@@ -464,10 +464,13 @@ export default function CheckoutAddressPage() {
 
       if (!phase2Tried && (err.code === 3 || err.code === 2)) {
         phase2Tried = true;
-        setGpsDebug((d) => `${d} | retrying_phase2_coarse`);
-        // Phase-2: slightly relaxed timeout with network-based fallback
+        setGpsDebug((d) => `${d} | retrying_phase2_network`);
+        // Phase-2: switch to network/WiFi location (fast, 1-3 seconds).
+        // enableHighAccuracy:false uses cell towers + WiFi instead of GPS satellite
+        // — accurate enough for delivery zone (50-200m), no satellite lock needed.
+        setGpsError("GPS satellite slow — switching to network location (faster)...");
         navigator.geolocation.getCurrentPosition(onSuccess, onFinalError,
-          { timeout: 20000, maximumAge: 0, enableHighAccuracy: false });
+          { timeout: 8000, maximumAge: 0, enableHighAccuracy: false });
         return;
       }
       onFinalError(err);
@@ -483,10 +486,12 @@ export default function CheckoutAddressPage() {
       setGpsError(msgs[err.code] ?? `Location failed — error code ${err.code}: ${err.message}`);
     };
 
-    // maximumAge: 0 — FORCE a fresh GPS reading every time.
-    // Never allow the browser to return a cached position from a previous click.
+    // Phase-1: try GPS satellite first (accurate to ~5m).
+    // Short 6s timeout — if satellite fix is not available quickly,
+    // onError fires and Phase-2 (network/WiFi) takes over instantly.
+    // maximumAge: 0 — always fresh, never cached from previous click.
     navigator.geolocation.getCurrentPosition(onSuccess, onError,
-      { timeout: 15000, maximumAge: 0, enableHighAccuracy: true });
+      { timeout: 6000, maximumAge: 0, enableHighAccuracy: true });
   }
 
   async function saveGpsAddress() {
