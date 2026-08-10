@@ -35,6 +35,8 @@ interface PartialAddr {
 interface MapLocationPickerProps {
   initialLat: number;
   initialLng: number;
+  /** GPS accuracy in metres from pos.coords.accuracy — used to show low-accuracy warning */
+  accuracy?:  number;
   onConfirm:  (lat: number, lng: number, addr: PartialAddr) => void;
   onClose:    () => void;
 }
@@ -74,6 +76,7 @@ async function reverseGeocode(lat: number, lng: number): Promise<PartialAddr> {
 export default function MapLocationPicker({
   initialLat,
   initialLng,
+  accuracy,
   onConfirm,
   onClose,
 }: MapLocationPickerProps) {
@@ -228,7 +231,48 @@ export default function MapLocationPicker({
           />
         </GoogleMap>
 
-        {/* Coordinates badge (dev feedback — shows final marker coords) */}
+        {/* ── Low-accuracy warning banner (shown INSIDE the map overlay) ──
+             Visible when GPS accuracy is > 50m — i.e. position is likely from
+             network/cell-tower, not GPS satellite.
+             Customer must drag the pin to their exact location. */}
+        {accuracy !== undefined && accuracy > 50 && (
+          <div
+            className="absolute top-3 left-3 right-3 z-20 flex items-start gap-2.5
+              px-4 py-3 rounded-xl shadow-lg"
+            style={{
+              background:   "rgba(234,179,8,0.95)",
+              border:       "2px solid #ca8a04",
+              backdropFilter: "blur(4px)",
+            }}
+          >
+            <span className="text-2xl leading-none mt-0.5" aria-hidden>⚠️</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-black font-extrabold text-sm leading-tight">
+                GPS LOCATION LOW ACCURACY
+              </p>
+              <p className="text-black/80 text-xs mt-1 leading-snug">
+                GPS detected ≈{Math.round(accuracy)}m radius — may not be exact.
+                <span className="font-bold"> Drag the pin</span> to your exact house/gate.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* GPS accurate badge (shown when accuracy ≤ 50m) */}
+        {accuracy !== undefined && accuracy <= 50 && (
+          <div
+            className="absolute top-3 left-1/2 -translate-x-1/2 z-20
+              flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+            style={{ background: "rgba(34,197,94,0.9)", backdropFilter: "blur(4px)" }}
+          >
+            <span className="text-xs" aria-hidden>✅</span>
+            <p className="text-black font-bold text-xs whitespace-nowrap">
+              GPS Accurate ≈{Math.round(accuracy)}m — drag to adjust if needed
+            </p>
+          </div>
+        )}
+
+        {/* Coordinates badge — shows final marker position */}
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10
           px-3 py-1.5 rounded-full text-xs font-mono text-gray-300 pointer-events-none"
           style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)" }}>

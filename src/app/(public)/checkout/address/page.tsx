@@ -123,6 +123,9 @@ export default function CheckoutAddressPage() {
   // Map picker modal — opened from GPS "done" state so customer can fine-tune
   // the marker position to their exact gate/house.
   const [showMapPicker, setShowMapPicker] = useState(false);
+  // Stores pos.coords.accuracy (metres) from the last GPS callback.
+  // Passed to MapLocationPicker so it can show a low-accuracy warning.
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
 
   // ── Delivery Validation ──────────────────────────────────────
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
@@ -398,6 +401,8 @@ export default function CheckoutAddressPage() {
     setGpsAddr(null);
     setGpsRaw(null);
     gpsRawRef.current = null;   // clear ref — old coords must never leak through
+    setGpsAccuracy(null);       // clear previous accuracy reading
+    setShowMapPicker(false);    // close any open map picker
     setShowDebug(false);
 
     if (typeof window !== "undefined" && !window.isSecureContext) {
@@ -497,12 +502,17 @@ export default function CheckoutAddressPage() {
         console.log(`[GPS] RAW from browser: lat=${lat} lng=${lng} accuracy=${accuracy}m enableHighAccuracy=true maximumAge=0`);
 
       setGpsDebug(`lat=${lat.toFixed(6)} lng=${lng.toFixed(6)} acc=${accuracy.toFixed(0)}m source=GPS`);
+      // Store accuracy so MapLocationPicker can show low-accuracy warning
+      setGpsAccuracy(accuracy);
 
       try {
         const addr = await geocode(lat, lng);
         if (addr === null) return; // Superseded — discard
         setGpsAddr(addr);
         setGpsStep("done");
+        // Auto-open map immediately after GPS detection so customer can confirm
+        // or fine-tune the pin. If accuracy is low the map will show a warning.
+        setShowMapPicker(true);
       } catch (e: any) {
         if (thisRequestId !== gpsRequestIdRef.current) return;
         setGpsDebug((d) => `${d} | geocode_err=${e.message}`);
@@ -1175,6 +1185,7 @@ export default function CheckoutAddressPage() {
             <MapLocationPicker
               initialLat={gpsRaw.lat}
               initialLng={gpsRaw.lng}
+              accuracy={gpsAccuracy ?? undefined}
               onClose={() => setShowMapPicker(false)}
               onConfirm={(lat, lng, addr) => {
                 // The map marker coordinates are the new single source of truth.
