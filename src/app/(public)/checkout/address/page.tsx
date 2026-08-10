@@ -103,6 +103,11 @@ export default function CheckoutAddressPage() {
   // Ref stores the SAME value as gpsRaw but synchronously — no stale-closure risk
   // when saveGpsAddress() reads coordinates after async Nominatim call.
   const gpsRawRef = useRef<{ lat: number; lng: number } | null>(null);
+  // Monotonically-increasing counter. Each fetchGpsLocation() call captures a unique ID.
+  // Every async callback (getCurrentPosition + Nominatim) checks this ID before
+  // writing state/refs — discards results from previous (superseded) requests.
+  // This prevents a slow older GPS/Nominatim response from overwriting a newer one.
+  const gpsRequestIdRef = useRef<number>(0);
   const [gpsAddr,    setGpsAddr]    = useState<Partial<Address> | null>(null);
   const [gpsSaving,  setGpsSaving]  = useState(false);
   const [showDebug,  setShowDebug]  = useState(false);
@@ -370,12 +375,18 @@ export default function CheckoutAddressPage() {
   }
 
   async function fetchGpsLocation() {
+    // Assign a unique ID to this request. Any async callback that runs AFTER
+    // a newer click will see a mismatched ID and silently discard its result.
+    // This prevents the race condition where a slow older Nominatim response
+    // could overwrite the coordinates from a more recent GPS click.
+    const thisRequestId = ++gpsRequestIdRef.current;
+
     setGpsStep("requesting");
     setGpsError("");
     setGpsDebug("");
     setGpsAddr(null);
     setGpsRaw(null);
-    gpsRawRef.current = null;   // ← clear ref so old coords can never leak in
+    gpsRawRef.current = null;   // clear ref — old coords must never leak through
     setShowDebug(false);
 
     if (typeof window !== "undefined" && !window.isSecureContext) {
@@ -413,16 +424,44 @@ export default function CheckoutAddressPage() {
       }
     }
 
-    const geocode = async (lat: number, lng: number) => {
-      // Store in ref FIRST (synchronous) so saveGpsAddress always reads the
-      // correct coordinates regardless of React render timing.
+    // geocode() converts RAW GPS lat/lng → readable address text via Nominatim.
+    // It NEVER modifies lat/lng. The RAW coordinates are stored in gpsRawRef
+    // BEFORE the async Nominatim call so saveGpsAddress() always reads fresh values.
+    const geocode = async (lat: number, lng: number): Promise<Partial<Address> | null> => {
+      // ── Race-condition guard (pre-Nominatim) ───────────────────────────────
+      // If the user clicked "Detect My Location" again BEFORE this point,
+      // thisRequestId will no longer match gpsRequestIdRef.current → discard.
+      if (thisRequestId !== gpsRequestIdRef.current) {
+        if (process.env.NODE_ENV !== "production")
+          console.log(`[GPS] geocode() discarded — request ${thisRequestId} superseded by ${gpsRequestIdRef.current}`);
+        return null;
+      }
+
+      // Store RAW GPS coordinates synchronously in the ref BEFORE any await.
+      // This is the single source of truth — Nominatim result CANNOT change these.
       gpsRawRef.current = { lat, lng };
       setGpsRaw({ lat, lng });
       setGpsStep("fetching");
+
+      if (process.env.NODE_ENV !== "production")
+        console.log(`[GPS] Checkpoint 1 — RAW GPS:        lat=${lat} lng=${lng}`);
+      if (process.env.NODE_ENV !== "production")
+        console.log(`[GPS] Checkpoint 2 — Sent to geocode: lat=${lat} lng=${lng}`);
+
       const res = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
         { headers: { "Accept-Language": "en", "User-Agent": "RoyalZaika-FoodApp/1.0" } }
       );
+
+      // ── Race-condition guard (post-Nominatim) ──────────────────────────────
+      // Another click could have fired DURING the Nominatim await (~1-2s).
+      // Re-check before writing any state — discard this stale response if so.
+      if (thisRequestId !== gpsRequestIdRef.current) {
+        if (process.env.NODE_ENV !== "production")
+          console.log(`[GPS] Nominatim result discarded — request ${thisRequestId} superseded`);
+        return null;
+      }
+
       if (!res.ok) throw new Error(`Nominatim HTTP ${res.status}`);
       const data = await res.json();
       const a    = data.address ?? {};
@@ -437,17 +476,27 @@ export default function CheckoutAddressPage() {
       } as Partial<Address>;
     };
 
-    let phase2Tried = false;
-
     const onSuccess = async (pos: GeolocationPosition) => {
+      // Discard if this request was superseded before the GPS callback fired.
+      if (thisRequestId !== gpsRequestIdRef.current) return;
+
       const { latitude: lat, longitude: lng, accuracy } = pos.coords;
-      setGpsDebug((d) => `${d ? d + " | " : ""}lat=${lat.toFixed(6)} lng=${lng.toFixed(6)} acc=${accuracy.toFixed(0)}m`);
+
+      if (process.env.NODE_ENV !== "production")
+        console.log(`[GPS] RAW from browser: lat=${lat} lng=${lng} accuracy=${accuracy}m enableHighAccuracy=true maximumAge=0`);
+
+      setGpsDebug(`lat=${lat.toFixed(6)} lng=${lng.toFixed(6)} acc=${accuracy.toFixed(0)}m source=GPS`);
+
       try {
         const addr = await geocode(lat, lng);
+        if (addr === null) return; // Superseded — discard
         setGpsAddr(addr);
         setGpsStep("done");
       } catch (e: any) {
+        if (thisRequestId !== gpsRequestIdRef.current) return;
         setGpsDebug((d) => `${d} | geocode_err=${e.message}`);
+        // Even if Nominatim fails, the RAW GPS coords are already in gpsRawRef.
+        // saveGpsAddress() will still use the correct coordinates.
         setGpsStep("error");
         setGpsError(
           `Location detected (${lat.toFixed(5)}, ${lng.toFixed(5)}) but address lookup failed.\n\n` +
@@ -458,40 +507,39 @@ export default function CheckoutAddressPage() {
     };
 
     const onError = (err: GeolocationPositionError) => {
+      if (thisRequestId !== gpsRequestIdRef.current) return;
       const codeNames: Record<number, string> = { 1: "PERMISSION_DENIED", 2: "POSITION_UNAVAILABLE", 3: "TIMEOUT" };
       const codeName = codeNames[err.code] ?? `UNKNOWN_${err.code}`;
-      setGpsDebug((d) => `${d ? d + " | " : ""}error=${codeName}(${err.code}) msg=${err.message}`);
 
-      if (!phase2Tried && (err.code === 3 || err.code === 2)) {
-        phase2Tried = true;
-        setGpsDebug((d) => `${d} | retrying_phase2_network`);
-        // Phase-2: switch to network/WiFi location (fast, 1-3 seconds).
-        // enableHighAccuracy:false uses cell towers + WiFi instead of GPS satellite
-        // — accurate enough for delivery zone (50-200m), no satellite lock needed.
-        setGpsError("GPS satellite slow — switching to network location (faster)...");
-        navigator.geolocation.getCurrentPosition(onSuccess, onFinalError,
-          { timeout: 8000, maximumAge: 0, enableHighAccuracy: false });
-        return;
-      }
-      onFinalError(err);
-    };
+      if (process.env.NODE_ENV !== "production")
+        console.warn(`[GPS] Error: ${codeName} — NOT falling back to network (inaccurate). Showing error.`);
 
-    const onFinalError = (err: GeolocationPositionError) => {
+      setGpsDebug(`error=${codeName}(${err.code})`);
       setGpsStep("error");
+
+      // IMPORTANT: Do NOT fall back to enableHighAccuracy:false (network/cell-tower location).
+      // Network location can be 500m–1km inaccurate — exactly the bug being fixed.
+      // Instead show a clear error and let the customer retry or enter address manually.
       const msgs: Record<number, string> = {
         1: "Location permission was denied by the browser.\n\nHow to fix:\n• Chrome/Edge: Click 🔒 in the address bar → Site settings → Location → Allow → Reload\n• Firefox: Click 🔒 → Permissions → Location → Allow → Reload\n• Safari: Settings → Websites → Location → Allow for this site → Reload\n\nOr enter your address manually using the 'Add New' tab.",
-        2: "Your location could not be determined (Position Unavailable).\n\nTry these steps:\n• Move near a window or go outdoors for better GPS signal\n• Enable WiFi — it improves location accuracy even without connecting\n• Check that Location Services are enabled in device Settings\n• Reload the page and try again",
-        3: "Location request timed out.\n\nTry these steps:\n• Move to an area with better signal\n• Check your internet connection\n• Reload the page and try again",
+        2: "Your location could not be determined.\n\nTry these steps:\n• Go outdoors or near a window for better GPS signal\n• Enable WiFi — it improves GPS accuracy even without connecting\n• Check that Location Services are enabled in device Settings\n• Tap 'Detect My Location' again",
+        3: "GPS timed out — could not get an accurate position.\n\nTry these steps:\n• Go outdoors or near a window for better GPS signal\n• Enable WiFi (improves GPS indoors)\n• Tap 'Detect My Location' again",
       };
       setGpsError(msgs[err.code] ?? `Location failed — error code ${err.code}: ${err.message}`);
     };
 
-    // Phase-1: try GPS satellite first (accurate to ~5m).
-    // Short 6s timeout — if satellite fix is not available quickly,
-    // onError fires and Phase-2 (network/WiFi) takes over instantly.
-    // maximumAge: 0 — always fresh, never cached from previous click.
+    // Single attempt: enableHighAccuracy:true, maximumAge:0, timeout:15s.
+    //
+    // Why no Phase-2 fallback (enableHighAccuracy:false)?
+    // enableHighAccuracy:false uses cell-tower/WiFi positioning which is
+    // 500m–1km inaccurate — EXACTLY the bug this fix addresses.
+    // We prefer a clear error message over a silently inaccurate position.
+    //
+    // Why 15s timeout?
+    // Satellite GPS needs ~10-15s to get a fix when cold-starting.
+    // 15s gives a real GPS fix without falling back to inaccurate sources.
     navigator.geolocation.getCurrentPosition(onSuccess, onError,
-      { timeout: 6000, maximumAge: 0, enableHighAccuracy: true });
+      { timeout: 15000, maximumAge: 0, enableHighAccuracy: true });
   }
 
   async function saveGpsAddress() {
@@ -515,6 +563,10 @@ export default function CheckoutAddressPage() {
 
     setGpsSaving(true);
     const isFirst = addresses.length === 0;
+
+    if (process.env.NODE_ENV !== "production")
+      console.log(`[GPS] Checkpoint 3 — Saving to Supabase: lat=${freshCoords.lat} lng=${freshCoords.lng}`);
+
     const { data, error } = await supabase.from("addresses").insert({
       user_id:       user.id,
       label:         "Current Location",
@@ -523,14 +575,19 @@ export default function CheckoutAddressPage() {
       city:          gpsAddr.city,
       state:         gpsAddr.state,
       pincode:       gpsAddr.pincode ?? "",
-      latitude:      freshCoords.lat,   // ← always the freshest GPS reading
-      longitude:     freshCoords.lng,   // ← always the freshest GPS reading
+      latitude:      freshCoords.lat,   // RAW GPS — never modified by geocoding
+      longitude:     freshCoords.lng,   // RAW GPS — never modified by geocoding
       is_default:    isFirst,
     }).select("*").single();
 
     if (error) {
       toast.error("Save failed: " + error.message);
     } else {
+      if (process.env.NODE_ENV !== "production")
+        console.log(`[GPS] Checkpoint 4 — Supabase saved:   lat=${(data as any).latitude} lng=${(data as any).longitude}`);
+      if (process.env.NODE_ENV !== "production")
+        console.log(`[GPS] Checkpoint 4 — UI displaying:    lat=${freshCoords.lat} lng=${freshCoords.lng}`);
+
       toast.success("Location saved ✅");
       const saved = data as Address;
       await loadAddresses();
