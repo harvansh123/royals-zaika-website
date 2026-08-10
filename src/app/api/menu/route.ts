@@ -54,8 +54,9 @@ export async function GET() {
       { items: items ?? [], categories: categories ?? [] },
       {
         headers: {
-          // Allow CDN/browser to cache for 10s; always revalidate
-          "Cache-Control": "public, max-age=10, stale-while-revalidate=20",
+          // 30s fresh cache — menu rarely changes mid-session.
+          // Realtime in menu page busts sessionStorage cache on any menu_items change.
+          "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
         },
       }
     );

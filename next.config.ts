@@ -51,12 +51,44 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: "public, max-age=604800" },
         ],
       },
+      // ── Sensitive APIs: never cache (orders, auth, payments, private data) ───
       {
-        source: "/api/:path*",
-        headers: [
-          { key: "Cache-Control", value: "no-store, max-age=0" },
-        ],
+        source: "/api/orders/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }],
       },
+      {
+        source: "/api/owner/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }],
+      },
+      {
+        source: "/api/rider/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }],
+      },
+      {
+        source: "/api/customer/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }],
+      },
+      {
+        source: "/api/razorpay/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }],
+      },
+      {
+        source: "/api/push/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }],
+      },
+      {
+        source: "/api/generate-otp",
+        headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }],
+      },
+      {
+        source: "/api/verify-otp",
+        headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }],
+      },
+      // ── Public APIs: let individual route handlers set their own Cache-Control ─
+      // /api/menu          → 30s s-maxage (set in route.ts)
+      // /api/offers        → 120s s-maxage (set in route.ts)
+      // /api/restaurant-settings → 60s s-maxage (set in route.ts)
+      // /api/reviews       → no-store (set in route.ts)
     ];
   },
 };

@@ -22,7 +22,15 @@ export async function GET() {
       .maybeSingle();
 
     if (error) return NextResponse.json({ offer: null });
-    return NextResponse.json({ offer: data ?? null });
+    return NextResponse.json(
+      { offer: data ?? null },
+      {
+        headers: {
+          // Offers change infrequently. Cache for 2 min; serve stale for 10 min.
+          "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600",
+        },
+      }
+    );
   } catch {
     return NextResponse.json({ offer: null });
   }

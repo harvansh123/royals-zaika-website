@@ -57,10 +57,20 @@ export async function GET() {
     ...data,
   };
 
-  return NextResponse.json({
-    ...merged,
-    is_currently_open: computeIsOpen(merged),
-  });
+  return NextResponse.json(
+    {
+      ...merged,
+      is_currently_open: computeIsOpen(merged),
+    },
+    {
+      headers: {
+        // Cache for 60s at the edge; serve stale for 5 min while revalidating.
+        // Realtime subscription pushes instant updates to clients when owner
+        // changes settings, so staleness is not a practical problem.
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+      },
+    }
+  );
 }
 
 // PUT — Owner only: update delivery settings (lat, lng, radius, name)

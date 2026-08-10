@@ -60,7 +60,10 @@ export function useRestaurantStatus(): UseRestaurantStatusReturn {
 
   const fetchSettings = useCallback(async () => {
     try {
-      const res = await fetch("/api/restaurant-settings", { cache: "no-store" });
+      // No cache:"no-store" — let the browser use the Cache-Control header
+      // from the API response (60s fresh). Realtime subscription handles
+      // instant invalidation when the owner changes settings.
+      const res = await fetch("/api/restaurant-settings");
       if (res.ok) {
         const data = await res.json();
         setSettings(data as RestaurantTimingSettings);
