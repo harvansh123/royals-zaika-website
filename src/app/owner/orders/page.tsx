@@ -486,7 +486,6 @@ export default function OwnerOrdersPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-3 text-xs" style={{ color: "var(--text-muted)" }}>
-                      {/* CHANGE 1: Show customer name if available */}
                       {order.users?.name && (
                         <span className="flex items-center gap-1">
                           <User size={10} />{order.users.name}
@@ -498,11 +497,77 @@ export default function OwnerOrdersPage() {
                       </span>
                     </div>
                   </div>
-                  <p className="font-bold text-orange-500">{formatPrice(order.total_amount)}</p>
+                  <p className="font-bold text-orange-500 mr-1">{formatPrice(order.total_amount)}</p>
                   <ChevronDown size={18}
                     className={cn("transition-transform flex-shrink-0", isExp && "rotate-180")}
                     style={{ color: "var(--text-muted)" }} />
                 </div>
+
+                {/* ── Quick Action Buttons (visible WITHOUT expanding) ── */}
+                {order.status !== "delivered" && order.status !== "cancelled" && (
+                  <div
+                    className="px-4 pb-4 flex flex-wrap gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* PENDING: Accept + Reject */}
+                    {order.status === "pending" && (
+                      <>
+                        <button
+                          onClick={() => updateStatus(order.id, "preparing")}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.97]"
+                          style={{ background: "linear-gradient(135deg,#22c55e,#16a34a)", minWidth: 110 }}>
+                          <Check size={15} /> Accept
+                        </button>
+                        <button
+                          onClick={() => { setCancelModal({ order }); setCancelReason(""); }}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.97]"
+                          style={{ background: "linear-gradient(135deg,#ef4444,#dc2626)", minWidth: 110 }}>
+                          <X size={15} /> Reject
+                        </button>
+                      </>
+                    )}
+
+                    {/* PREPARING: Mark Ready */}
+                    {order.status === "preparing" && (
+                      <button
+                        onClick={() => updateStatus(order.id, "ready")}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.97]"
+                        style={{ background: "linear-gradient(135deg,#3b82f6,#2563eb)" }}>
+                        <Check size={15} /> Mark Ready
+                      </button>
+                    )}
+
+                    {/* READY: Assign Rider */}
+                    {order.status === "ready" && (
+                      <button
+                        onClick={() => openAssignModal(order)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.97]"
+                        style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
+                        <Bike size={15} /> Assign Rider
+                      </button>
+                    )}
+
+                    {/* OUT FOR DELIVERY / PICKED UP: Reassign */}
+                    {(order.status === "picked_up" || order.status === "out_for_delivery") && (
+                      <button
+                        onClick={() => openAssignModal(order, true)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.97]"
+                        style={{ background: "linear-gradient(135deg,#f59e0b,#d97706)" }}>
+                        <UserCheck size={15} /> Reassign Rider
+                      </button>
+                    )}
+
+                    {/* CONFIRMED: Start Cooking */}
+                    {order.status === "confirmed" && (
+                      <button
+                        onClick={() => updateStatus(order.id, "preparing")}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.97]"
+                        style={{ background: "linear-gradient(135deg,#f97316,#ea580c)" }}>
+                        🍳 Start Cooking
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {/* ── CHANGE 1: Full Expanded Details ── */}
                 {isExp && (
