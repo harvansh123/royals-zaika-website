@@ -54,15 +54,21 @@ export default function OwnerTimingPage() {
   useEffect(() => {
     fetchSettings();
 
-    // Realtime — watch for changes (e.g. another admin tab)
+    // Realtime — watch for changes (e.g. another admin tab or same tab after save)
+    // NOTE: server-side filter "id=eq.1" is removed because it can silently fail
+    // for integer-type primary key columns in some Supabase configs.
+    // We filter client-side instead — equally correct and always reliable.
     const channel = supabase
       .channel("owner_timing_watch")
       .on("postgres_changes",
-        { event: "*", schema: "public", table: "restaurant_settings", filter: "id=eq.1" },
+        { event: "*", schema: "public", table: "restaurant_settings" },
         (payload) => {
-          if (payload.new) {
-            const d = payload.new as any;
-            setSettings((prev) => ({ ...(prev ?? {} as any), ...d }));
+          const row = payload.new as any;
+          if (row && (row.id === 1 || row.id === "1")) {
+            setSettings((prev) => ({ ...(prev ?? {} as any), ...row }));
+            setOpeningTime(row.opening_time ?? "09:00");
+            setClosingTime(row.closing_time  ?? "23:00");
+            setStatusMode((row.status_mode ?? "auto") as Mode);
           }
         }
       )
@@ -81,8 +87,11 @@ export default function OwnerTimingPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Failed to save");
+      // Update from server response first (fastest)
       setSettings((prev) => ({ ...(prev ?? {} as any), ...json }));
       toast.success("Timing settings saved! ✅");
+      // Re-fetch to confirm DB state (catches any edge-cache discrepancy)
+      await fetchSettings();
     } catch (e: any) {
       toast.error(e.message ?? "Save failed");
     } finally {

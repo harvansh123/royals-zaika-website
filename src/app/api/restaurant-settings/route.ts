@@ -64,10 +64,10 @@ export async function GET() {
     },
     {
       headers: {
-        // Cache for 60s at the edge; serve stale for 5 min while revalidating.
-        // Realtime subscription pushes instant updates to clients when owner
-        // changes settings, so staleness is not a practical problem.
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        // No caching — owner must see their saved settings immediately.
+        // Previously had s-maxage=60 which caused a 60-300s delay before
+        // updated timing was visible after Save.
+        "Cache-Control": "no-store, no-cache",
       },
     }
   );
@@ -141,7 +141,10 @@ export async function PATCH(req: NextRequest) {
       is_open: true,
       ...data,
     };
-    return NextResponse.json({ ...merged, is_currently_open: computeIsOpen(merged) });
+    return NextResponse.json(
+      { ...merged, is_currently_open: computeIsOpen(merged) },
+      { headers: { "Cache-Control": "no-store, no-cache" } }
+    );
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
