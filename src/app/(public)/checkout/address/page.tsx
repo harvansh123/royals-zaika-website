@@ -1,5 +1,13 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
+import dynamic from "next/dynamic";
+
+// Dynamically import the map picker so the Google Maps JS bundle is only
+// downloaded when the customer actually opens the map — keeps initial page fast.
+const MapLocationPicker = dynamic(() => import("@/components/MapLocationPicker"), {
+  ssr: false,
+  loading: () => null,
+});
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
 import { useCartStore } from "@/stores/cartStore";
@@ -112,6 +120,9 @@ export default function CheckoutAddressPage() {
   const [gpsSaving,  setGpsSaving]  = useState(false);
   const [showDebug,  setShowDebug]  = useState(false);
   const [recheckMsg, setRecheckMsg] = useState("");
+  // Map picker modal — opened from GPS "done" state so customer can fine-tune
+  // the marker position to their exact gate/house.
+  const [showMapPicker, setShowMapPicker] = useState(false);
 
   // ── Delivery Validation ──────────────────────────────────────
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
@@ -1119,6 +1130,19 @@ export default function CheckoutAddressPage() {
                 </div>
               </div>
 
+              {/* "Adjust on Map" — lets customer drag a pin to their exact gate/house.
+                  The confirmed marker lat/lng overwrites gpsRawRef so saveGpsAddress
+                  saves the pinpoint coordinates, NOT the raw GPS coordinates. */}
+              {gpsRaw && (
+                <button
+                  onClick={() => setShowMapPicker(true)}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border transition-all hover:opacity-90"
+                  style={{ borderColor: "rgba(249,115,22,0.4)", color: "#f97316", background: "rgba(249,115,22,0.08)" }}
+                >
+                  📍 Adjust on Map (for exact house/gate location)
+                </button>
+              )}
+
               <div className="flex gap-3">
                 <button onClick={() => { setGpsStep("idle"); setGpsAddr(null); setGpsRaw(null); }}
                   className="px-4 py-3 rounded-xl text-sm text-gray-400 hover:text-white border border-white/10 transition-all">
@@ -1140,6 +1164,44 @@ export default function CheckoutAddressPage() {
                 </button>
               </div>
             </div>
+          )}
+
+          {/* ── Map Location Picker Modal ───────────────────────────────────
+               Opened when customer taps "Adjust on Map".
+               onConfirm receives the final MARKER lat/lng (not geocoded coords).
+               We write them into gpsRawRef immediately so saveGpsAddress picks
+               them up as the single source of truth for the address record. */}
+          {showMapPicker && gpsRaw && (
+            <MapLocationPicker
+              initialLat={gpsRaw.lat}
+              initialLng={gpsRaw.lng}
+              onClose={() => setShowMapPicker(false)}
+              onConfirm={(lat, lng, addr) => {
+                // The map marker coordinates are the new single source of truth.
+                // Update ref synchronously BEFORE any setState so saveGpsAddress
+                // always reads these exact values.
+                gpsRawRef.current = { lat, lng };
+                setGpsRaw({ lat, lng });
+
+                // Update the address preview with the geocoded text from the marker position.
+                // NOTE: only the text is taken from addr — lat/lng come from marker above.
+                setGpsAddr({
+                  label:         "Current Location",
+                  address_line1: addr.address_line1,
+                  address_line2: addr.address_line2,
+                  city:          addr.city,
+                  state:         addr.state,
+                  pincode:       addr.pincode,
+                });
+
+                if (process.env.NODE_ENV !== "production") {
+                  console.log(`[MapPicker→Page] Marker confirmed: lat=${lat} lng=${lng}`);
+                  console.log(`[MapPicker→Page] gpsRawRef set to: lat=${gpsRawRef.current.lat} lng=${gpsRawRef.current.lng}`);
+                }
+
+                setShowMapPicker(false);
+              }}
+            />
           )}
         </div>
       )}
