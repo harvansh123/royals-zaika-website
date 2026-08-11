@@ -111,6 +111,7 @@ export async function POST(req: NextRequest) {
         || process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`
         || "http://localhost:3000";
 
+      // Notify rider
       await fetch(`${baseUrl}/api/push/send-to-rider`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
@@ -120,8 +121,26 @@ export async function POST(req: NextRequest) {
           orderId,
         }),
       });
+
+      // Notify customer — rider is on the way (non-fatal)
+      const { data: riderRow } = await supabaseAdmin
+        .from("delivery_partners")
+        .select("name")
+        .eq("id", riderId)
+        .maybeSingle();
+
+      await fetch(`${baseUrl}/api/push/send-to-customer`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          orderId,
+          status:      "picked_up",
+          orderNumber: orderRow?.order_number,
+          riderName:   riderRow?.name ?? undefined,
+        }),
+      });
     } catch (pushErr: any) {
-      console.error("[assign] Push to rider failed (non-fatal):", pushErr.message);
+      console.error("[assign] Push notification failed (non-fatal):", pushErr.message);
     }
 
     // Audit log on previous rider if reassigned

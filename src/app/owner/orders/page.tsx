@@ -186,6 +186,9 @@ export default function OwnerOrdersPage() {
 
   // CHANGE 2: When accepting a pending order, auto-jump to "preparing" (Cooking)
   async function updateStatus(orderId: string, status: string) {
+    // Find the order so we have its order_number for the notification
+    const order = orders.find((o) => o.id === orderId);
+
     // If accepting (going from pending to preparing), briefly record "confirmed" then move to preparing
     if (status === "preparing") {
       // One-shot: set directly to "preparing" so customer sees "Cooking" immediately
@@ -193,6 +196,12 @@ export default function OwnerOrdersPage() {
       if (error) { toast.error("Failed to update"); return; }
       setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: "preparing" } : o));
       toast.success("✅ Order confirmed & cooking started!");
+      // Notify customer (non-fatal)
+      fetch("/api/push/send-to-customer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, status: "preparing", orderNumber: order?.order_number }),
+      }).catch(() => {});
       return;
     }
 
@@ -205,6 +214,12 @@ export default function OwnerOrdersPage() {
       cancelled: "Order cancelled",
     };
     toast.success(labels[status] ?? "Status updated!");
+    // Notify customer (non-fatal fire-and-forget)
+    fetch("/api/push/send-to-customer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId, status, orderNumber: order?.order_number }),
+    }).catch(() => {});
   }
 
   async function handleCancelOrder() {
@@ -224,6 +239,17 @@ export default function OwnerOrdersPage() {
         prev.map((o) => o.id === cancelModal.order.id ? { ...o, status: "cancelled" } : o)
       );
       toast.success(`Order #${cancelModal.order.order_number} cancelled`);
+      // Notify customer with cancellation reason (non-fatal)
+      fetch("/api/push/send-to-customer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId:     cancelModal.order.id,
+          status:      "cancelled",
+          orderNumber: cancelModal.order.order_number,
+          reason,
+        }),
+      }).catch(() => {});
       setCancelModal(null);
       setCancelReason("");
     } catch (err: any) {
