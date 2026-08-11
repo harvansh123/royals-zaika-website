@@ -80,6 +80,12 @@ export default function CheckoutPage() {
     if (!user)         { router.push("/auth/login");       return; }
     if (!items.length && !orderPlacedRef.current) { router.push("/cart"); return; }
 
+    // If order was already placed, skip all address/session checks.
+    // clearCart() causes items.length → 0 which re-triggers this effect,
+    // but by then sessionStorage is already cleared — causing a false
+    // "Please select address first" toast. Bail out early to prevent it.
+    if (orderPlacedRef.current) return;
+
     // Read address selected at /checkout/address
     const stored = sessionStorage.getItem(ADDRESS_SESSION_KEY);
     if (!stored) {
