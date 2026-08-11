@@ -38,18 +38,18 @@ async function registerServiceWorkerAndSubscribe(userId: string): Promise<void> 
     const perm = await Notification.requestPermission();
     if (perm !== "granted") return;
 
-    // Check existing subscription
+    // Get existing subscription OR create a new one
     let sub = await reg.pushManager.getSubscription();
-
-    // Subscribe if not already subscribed
     if (!sub) {
       sub = await reg.pushManager.subscribe({
         userVisibleOnly:      true,
-        applicationServerKey: VAPID_PUBLIC_KEY, // browsers accept base64url string directly
+        applicationServerKey: VAPID_PUBLIC_KEY,
       });
     }
 
-    // Save subscription to server
+    // ALWAYS save subscription to server (upsert) — even if sub already existed.
+    // This re-registers the subscription if the DB row was accidentally deleted,
+    // ensuring every browser/device receives push notifications.
     await fetch("/api/push/subscribe", {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
