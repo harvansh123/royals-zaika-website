@@ -68,11 +68,11 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
 
       {/* ── Desktop Sidebar ───────────────────────────────────────────── */}
       <aside
-        className="hidden md:flex flex-col fixed top-14 left-0 bottom-0 w-56 pt-6 px-3"
+        className="hidden md:flex flex-col fixed top-14 left-0 bottom-0 w-56 pt-6 px-3 overflow-y-auto"
         style={{ background: "var(--bg-secondary)", borderRight: "1px solid var(--border)" }}
       >
-        <p className="text-xs uppercase tracking-widest px-3 mb-3" style={{ color: "var(--text-muted)" }}>Navigation</p>
-        <nav className="flex flex-col gap-1">
+        <p className="text-xs uppercase tracking-widest px-3 mb-3 flex-shrink-0" style={{ color: "var(--text-muted)" }}>Navigation</p>
+        <nav className="flex flex-col gap-1 flex-shrink-0">
           {tabs.map(({ href, icon: Icon, label }) => {
             const active = pathname === href;
             return (
@@ -92,7 +92,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
         </nav>
 
         {/* Public Site Links */}
-        <div className="mt-auto pt-4 pb-2" style={{ borderTop: "1px solid var(--border)" }}>
+        <div className="mt-auto pt-4 pb-2 flex-shrink-0" style={{ borderTop: "1px solid var(--border)" }}>
           <p className="text-xs uppercase tracking-widest px-3 mb-2" style={{ color: "var(--text-muted)" }}>Public Site</p>
           <a href="/?view=public" target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all hover:bg-white/5"
