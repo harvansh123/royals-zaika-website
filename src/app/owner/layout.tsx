@@ -2,24 +2,25 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { LayoutDashboard, ShoppingBag, UtensilsCrossed, LogOut, UserCircle, HelpCircle, MapPin, Users, Tag, Bell, BellOff, Star, Clock, DollarSign, Home, Info, ExternalLink } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, UtensilsCrossed, LogOut, UserCircle, HelpCircle, MapPin, Users, Tag, Bell, BellOff, Star, Clock, DollarSign, Home, Info, ExternalLink, Gift } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { performSignOut } from "@/lib/sign-out";
 
 const tabs = [
-  { href: "/owner",          icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/owner/orders",   icon: ShoppingBag,     label: "Orders"    },
-  { href: "/owner/menu",     icon: UtensilsCrossed, label: "Menu"      },
-  { href: "/owner/offers",   icon: Tag,             label: "Offers"    },
-  { href: "/owner/riders",   icon: Users,           label: "Riders"    },
-  { href: "/owner/earnings", icon: DollarSign,      label: "Earnings"  },
-  { href: "/owner/reviews",  icon: Star,            label: "Reviews"   },
-  { href: "/owner/support",  icon: HelpCircle,      label: "Support"   },
-  { href: "/owner/timing",   icon: Clock,           label: "Timing"    },
-  { href: "/owner/delivery-settings", icon: MapPin, label: "Delivery"  },
-  { href: "/owner/profile",  icon: UserCircle,      label: "Profile"   },
+  { href: "/owner",               icon: LayoutDashboard, label: "Dashboard"  },
+  { href: "/owner/orders",        icon: ShoppingBag,     label: "Orders"     },
+  { href: "/owner/menu",          icon: UtensilsCrossed, label: "Menu"       },
+  { href: "/owner/offers",        icon: Tag,             label: "Offers"     },
+  { href: "/owner/riders",        icon: Users,           label: "Riders"     },
+  { href: "/owner/earnings",      icon: DollarSign,      label: "Earnings"   },
+  { href: "/owner/referrals",     icon: Gift,            label: "Referrals"  },
+  { href: "/owner/reviews",       icon: Star,            label: "Reviews"    },
+  { href: "/owner/support",       icon: HelpCircle,      label: "Support"    },
+  { href: "/owner/timing",        icon: Clock,           label: "Timing"     },
+  { href: "/owner/delivery-settings", icon: MapPin,      label: "Delivery"   },
+  { href: "/owner/profile",       icon: UserCircle,      label: "Profile"    },
 ];
 
 export default function OwnerLayout({ children }: { children: React.ReactNode }) {

@@ -54,6 +54,8 @@ export default function CheckoutPage() {
   const [activeOffer,     setActiveOffer]     = useState<ActiveOffer | null>(null);
   const [showCodPopup,    setShowCodPopup]    = useState(false);
   const [checkoutStep,    setCheckoutStep]    = useState<"bill" | "payment">("bill");
+  // Referral reward
+  const [referralReward,  setReferralReward]  = useState<{ id: string; reward_amount: number } | null>(null);
 
   // ── Restaurant timing-aware open/closed status ────────────────────────────
   const {
@@ -71,9 +73,15 @@ export default function CheckoutPage() {
 
   // Offer discount calculated fresh from current offer state
   const offerDiscount = useMemo(() => activeOffer ? calcDiscount(activeOffer, sub) : 0, [activeOffer, sub]);
+  // Referral reward amount (0 if none available)
+  const referralDiscount = referralReward ? Number(referralReward.reward_amount) : 0;
+  // Apply whichever discount is bigger (no stacking)
+  const bestDiscount = Math.max(offerDiscount, referralDiscount);
+  const activeDiscountSource: "offer" | "referral" | "none" =
+    bestDiscount === 0 ? "none" : offerDiscount >= referralDiscount ? "offer" : "referral";
   // Use actual customer fee from pricing (handles free delivery), else fallback to cartStore fee
   const actualFee = pricing?.customerFee ?? fee;
-  const grand = Math.max(0, sub + actualFee - offerDiscount);
+  const grand = Math.max(0, sub + actualFee - bestDiscount);
 
   useEffect(() => {
     if (authLoading) return;
@@ -117,6 +125,12 @@ export default function CheckoutPage() {
       fetch("/api/offers")
         .then(r => r.json())
         .then(d => setActiveOffer(d.offer ?? null))
+        .catch(() => {});
+
+      // Fetch best available referral reward
+      fetch("/api/referral/my-referrals")
+        .then(r => r.json())
+        .then(d => { if (d.bestReward) setReferralReward(d.bestReward); })
         .catch(() => {});
 
       // COD popup will be shown when user navigates to payment step
@@ -172,8 +186,8 @@ export default function CheckoutPage() {
 
       const method = payMethod === "upi" || payMethod === "card" ? "razorpay" : "cash_on_delivery";
 
-      // Calculate final amounts with offer discount applied
-      const discountAmt = offerDiscount;
+      // Calculate final amounts — use bigger of offer or referral discount
+      const discountAmt = bestDiscount;
       // Use actual customer delivery fee from pricing (handles free delivery)
       const actualPricingForOrder = getDeliveryPricing(deliveryAddress?.delivery_distance_km ?? null, sub);
       const actualCustomerFee = actualPricingForOrder?.customerFee ?? fee;
@@ -235,7 +249,7 @@ export default function CheckoutPage() {
         }))
       );
 
-      // COD flow — use finalTotal (after offer discount)
+      // COD flow — use finalTotal (after best discount applied)
       if (method === "cash_on_delivery") {
         await supabase.from("payments").insert({ order_id: order.id, amount: finalTotal, method: "cash_on_delivery", status: "pending" });
         await fetch("/api/generate-otp", {
@@ -250,10 +264,18 @@ export default function CheckoutPage() {
           body:    JSON.stringify({ orderNumber: order.order_number, orderId: order.id }),
         }).catch(() => {});
 
+        // Mark referral reward as used if it was applied
+        if (activeDiscountSource === "referral" && referralReward) {
+          fetch("/api/referral/use-reward", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ rewardId: referralReward.id, orderId: order.id }),
+          }).catch(() => {});
+        }
+
         orderPlacedRef.current = true;
         clearCart();
-        sessionStorage.removeItem(ADDRESS_SESSION_KEY); // clear after order placed
-        sessionStorage.setItem("cj_last_order_id", order.id); // for OTP display on empty cart
+        sessionStorage.removeItem(ADDRESS_SESSION_KEY);
+        sessionStorage.setItem("cj_last_order_id", order.id);
         router.push(`/order-confirmed/${order.id}`);
         return;
       }
@@ -322,10 +344,17 @@ export default function CheckoutPage() {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ orderId: order.id }),
           });
+          // Mark referral reward as used if it was applied
+          if (activeDiscountSource === "referral" && referralReward) {
+            fetch("/api/referral/use-reward", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ rewardId: referralReward.id, orderId: order.id }),
+            }).catch(() => {});
+          }
           orderPlacedRef.current = true;
           clearCart();
-          sessionStorage.removeItem(ADDRESS_SESSION_KEY); // clear after order placed
-          sessionStorage.setItem("cj_last_order_id", order.id); // for OTP display on empty cart
+          sessionStorage.removeItem(ADDRESS_SESSION_KEY);
+          sessionStorage.setItem("cj_last_order_id", order.id);
           router.push(`/order-confirmed/${order.id}`);
         },
         modal: { ondismiss: () => { toast.error("Payment cancelled"); setPlacing(false); } },
@@ -530,8 +559,8 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {/* Offer Discount — only shown when an offer is applied */}
-              {offerDiscount > 0 && (
+              {/* Discount Row — shows whichever source is bigger */}
+              {activeDiscountSource === "offer" && offerDiscount > 0 && (
                 <div className="flex justify-between items-center py-2 px-3 rounded-xl"
                   style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)" }}>
                   <span className="flex items-center gap-1.5 text-green-400 font-semibold text-xs">
@@ -539,6 +568,26 @@ export default function CheckoutPage() {
                   </span>
                   <span className="text-green-400 font-bold">−{formatPrice(offerDiscount)}</span>
                 </div>
+              )}
+              {activeDiscountSource === "referral" && referralDiscount > 0 && (
+                <div className="flex justify-between items-center py-2 px-3 rounded-xl"
+                  style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.3)" }}>
+                  <span className="flex items-center gap-1.5 text-orange-400 font-semibold text-xs">
+                    🎁 Referral Reward Applied
+                  </span>
+                  <span className="text-orange-400 font-bold">−{formatPrice(referralDiscount)}</span>
+                </div>
+              )}
+              {/* Show both available but only bigger applied */}
+              {offerDiscount > 0 && referralDiscount > 0 && offerDiscount > referralDiscount && (
+                <p className="text-xs text-gray-500 px-1">
+                  🎁 Referral reward (₹{referralDiscount}) available — offer discount is bigger and applied instead
+                </p>
+              )}
+              {offerDiscount > 0 && referralDiscount > 0 && referralDiscount > offerDiscount && (
+                <p className="text-xs text-gray-500 px-1">
+                  🏷️ Offer discount (₹{offerDiscount}) available — referral reward is bigger and applied instead
+                </p>
               )}
             </div>
 

@@ -13,6 +13,7 @@ import Image from "next/image";
 import toast from "react-hot-toast";
 import { useRestaurantStatus, formatTime } from "@/hooks/useRestaurantStatus";
 import ClosedPopup from "@/components/restaurant/ClosedPopup";
+import ReferralBanner from "@/components/referral/ReferralBanner";
 
 type ActiveOffer = {
   id: string; title: string; description: string | null;
@@ -359,6 +360,11 @@ function MenuContent() {
           </div>
         </div>
       )}
+
+      {/* ── Referral Promo Banner ─────────────────────────────── */}
+      <div className="mb-5">
+        <ReferralBanner />
+      </div>
 
       {/* Search bar */}
       <div className="relative mb-5">

@@ -220,6 +220,15 @@ export default function OwnerOrdersPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ orderId, status, orderNumber: order?.order_number }),
     }).catch(() => {});
+
+    // Trigger referral completion check when order is delivered (non-blocking)
+    if (status === "delivered") {
+      fetch("/api/referral/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      }).catch(() => {});
+    }
   }
 
   async function handleCancelOrder() {

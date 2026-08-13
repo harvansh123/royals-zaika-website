@@ -8,15 +8,12 @@ const adminClient = createClient(
 
 /**
  * POST /api/auth/store-phone
- * Body: { userId: string, phone: string }
- *
- * Called immediately after supabase.auth.signUp() succeeds.
- * Stores the validated phone number in the users table using service-role
- * to bypass RLS. Also enforces uniqueness — rejects duplicate phone numbers.
+ * Body: { userId: string, phone: string, referralCode?: string }
+ * Stores phone, enforces uniqueness, and optionally links referral.
  */
 export async function POST(req: NextRequest) {
   try {
-    const { userId, phone } = await req.json();
+    const { userId, phone, referralCode } = await req.json();
 
     if (!userId || !phone) {
       return NextResponse.json({ error: "userId and phone required" }, { status: 400 });
@@ -24,7 +21,7 @@ export async function POST(req: NextRequest) {
 
     // Normalise phone
     let digits = phone.replace(/[\s\-().]/g, "");
-    if (digits.startsWith("+91"))    digits = digits.slice(3);
+    if (digits.startsWith("+91"))      digits = digits.slice(3);
     else if (digits.startsWith("0091")) digits = digits.slice(4);
     else if (digits.startsWith("0"))    digits = digits.slice(1);
 
@@ -32,7 +29,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid Indian mobile number" }, { status: 400 });
     }
 
-    // Uniqueness check — reject if another user already has this phone
+    // Uniqueness check
     const { data: existing } = await adminClient
       .from("users")
       .select("id")
@@ -47,7 +44,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Upsert phone — the row may or may not exist yet depending on trigger timing
+    // Save phone
     const { error } = await adminClient
       .from("users")
       .update({ phone: digits })
@@ -56,6 +53,46 @@ export async function POST(req: NextRequest) {
     if (error) {
       console.error("[/api/auth/store-phone] Error:", error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // ── Referral linking (non-blocking — silently skip on any issue) ──────────
+    if (referralCode && typeof referralCode === "string" && referralCode.trim()) {
+      try {
+        const code = referralCode.trim().toUpperCase();
+
+        // Find referrer by code
+        const { data: referrer } = await adminClient
+          .from("users")
+          .select("id")
+          .eq("referral_code", code)
+          .maybeSingle();
+
+        if (referrer && referrer.id !== userId) {
+          const { data: settings } = await adminClient
+            .from("referral_settings")
+            .select("is_enabled, max_referrals")
+            .eq("id", 1)
+            .single();
+
+          if (settings?.is_enabled) {
+            const { count: completedCount } = await adminClient
+              .from("referrals")
+              .select("*", { count: "exact", head: true })
+              .eq("referrer_id", referrer.id)
+              .eq("status", "completed");
+
+            if ((completedCount ?? 0) < (settings.max_referrals ?? 10)) {
+              await adminClient.from("referrals").insert({
+                referrer_id:   referrer.id,
+                referred_id:   userId,
+                referral_code: code,
+                status:        "pending",
+              });
+              // UNIQUE(referred_id) in DB prevents duplicates
+            }
+          }
+        }
+      } catch { /* referral is bonus — never block account creation */ }
     }
 
     return NextResponse.json({ success: true });

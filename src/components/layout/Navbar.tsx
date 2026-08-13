@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { ShoppingCart, LogOut, Menu, X, User } from "lucide-react";
+import { ShoppingCart, LogOut, Menu, X, User, Gift } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useCartStore } from "@/stores/cartStore";
 import { performSignOut } from "@/lib/sign-out";
@@ -102,6 +102,16 @@ export function Navbar() {
                   Profile
                 </Link>
 
+                {/* Refer & Earn */}
+                <Link href="/refer"
+                  className={cn("flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                    pathname === "/refer"
+                      ? "text-orange-500 bg-orange-500/8"
+                      : "text-gray-400 hover:text-white hover:bg-white/5")}>
+                  <Gift size={15} className="text-orange-400" />
+                  Refer
+                </Link>
+
                 <button onClick={handleSignOut}
                   className="flex items-center gap-1.5 ml-2 px-4 py-2 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/8 transition-colors">
                   <LogOut size={15} />
@@ -161,6 +171,11 @@ export function Navbar() {
                 <Link href="/profile?tab=orders" onClick={() => setMenuOpen(false)}
                   className="px-4 py-3 rounded-xl text-sm font-medium text-gray-400 hover:bg-white/5">
                   📦 My Orders
+                </Link>
+                <Link href="/refer" onClick={() => setMenuOpen(false)}
+                  className={cn("px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2",
+                    pathname === "/refer" ? "text-orange-500 bg-orange-500/8" : "text-gray-400 hover:bg-white/5")}>
+                  <Gift size={15} className="text-orange-400" /> Refer &amp; Earn
                 </Link>
                 <button onClick={handleSignOut}
                   className="mx-0 flex items-center gap-2 px-4 py-3 rounded-xl text-sm text-red-400 hover:bg-red-500/8 transition-colors">

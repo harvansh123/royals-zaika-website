@@ -19,18 +19,19 @@ function buildFallbackUser(session: Session): User {
   const au = session.user;
   const metaRole = roleFromMetadata(au.user_metadata ?? {});
   return {
-    id:         au.id,
-    email:      au.email ?? "",
-    name:       au.user_metadata?.full_name
-                ?? au.user_metadata?.name
-                ?? au.email?.split("@")[0]
-                ?? "User",
-    phone:      au.phone ?? null,
-    avatar_url: au.user_metadata?.avatar_url ?? null,
-    role:       (metaRole ?? "customer") as User["role"],
-    is_active:  true,
-    created_at: au.created_at ?? new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    id:            au.id,
+    email:         au.email ?? "",
+    name:          au.user_metadata?.full_name
+                   ?? au.user_metadata?.name
+                   ?? au.email?.split("@")[0]
+                   ?? "User",
+    phone:         au.phone ?? null,
+    avatar_url:    au.user_metadata?.avatar_url ?? null,
+    role:          (metaRole ?? "customer") as User["role"],
+    is_active:     true,
+    referral_code: null,
+    created_at:    au.created_at ?? new Date().toISOString(),
+    updated_at:    new Date().toISOString(),
   };
 }
 

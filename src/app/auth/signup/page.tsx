@@ -1,28 +1,37 @@
-﻿"use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+"use client";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
-import { Mail, Phone, Eye, EyeOff, ArrowRight, User } from "lucide-react";
+import { Mail, Phone, Eye, EyeOff, ArrowRight, User, Gift } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { validateIndianPhone, normalizePhone } from "@/lib/utils";
 
-export default function SignUpPage() {
-  const router  = useRouter();
+function SignUpContent() {
+  const router        = useRouter();
+  const searchParams  = useSearchParams();
   const [form, setForm] = useState({
-    name: "", email: "", phone: "", password: "", confirmPassword: "",
+    name: "", email: "", phone: "", password: "", confirmPassword: "", referralCode: "",
   });
-  const [showPass, setShowPass]       = useState(false);
-  const [showConfPass, setShowConfPass] = useState(false);
-  const [loading, setLoading]         = useState(false);
+  const [showPass, setShowPass]           = useState(false);
+  const [showConfPass, setShowConfPass]   = useState(false);
+  const [showReferral, setShowReferral]   = useState(false);
+  const [loading, setLoading]             = useState(false);
+
+  // Pre-fill referral code from ?ref= URL param
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref) { setForm((p) => ({ ...p, referralCode: ref.toUpperCase() })); setShowReferral(true); }
+  }, [searchParams]);
 
   const update = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
   async function handleGoogleSignup() {
     setLoading(true);
+    const refParam = form.referralCode.trim() ? `&ref=${form.referralCode.trim().toUpperCase()}` : "";
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback?role=customer` },
+      options: { redirectTo: `${window.location.origin}/auth/callback?role=customer${refParam}` },
     });
     if (error) { toast.error(error.message); setLoading(false); }
   }
@@ -57,7 +66,11 @@ export default function SignUpPage() {
         const res = await fetch("/api/auth/store-phone", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: data.user.id, phone: cleanPhone }),
+          body: JSON.stringify({
+            userId:       data.user.id,
+            phone:        cleanPhone,
+            referralCode: form.referralCode.trim().toUpperCase() || null,
+          }),
         });
         const json = await res.json();
         if (!res.ok) {
@@ -168,6 +181,23 @@ export default function SignUpPage() {
               )}
             </div>
 
+            {/* Optional Referral Code */}
+            <div>
+              <button type="button" onClick={() => setShowReferral(!showReferral)}
+                className="text-xs text-orange-400 hover:text-orange-300 flex items-center gap-1 mb-2">
+                <Gift size={12} /> {showReferral ? "Hide" : "Have a referral code? Click here"}
+              </button>
+              {showReferral && (
+                <div className="relative">
+                  <Gift size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-400" />
+                  <input type="text" value={form.referralCode}
+                    onChange={(e) => update("referralCode", e.target.value.toUpperCase())}
+                    placeholder="Referral Code (e.g. ZAIKAB3F2X)"
+                    maxLength={11} className="input-field pl-11 tracking-widest font-mono text-sm" />
+                </div>
+              )}
+            </div>
+
             <button type="submit" disabled={loading}
               className="btn-primary w-full flex items-center justify-center gap-2 py-3">
               {loading ? "Creating account..." : <><ArrowRight size={16} /> Create Account</>}
@@ -184,3 +214,14 @@ export default function SignUpPage() {
   );
 }
 
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <SignUpContent />
+    </Suspense>
+  );
+}

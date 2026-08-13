@@ -22,6 +22,7 @@ export interface Database {
           avatar_url: string | null;
           role: UserRole;
           is_active: boolean;
+          referral_code: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -311,3 +312,43 @@ export type DeliveryAddress = {
   latitude?: number;
   longitude?: number;
 };
+
+// ── Referral System Types ─────────────────────────────────────
+export type ReferralSettings = {
+  id: number;
+  is_enabled: boolean;
+  max_referrals: number;
+  reward_milestone_1: number; reward_amount_1: number;
+  reward_milestone_3: number; reward_amount_3: number;
+  reward_milestone_5: number; reward_amount_5: number;
+  reward_milestone_10: number; reward_amount_10: number;
+  min_order_amount: number;
+  reward_expiry_days: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Referral = {
+  id: string;
+  referrer_id: string;
+  referred_id: string;
+  referral_code: string;
+  status: "pending" | "completed" | "rejected" | "revoked";
+  first_order_id: string | null;
+  first_order_status: string | null;
+  completed_at: string | null;
+  created_at: string;
+};
+
+export type ReferralReward = {
+  id: string;
+  referrer_id: string;
+  referral_id: string;
+  milestone: number;
+  reward_amount: number;
+  status: "unused" | "used" | "expired" | "revoked";
+  order_id: string | null;
+  expires_at: string | null;
+  created_at: string;
+};
+
