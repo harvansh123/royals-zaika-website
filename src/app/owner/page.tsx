@@ -48,7 +48,7 @@ export default function OwnerDashboard() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders" }, async (payload) => {
         const newOrder = payload.new as RecentOrder;
         // FIX 1: Use service-role API → order_items always visible regardless of RLS
-        const res = await fetch(`/api/owner/orders?limit=10`);
+        const res = await fetch(`/api/owner/orders?limit=10&date=today`);
         const json = await res.json();
         if (json.orders) setOrders(json.orders.slice(0, 10));
         setStats((prev) => ({ ...prev, todayOrders: prev.todayOrders + 1, pendingOrders: prev.pendingOrders + 1, todayRevenue: prev.todayRevenue + newOrder.total_amount }));
@@ -68,7 +68,7 @@ export default function OwnerDashboard() {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" }, async (payload) => {
         // FIX 1: Use service-role API so order_items stay intact after status update
         const updatedId = (payload.new as RecentOrder).id;
-        const res = await fetch(`/api/owner/orders?limit=10`);
+        const res = await fetch(`/api/owner/orders?limit=10&date=today`);
         const json = await res.json();
         if (json.orders) {
           const refreshed = json.orders.find((o: RecentOrder) => o.id === updatedId);
@@ -114,7 +114,8 @@ export default function OwnerDashboard() {
     const [{ data: todayOrders }, ordersRes, { data: outOfStock }] = await Promise.all([
       supabase.from("orders").select("total_amount, status").gte("created_at", today.toISOString()),
       // FIX 1: Use server-side API so service role bypasses RLS → order_items always visible
-      fetch("/api/owner/orders?limit=10").then(r => r.json()),
+      // Only fetch today's orders for the dashboard recent list
+      fetch("/api/owner/orders?limit=10&date=today").then(r => r.json()),
       supabase.from("menu_items").select("id", { count: "exact", head: true }).eq("is_available", false),
     ]);
 
@@ -241,19 +242,19 @@ export default function OwnerDashboard() {
         ))}
       </div>
 
-      {/* Recent Orders */}
+      {/* Aaj ke Orders */}
       <div className="rounded-2xl overflow-hidden" style={{ background: "var(--card-bg)", border: "1px solid var(--border)" }}>
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
-          <h2 className="font-bold" style={{ color: "var(--text-primary)" }}>Recent Orders</h2>
+          <h2 className="font-bold" style={{ color: "var(--text-primary)" }}>📅 Aaj ke Orders</h2>
           <Link href="/owner/orders" className="flex items-center gap-1 text-sm text-orange-500 hover:underline">
-            View all <ArrowRight size={14} />
+            Saare dekho <ArrowRight size={14} />
           </Link>
         </div>
 
         {orders.length === 0 ? (
           <div className="text-center py-12">
             <ShoppingBag size={40} className="mx-auto mb-3 opacity-20" style={{ color: "var(--text-muted)" }} />
-            <p style={{ color: "var(--text-secondary)" }}>No orders yet</p>
+            <p style={{ color: "var(--text-secondary)" }}>Aaj abhi tak koi order nahi aaya</p>
           </div>
         ) : (
           <div className="divide-y" style={{ borderColor: "var(--border)" }}>

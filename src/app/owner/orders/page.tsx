@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { formatPrice } from "@/lib/utils";
 import {
@@ -88,6 +88,11 @@ export default function OwnerOrdersPage() {
   const [loading, setLoading]       = useState(true);
   const [expanded, setExpanded]     = useState<string | null>(null);
 
+  // Date filter — default: today
+  const todayStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const [dateMode, setDateMode]   = useState<"today" | "date" | "all">("today");
+  const [pickedDate, setPickedDate] = useState(todayStr);
+
   // Assign rider modal
   const [assignModal, setAssignModal]     = useState<{ order: Order } | null>(null);
   const [riders, setRiders]               = useState<Rider[]>([]);
@@ -115,7 +120,7 @@ export default function OwnerOrdersPage() {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" }, async (p) => {
         // FIX 1: Use service-role API so order_items are always included after update
         const updatedId = (p.new as Order).id;
-        const res = await fetch(`/api/owner/orders?limit=100`);
+        const res = await fetch(`/api/owner/orders?limit=200&date=${dateMode === "today" ? "today" : dateMode === "all" ? "all" : pickedDate}`);
         const json = await res.json();
         if (json.orders) {
           const refreshed = json.orders.find((o: Order) => o.id === updatedId);
@@ -175,14 +180,17 @@ export default function OwnerOrdersPage() {
     };
   }, []);
 
-  async function loadOrders() {
+  const loadOrders = useCallback(async (overrideDate?: string) => {
     setLoading(true);
-    // FIX 1: Use service-role API so order_items are always visible (bypasses RLS)
-    const res  = await fetch(`/api/owner/orders?limit=100`);
+    const dateParam = overrideDate ?? (dateMode === "today" ? "today" : dateMode === "all" ? "all" : pickedDate);
+    const res  = await fetch(`/api/owner/orders?limit=200&date=${dateParam}`);
     const json = await res.json();
     setOrders(json.orders ?? []);
     setLoading(false);
-  }
+  }, [dateMode, pickedDate]);
+
+  // Reload whenever dateMode or pickedDate changes
+  useEffect(() => { loadOrders(); }, [loadOrders]);
 
   // CHANGE 2: When accepting a pending order, auto-jump to "preparing" (Cooking)
   async function updateStatus(orderId: string, status: string) {
@@ -462,7 +470,37 @@ export default function OwnerOrdersPage() {
         )}
       </div>
 
-      {/* Filter Tabs */}
+      {/* Date Filter Bar */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <button
+          onClick={() => setDateMode("today")}
+          className="px-4 py-2 rounded-xl text-sm font-medium transition-all"
+          style={dateMode === "today"
+            ? { background: "linear-gradient(135deg,#f97316,#dc2626)", color: "#fff" }
+            : { background: "var(--bg-glass)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
+          📅 Aaj ke Orders
+        </button>
+        <button
+          onClick={() => setDateMode("all")}
+          className="px-4 py-2 rounded-xl text-sm font-medium transition-all"
+          style={dateMode === "all"
+            ? { background: "linear-gradient(135deg,#f97316,#dc2626)", color: "#fff" }
+            : { background: "var(--bg-glass)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
+          🗂️ Saare Orders
+        </button>
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={pickedDate}
+            max={todayStr}
+            onChange={(e) => { setPickedDate(e.target.value); setDateMode("date"); }}
+            className="px-3 py-2 rounded-xl text-sm font-medium"
+            style={{ background: "var(--bg-glass)", color: "var(--text-secondary)", border: `1px solid ${dateMode === "date" ? "rgba(249,115,22,0.6)" : "var(--border)"}` }}
+          />
+        </div>
+      </div>
+
+      {/* Status Filter Tabs */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-6">
         {filters.map(({ id, label }) => (
           <button key={id} onClick={() => setFilter(id)}

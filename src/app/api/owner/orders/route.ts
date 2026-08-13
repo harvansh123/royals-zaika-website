@@ -10,8 +10,9 @@ const supabaseAdmin = createClient(
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const limit  = parseInt(searchParams.get("limit")  ?? "100");
+    const limit  = parseInt(searchParams.get("limit")  ?? "200");
     const status = searchParams.get("status"); // optional filter
+    const date   = searchParams.get("date");   // "today" | "all" | "YYYY-MM-DD"
 
     let query = supabaseAdmin
       .from("orders")
@@ -22,6 +23,25 @@ export async function GET(req: NextRequest) {
     if (status && status !== "all") {
       query = query.eq("status", status);
     }
+
+    // Date filter
+    if (!date || date === "today") {
+      // Default: only today's orders (midnight IST → UTC)
+      const now = new Date();
+      // IST = UTC+5:30 → midnight IST = 18:30 UTC previous day
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const todayIST  = new Date(Math.floor((now.getTime() + istOffset) / 86400000) * 86400000 - istOffset);
+      query = query.gte("created_at", todayIST.toISOString());
+    } else if (date && date !== "all") {
+      // Specific date "YYYY-MM-DD" in IST
+      const [y, m, d] = date.split("-").map(Number);
+      // Midnight IST for that date
+      const istOffset  = 5.5 * 60 * 60 * 1000;
+      const startIST   = new Date(Date.UTC(y, m - 1, d) - istOffset);
+      const endIST     = new Date(startIST.getTime() + 86400000);
+      query = query.gte("created_at", startIST.toISOString()).lt("created_at", endIST.toISOString());
+    }
+    // date === "all" → no date filter
 
     const { data, error } = await query;
 
