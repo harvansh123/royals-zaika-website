@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { useRouter } from "next/navigation";
-import { Gift, Copy, Share2, CheckCircle, Clock, XCircle, ChevronRight, Trophy, AlertCircle } from "lucide-react";
+import { Copy, Share2, CheckCircle, Clock, XCircle, Gift } from "lucide-react";
 import toast from "react-hot-toast";
 import Link from "next/link";
 
@@ -27,9 +27,9 @@ const MILESTONES = [
 export default function ReferPage() {
   const { user, loading } = useAuthStore();
   const router = useRouter();
-  const [data, setData]     = useState<ReferralData | null>(null);
+  const [data, setData]       = useState<ReferralData | null>(null);
   const [fetching, setFetching] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied]   = useState(false);
 
   const loadData = useCallback(async () => {
     setFetching(true);
@@ -51,7 +51,7 @@ export default function ReferPage() {
     if (!data?.code) return;
     navigator.clipboard.writeText(data.code).then(() => {
       setCopied(true);
-      toast.success("Referral code copied!");
+      toast.success("Code copy ho gaya!");
       setTimeout(() => setCopied(false), 2000);
     });
   };
@@ -61,14 +61,14 @@ export default function ReferPage() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Royal Zaika — Join & Get Discount!",
-          text: `Use my referral code ${data.code} to sign up on Royal Zaika and get amazing food! 🍱`,
+          title: "Royal Zaika — Join karo aur discount pao!",
+          text: `Mera referral code use karo: ${data.code} — Royal Zaika par signup karo aur tasty khana order karo! 🍱`,
           url: data.shareLink,
         });
       } catch { /* user cancelled */ }
     } else {
       navigator.clipboard.writeText(data.shareLink);
-      toast.success("Share link copied!");
+      toast.success("Link copy ho gaya!");
     }
   };
 
@@ -81,97 +81,135 @@ export default function ReferPage() {
   if (!data?.enabled) return (
     <div className="max-w-lg mx-auto px-4 py-16 text-center">
       <div className="text-5xl mb-4">🚫</div>
-      <h1 className="text-xl font-bold text-white mb-2">Referral Program Inactive</h1>
-      <p className="text-gray-400 text-sm">The referral program is currently paused. Check back later!</p>
-      <Link href="/menu" className="mt-6 inline-block btn-primary px-6 py-2 rounded-xl text-sm">Back to Menu</Link>
+      <h1 className="text-xl font-bold text-white mb-2">Referral Program Band Hai</h1>
+      <p className="text-gray-400 text-sm">Abhi yeh feature available nahi hai. Baad mein dobara check karo!</p>
+      <Link href="/menu" className="mt-6 inline-block btn-primary px-6 py-2 rounded-xl text-sm">Menu Dekho</Link>
     </div>
   );
 
   const { code, shareLink: sLink, stats, referrals, rewards } = data!;
   const completedCount = stats.completedCount;
   const maxReached     = stats.maxReached;
-
   const unusedRewards  = rewards.filter((r: any) => r.status === "unused");
   const totalEarned    = rewards.filter((r: any) => r.status !== "revoked").reduce((s: number, r: any) => s + Number(r.reward_amount), 0);
-  const totalUsed      = rewards.filter((r: any) => r.status === "used").reduce((s: number, r: any) => s + Number(r.reward_amount), 0);
 
   return (
     <div className="max-w-xl mx-auto px-4 py-6 pb-24">
 
       {/* Header */}
-      <div className="text-center mb-8">
-        <div className="w-16 h-16 gradient-brand rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow-brand">
+      <div className="text-center mb-6">
+        <div className="w-16 h-16 gradient-brand rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3 shadow-brand">
           🎁
         </div>
-        <h1 className="text-2xl font-black text-white mb-1">Refer & Earn</h1>
-        <p className="text-gray-400 text-sm">Invite friends, earn rewards on every milestone!</p>
+        <h1 className="text-2xl font-black text-white mb-1">Dosto ko Invite Karo</h1>
+        <p className="text-gray-400 text-sm">Har dost ke pehle order par aapko discount milega!</p>
       </div>
 
-      {/* Milestone Banner */}
+      {/* How it works — simple 3 steps */}
       <div className="rounded-2xl p-4 mb-4" style={{ background: "var(--bg-glass)", border: "1px solid var(--border)" }}>
-        <p className="text-xs uppercase tracking-widest text-orange-400 font-semibold mb-3">🏆 Reward Milestones</p>
+        <p className="text-xs font-semibold text-orange-400 uppercase tracking-wider mb-3">Kaise Kaam Karta Hai?</p>
+        <div className="space-y-3">
+          {[
+            { icon: "1️⃣", text: "Apna referral code copy karo ya link share karo" },
+            { icon: "2️⃣", text: "Dost aapke code se signup kare" },
+            { icon: "3️⃣", text: "Dost ka pehla order deliver ho — aapko discount mil gaya! 🎉" },
+          ].map((s) => (
+            <div key={s.icon} className="flex items-start gap-3">
+              <span className="text-lg leading-none mt-0.5">{s.icon}</span>
+              <p className="text-sm text-gray-300">{s.text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Milestone Rewards */}
+      <div className="rounded-2xl p-4 mb-4" style={{ background: "var(--bg-glass)", border: "1px solid var(--border)" }}>
+        <p className="text-xs font-semibold text-orange-400 uppercase tracking-wider mb-3">Kitne Dost = Kitna Discount?</p>
         <div className="grid grid-cols-2 gap-2">
           {MILESTONES.map((m) => {
-            const reached = completedCount >= m.count;
-            const rewarded = rewards.some((r: any) => r.milestone === m.count && r.status !== "revoked");
+            const reached   = completedCount >= m.count;
+            const rewarded  = rewards.some((r: any) => r.milestone === m.count && r.status !== "revoked");
             return (
               <div key={m.count}
                 className="rounded-xl p-3 text-center"
                 style={{
-                  background: reached ? "linear-gradient(135deg,rgba(249,115,22,0.15),rgba(220,38,38,0.1))" : "var(--bg-secondary)",
+                  background: reached
+                    ? "linear-gradient(135deg,rgba(249,115,22,0.18),rgba(220,38,38,0.1))"
+                    : "var(--bg-secondary)",
                   border: reached ? "1px solid rgba(249,115,22,0.4)" : "1px solid var(--border)",
                 }}>
-                <p className="text-xs text-gray-400 mb-0.5">{m.count} referral{m.count > 1 ? "s" : ""}</p>
+                <p className="text-xs text-gray-400 mb-0.5">
+                  {m.count} dost {m.count > 1 ? "" : ""}
+                </p>
                 <p className="font-black text-lg" style={{ color: reached ? "#f97316" : "var(--text-secondary)" }}>
                   ₹{m.amount} OFF
                 </p>
-                {rewarded && <p className="text-xs text-green-400 mt-0.5">✓ Earned</p>}
-                {reached && !rewarded && <p className="text-xs text-orange-300 mt-0.5">Pending…</p>}
+                {rewarded
+                  ? <p className="text-[10px] text-green-400 mt-0.5">✓ Mil gaya!</p>
+                  : reached
+                  ? <p className="text-[10px] text-orange-300 mt-0.5">Processing…</p>
+                  : <p className="text-[10px] text-gray-500 mt-0.5">{m.count - completedCount} aur chahiye</p>
+                }
               </div>
             );
           })}
         </div>
+        <p className="text-xs text-gray-500 text-center mt-3">
+          ⚠️ Max 10 dosto ke baad referral reward milna band ho jayega
+        </p>
       </div>
 
       {/* Referral Code Card */}
       {maxReached ? (
-        <div className="rounded-2xl p-5 mb-4 text-center" style={{ background: "linear-gradient(135deg,rgba(220,38,38,0.1),rgba(249,115,22,0.08))", border: "1px solid rgba(220,38,38,0.3)" }}>
-          <Trophy size={28} className="text-orange-400 mx-auto mb-2" />
-          <p className="font-bold text-white text-sm">Referral Reward Limit Reached</p>
-          <p className="text-xs text-gray-400 mt-1">You've referred {stats.maxReferrals} friends — no more referral rewards. Thank you! 🎉</p>
+        <div className="rounded-2xl p-5 mb-4 text-center"
+          style={{ background: "linear-gradient(135deg,rgba(249,115,22,0.1),rgba(220,38,38,0.08))", border: "1px solid rgba(249,115,22,0.3)" }}>
+          <p className="text-2xl mb-2">🏆</p>
+          <p className="font-bold text-white text-sm">Badhaai ho! Aapne 10 dosto ko invite kar diya</p>
+          <p className="text-xs text-gray-400 mt-1">Referral reward limit complete — thank you! 🎉</p>
         </div>
       ) : (
         <div className="rounded-2xl p-5 mb-4" style={{ background: "var(--bg-glass)", border: "1px solid var(--border)" }}>
-          <p className="text-xs text-gray-400 mb-2">Your unique referral code</p>
+          <p className="text-xs text-gray-400 mb-2">Aapka referral code</p>
           <div className="flex items-center gap-3 mb-3">
-            <div className="flex-1 rounded-xl px-4 py-3 text-center font-black text-2xl tracking-widest text-orange-400"
-              style={{ background: "var(--bg-secondary)", border: "1px solid rgba(249,115,22,0.3)", letterSpacing: "0.15em" }}>
+            <div className="flex-1 rounded-xl px-4 py-3 text-center font-black text-2xl text-orange-400"
+              style={{
+                background: "var(--bg-secondary)",
+                border: "1px solid rgba(249,115,22,0.3)",
+                letterSpacing: "0.15em",
+              }}>
               {code}
             </div>
             <button onClick={copyCode}
               className="w-12 h-12 rounded-xl flex items-center justify-center transition-all"
-              style={{ background: copied ? "rgba(34,197,94,0.15)" : "rgba(249,115,22,0.15)", border: "1px solid", borderColor: copied ? "rgba(34,197,94,0.4)" : "rgba(249,115,22,0.3)" }}>
-              {copied ? <CheckCircle size={18} className="text-green-400" /> : <Copy size={18} className="text-orange-400" />}
+              style={{
+                background: copied ? "rgba(34,197,94,0.15)" : "rgba(249,115,22,0.15)",
+                border: "1px solid",
+                borderColor: copied ? "rgba(34,197,94,0.4)" : "rgba(249,115,22,0.3)",
+              }}>
+              {copied
+                ? <CheckCircle size={18} className="text-green-400" />
+                : <Copy size={18} className="text-orange-400" />}
             </button>
           </div>
           <button onClick={shareLink}
             className="w-full btn-primary py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold">
-            <Share2 size={16} /> Share Invite Link
+            <Share2 size={16} /> Dost ko Share Karo
           </button>
           <p className="text-xs text-gray-500 text-center mt-2">
-            Share link auto-fills code for new signups
+            Link share karne par code auto-fill ho jayega 👆
           </p>
         </div>
       )}
 
-      {/* Stats Row */}
+      {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-4">
         {[
-          { label: "Completed", value: stats.completedCount, color: "text-green-400" },
-          { label: "Pending",   value: stats.pendingCount,   color: "text-yellow-400" },
-          { label: "Rewards",   value: `₹${totalEarned}`,   color: "text-orange-400" },
+          { label: "Successful",  value: stats.completedCount, color: "text-green-400"  },
+          { label: "Pending",     value: stats.pendingCount,   color: "text-yellow-400" },
+          { label: "Total Earned",value: `₹${totalEarned}`,   color: "text-orange-400" },
         ].map((s) => (
-          <div key={s.label} className="rounded-xl p-3 text-center" style={{ background: "var(--bg-glass)", border: "1px solid var(--border)" }}>
+          <div key={s.label} className="rounded-xl p-3 text-center"
+            style={{ background: "var(--bg-glass)", border: "1px solid var(--border)" }}>
             <p className={`font-black text-xl ${s.color}`}>{s.value}</p>
             <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
           </div>
@@ -180,20 +218,29 @@ export default function ReferPage() {
 
       {/* Available Rewards */}
       {unusedRewards.length > 0 && (
-        <div className="rounded-2xl p-4 mb-4" style={{ background: "linear-gradient(135deg,rgba(249,115,22,0.12),rgba(220,38,38,0.08))", border: "1px solid rgba(249,115,22,0.35)" }}>
-          <p className="text-xs uppercase tracking-widest text-orange-400 font-semibold mb-3">🎉 Your Available Rewards</p>
+        <div className="rounded-2xl p-4 mb-4"
+          style={{ background: "linear-gradient(135deg,rgba(249,115,22,0.12),rgba(220,38,38,0.08))", border: "1px solid rgba(249,115,22,0.35)" }}>
+          <p className="text-xs font-semibold text-orange-400 uppercase tracking-wider mb-3">🎉 Aapke Available Rewards</p>
           <div className="space-y-2">
             {unusedRewards.map((r: any) => (
               <div key={r.id} className="flex items-center justify-between">
                 <div>
-                  <p className="font-bold text-white text-sm">₹{r.reward_amount} OFF your next order</p>
-                  {r.expires_at && <p className="text-xs text-gray-400">Expires {new Date(r.expires_at).toLocaleDateString("en-IN")}</p>}
+                  <p className="font-bold text-white text-sm">₹{r.reward_amount} OFF aapke agle order par</p>
+                  {r.expires_at && (
+                    <p className="text-xs text-gray-400">
+                      Expire: {new Date(r.expires_at).toLocaleDateString("en-IN")} tak
+                    </p>
+                  )}
                 </div>
-                <div className="text-xs bg-green-500/15 text-green-400 px-2 py-1 rounded-lg border border-green-500/25">Active</div>
+                <div className="text-xs bg-green-500/15 text-green-400 px-2 py-1 rounded-lg border border-green-500/25">
+                  Active
+                </div>
               </div>
             ))}
           </div>
-          <p className="text-xs text-gray-500 mt-3">✓ Auto-applied at checkout if bigger than any active offer</p>
+          <p className="text-xs text-gray-500 mt-3">
+            ✓ Checkout par automatically apply ho jayega (jo bada discount hoga wahi lagega)
+          </p>
         </div>
       )}
 
@@ -201,13 +248,18 @@ export default function ReferPage() {
       {referrals.length > 0 && (
         <div className="rounded-2xl overflow-hidden mb-4" style={{ border: "1px solid var(--border)" }}>
           <div className="px-4 py-3" style={{ background: "var(--bg-glass)", borderBottom: "1px solid var(--border)" }}>
-            <p className="text-xs uppercase tracking-widest text-gray-400 font-semibold">Referral History</p>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Aapke Referrals</p>
           </div>
           <div className="divide-y divide-white/5">
             {referrals.slice(0, 10).map((r: any) => (
-              <div key={r.id} className="px-4 py-3 flex items-center gap-3" style={{ background: "var(--bg-secondary)" }}>
+              <div key={r.id} className="px-4 py-3 flex items-center gap-3"
+                style={{ background: "var(--bg-secondary)" }}>
                 <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: r.status === "completed" ? "rgba(34,197,94,0.15)" : "rgba(249,115,22,0.1)" }}>
+                  style={{
+                    background: r.status === "completed"
+                      ? "rgba(34,197,94,0.15)"
+                      : "rgba(249,115,22,0.1)",
+                  }}>
                   {r.status === "completed"
                     ? <CheckCircle size={16} className="text-green-400" />
                     : r.status === "revoked"
@@ -215,37 +267,47 @@ export default function ReferPage() {
                     : <Clock size={16} className="text-yellow-400" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">{r.referred?.name ?? "—"}</p>
-                  <p className="text-xs text-gray-400">{new Date(r.created_at).toLocaleDateString("en-IN")}</p>
+                  <p className="text-sm font-medium text-white truncate">
+                    {r.referred?.name ?? "—"}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {new Date(r.created_at).toLocaleDateString("en-IN")}
+                  </p>
                 </div>
                 <span className={`text-xs px-2 py-0.5 rounded-full border capitalize ${
-                  r.status === "completed" ? "bg-green-500/10 text-green-400 border-green-500/20"
-                  : r.status === "revoked"  ? "bg-red-500/10 text-red-400 border-red-500/20"
-                  : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
-                }`}>{r.status}</span>
+                  r.status === "completed"
+                    ? "bg-green-500/10 text-green-400 border-green-500/20"
+                    : r.status === "revoked"
+                    ? "bg-red-500/10 text-red-400 border-red-500/20"
+                    : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                }`}>
+                  {r.status === "completed" ? "Complete ✓"
+                    : r.status === "revoked"  ? "Cancelled"
+                    : "Pending…"}
+                </span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* How it works */}
+      {/* Rules - Simple */}
       <div className="rounded-2xl p-4" style={{ background: "var(--bg-glass)", border: "1px solid var(--border)" }}>
-        <p className="text-xs uppercase tracking-widest text-gray-400 font-semibold mb-3">How It Works</p>
-        {[
-          { step: "1", text: "Share your unique referral code or link" },
-          { step: "2", text: "Friend signs up using your code" },
-          { step: "3", text: "Friend places and completes their first order" },
-          { step: "4", text: "You earn reward based on milestone reached!" },
-        ].map((s) => (
-          <div key={s.step} className="flex items-start gap-3 mb-2 last:mb-0">
-            <div className="w-6 h-6 rounded-full gradient-brand flex items-center justify-center text-xs font-bold text-white flex-shrink-0 mt-0.5">{s.step}</div>
-            <p className="text-sm text-gray-300">{s.text}</p>
-          </div>
-        ))}
-        <div className="mt-3 pt-3 border-t" style={{ borderColor: "var(--border)" }}>
-          <p className="text-xs text-gray-500">⚠️ Only first delivered order counts. Max {data?.settings?.max_referrals ?? 10} referrals per account. Rewards apply only on food orders (not delivery fee). Reward or offer — whichever is bigger applies.</p>
-        </div>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Zaroori Baatein</p>
+        <ul className="space-y-2">
+          {[
+            "Sirf naye account par hi referral count hoga",
+            "Dost ka pehla order successfully deliver hone par reward milega",
+            "Cancel ya fail order referral mein count nahi hoga",
+            "Referral reward ya offer — dono mein se jo bada hoga wahi lagega",
+            "Max 10 dosto tak reward milega — uske baad band ho jayega",
+          ].map((rule, i) => (
+            <li key={i} className="flex items-start gap-2 text-xs text-gray-400">
+              <span className="text-orange-500 mt-0.5 flex-shrink-0">•</span>
+              {rule}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

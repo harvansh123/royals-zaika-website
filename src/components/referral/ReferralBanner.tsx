@@ -2,10 +2,6 @@
 import Link from "next/link";
 import { Gift } from "lucide-react";
 
-/**
- * ReferralBanner — compact promo strip for menu/home pages.
- * Shows only when user is logged in.
- */
 export default function ReferralBanner() {
   return (
     <Link href="/refer"
@@ -19,12 +15,12 @@ export default function ReferralBanner() {
           <Gift size={18} className="text-white" />
         </div>
         <div>
-          <p className="text-sm font-bold text-white leading-tight">Refer friends, earn rewards! 🎁</p>
-          <p className="text-xs text-gray-400 mt-0.5">Up to ₹150 OFF for every 10 successful referrals</p>
+          <p className="text-sm font-bold text-white leading-tight">Dosto ko invite karo, discount pao! 🎁</p>
+          <p className="text-xs text-gray-400 mt-0.5">Har successful referral par ₹25 se ₹150 tak ka discount milega</p>
         </div>
       </div>
       <div className="text-xs font-semibold text-orange-400 flex items-center gap-1 shrink-0 group-hover:translate-x-0.5 transition-transform">
-        Refer Now →
+        Dekho →
       </div>
     </Link>
   );
