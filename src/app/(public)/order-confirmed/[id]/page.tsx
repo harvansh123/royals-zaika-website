@@ -6,6 +6,17 @@ import { CheckCircle, Clock, ShoppingBag, Home, Shield } from "lucide-react";
 import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
 
+// Maps DB status → { label, colour classes }
+const STATUS_MAP: Record<string, { label: string; dot: string; badge: string; text: string }> = {
+  pending:    { label: "Pending",          dot: "bg-yellow-400",  badge: "bg-yellow-500/15",   text: "text-yellow-400"  },
+  confirmed:  { label: "Accepted",         dot: "bg-green-400",   badge: "bg-green-500/15",    text: "text-green-400"   },
+  preparing:  { label: "Cooking 🍳",        dot: "bg-orange-400",  badge: "bg-orange-500/15",   text: "text-orange-400"  },
+  ready:      { label: "Ready for Pickup", dot: "bg-blue-400",    badge: "bg-blue-500/15",     text: "text-blue-400"    },
+  out_for_delivery: { label: "On the Way 🛵", dot: "bg-indigo-400", badge: "bg-indigo-500/15", text: "text-indigo-400" },
+  delivered:  { label: "Delivered ✅",      dot: "bg-green-400",   badge: "bg-green-500/15",    text: "text-green-400"   },
+  cancelled:  { label: "Cancelled",        dot: "bg-red-400",     badge: "bg-red-500/15",      text: "text-red-400"     },
+};
+
 interface Order {
   id: string;
   order_number: string;
@@ -35,7 +46,19 @@ export default function OrderConfirmedPage() {
     }
     if (id) load();
 
-    // Poll notifications for OTP (service-role API saves it, anon-key can read own notifications)
+    // Realtime — update status live without page refresh
+    const channel = supabase
+      .channel(`order-confirmed-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${id}` },
+        (payload) => {
+          setOrder((prev) => prev ? { ...prev, status: payload.new.status } : prev);
+        }
+      )
+      .subscribe();
+
+    // Poll notifications for OTP
     async function fetchOtp() {
       const { data: notifs } = await supabase
         .from("notifications")
@@ -47,7 +70,6 @@ export default function OrderConfirmedPage() {
     }
 
     fetchOtp();
-    // Retry every 2s for up to 10s to catch OTP saved slightly after page load
     let attempts = 0;
     const interval = setInterval(async () => {
       if (attempts >= 5) { clearInterval(interval); return; }
@@ -55,7 +77,7 @@ export default function OrderConfirmedPage() {
       await fetchOtp();
     }, 2000);
 
-    return () => clearInterval(interval);
+    return () => { clearInterval(interval); supabase.removeChannel(channel); };
   }, [id]);
 
   if (loading) {
@@ -111,10 +133,15 @@ export default function OrderConfirmedPage() {
           </div>
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Status</p>
-            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full bg-green-500/15 text-green-400">
-              <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />
-              {order?.status === "confirmed" ? "Confirmed" : "Received"}
-            </span>
+            {(() => {
+              const s = STATUS_MAP[order?.status ?? "pending"] ?? STATUS_MAP["pending"];
+              return (
+                <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${s.badge} ${s.text}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+                  {s.label}
+                </span>
+              );
+            })()}
           </div>
         </div>
 
