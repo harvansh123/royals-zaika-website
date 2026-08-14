@@ -2,7 +2,7 @@
 // Handles: Push Notifications + Offline Caching (PWA App Shell)
 
 const APP_NAME    = "Royal Zaika";
-const CACHE_NAME  = "royalzaika-v2";
+const CACHE_NAME  = "royalzaika-v3";
 const OFFLINE_URL = "/";
 
 // ── Assets to pre-cache on install (app shell) ──────────────────────────────
