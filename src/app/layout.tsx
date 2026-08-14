@@ -14,6 +14,14 @@ export const metadata: Metadata = {
     "Order authentic North Indian food online. Fresh thalis, biryanis, dal makhani, and more. Fast delivery from Royal Zaika restaurant.",
   keywords: ["Indian food", "online food order", "thali", "biryani", "North Indian cuisine", "Royal Zaika"],
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Royal Zaika",
+  },
+  icons: {
+    apple: "/icons/icon-192.png",
+  },
   openGraph: {
     type: "website",
     locale: "en_IN",

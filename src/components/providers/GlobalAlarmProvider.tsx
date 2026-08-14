@@ -98,15 +98,24 @@ export function GlobalAlarmProvider({ children }: { children: React.ReactNode })
     }
   }, [pathname, user?.role, dismissAlarm]);
 
+  // ── Register Service Worker on page load (no login needed) ──────────────
+  // SW must be registered unconditionally so Chrome can offer PWA install
+  // to any visitor — logged in or not.
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
+        // Silent fail — push notifications won't work but app still runs
+      });
+    }
+  }, []);
+
   useEffect(() => {
     if (!user) return; // Wait until user is resolved
 
     if (!hasShownPermRef.current) {
       hasShownPermRef.current = true;
-      // Register Service Worker + subscribe to Web Push (background notifications)
-      // Also calls requestNotificationPermission inside
+      // Push notification subscription (needs login for userId)
       registerServiceWorkerAndSubscribe(user.id).catch(() => {
-        // Fallback: request basic browser notification permission
         requestNotificationPermission().catch(() => {});
       });
     }
