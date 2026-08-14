@@ -20,6 +20,7 @@ export const metadata: Metadata = {
     title: "Royal Zaika",
   },
   icons: {
+    icon: "/icons/icon-192.png",
     apple: "/icons/icon-192.png",
   },
   openGraph: {
