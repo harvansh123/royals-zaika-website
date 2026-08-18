@@ -8,6 +8,7 @@ import { formatPrice } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { useState, useEffect, useMemo } from "react";
+import { trackBeginCheckout } from "@/lib/gtag";
 
 type ActiveOffer = {
   id: string; title: string; description: string | null;
@@ -273,6 +274,16 @@ export default function CartPage() {
         onClick={() => {
           if (!user) { toast.error("Please login first"); router.push("/auth/login"); return; }
           if (isRestaurantOpen === false) { toast.error("Restaurant is currently closed. Please try again later."); return; }
+          // GA4: begin_checkout — fires only when user is logged in + restaurant open
+          trackBeginCheckout({
+            value: grand,
+            items: items.map((i) => ({
+              id:       i.id,
+              name:     i.menu_item.name,
+              price:    i.menu_item.discounted_price ?? i.menu_item.price,
+              quantity: i.quantity,
+            })),
+          });
           router.push("/checkout/address");
         }}
         disabled={isRestaurantOpen === false}

@@ -14,6 +14,7 @@ import toast from "react-hot-toast";
 import { useRestaurantStatus, formatTime } from "@/hooks/useRestaurantStatus";
 import ClosedPopup from "@/components/restaurant/ClosedPopup";
 import ReferralBanner from "@/components/referral/ReferralBanner";
+import { trackAddToCart } from "@/lib/gtag";
 
 type ActiveOffer = {
   id: string; title: string; description: string | null;
@@ -57,6 +58,14 @@ const FoodCard = memo(function FoodCard({ item, isOpen }: { item: MenuItem; isOp
     if (!isOpen) { toast.error("Restaurant is currently closed", { icon: "🔴" }); return; }
     addItem(item);
     toast.success(`Added to cart!`, { icon: "🛒", duration: 1200 });
+    // GA4: add_to_cart — fires only after successful add (not if user not logged in / restaurant closed)
+    trackAddToCart({
+      id:       item.id,
+      name:     item.name,
+      price:    item.discounted_price ?? item.price,
+      quantity: 1,
+      category: item.category ?? "Food",
+    });
   }, [addItem, item, user, router, isOpen]);
 
   return (
@@ -263,6 +272,12 @@ function MenuContent() {
       .then(r => r.json())
       .then(d => setActiveOffer(d.offer ?? null))
       .catch(() => {});
+  }, []);
+
+  // GA4: view_menu — fires once when customer opens the menu page
+  useEffect(() => {
+    const { trackViewMenu } = require("@/lib/gtag");
+    trackViewMenu();
   }, []);
 
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.slug, c.id])), [categories]);

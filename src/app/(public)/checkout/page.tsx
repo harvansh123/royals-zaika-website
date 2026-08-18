@@ -14,6 +14,7 @@ import { RestaurantSettings } from "@/lib/haversine";
 import { getDeliveryPricing } from "@/lib/deliveryPricing";
 import { useRestaurantStatus } from "@/hooks/useRestaurantStatus";
 import ClosedPopup from "@/components/restaurant/ClosedPopup";
+import { trackPurchase } from "@/lib/gtag";
 
 declare global { interface Window { Razorpay: any; } }
 
@@ -273,6 +274,20 @@ export default function CheckoutPage() {
         }
 
         orderPlacedRef.current = true;
+        // GA4: purchase — COD order confirmed in Supabase
+        trackPurchase({
+          orderId:     order.id,
+          orderNumber: order.order_number,
+          value:       finalTotal,
+          deliveryFee: customerDeliveryCharge,
+          discount:    discountAmt,
+          items: items.map((i) => ({
+            id:       i.id,
+            name:     i.menu_item.name,
+            price:    i.menu_item.discounted_price ?? i.menu_item.price,
+            quantity: i.quantity,
+          })),
+        });
         clearCart();
         sessionStorage.removeItem(ADDRESS_SESSION_KEY);
         sessionStorage.setItem("cj_last_order_id", order.id);
@@ -303,9 +318,23 @@ export default function CheckoutPage() {
           body: JSON.stringify({ orderId: order.id }),
         });
         orderPlacedRef.current = true;
+        // GA4: purchase — Razorpay fallback COD order confirmed
+        trackPurchase({
+          orderId:     order.id,
+          orderNumber: order.order_number,
+          value:       finalTotal,
+          deliveryFee: customerDeliveryCharge,
+          discount:    discountAmt,
+          items: items.map((i) => ({
+            id:       i.id,
+            name:     i.menu_item.name,
+            price:    i.menu_item.discounted_price ?? i.menu_item.price,
+            quantity: i.quantity,
+          })),
+        });
         clearCart();
         sessionStorage.removeItem(ADDRESS_SESSION_KEY);
-        sessionStorage.setItem("cj_last_order_id", order.id); // for OTP display on empty cart
+        sessionStorage.setItem("cj_last_order_id", order.id);
         toast("Razorpay not set up — COD applied ✅");
         router.push(`/order-confirmed/${order.id}`);
         return;
@@ -352,6 +381,20 @@ export default function CheckoutPage() {
             }).catch(() => {});
           }
           orderPlacedRef.current = true;
+          // GA4: purchase — Razorpay payment verified + order confirmed in Supabase
+          trackPurchase({
+            orderId:     order.id,
+            orderNumber: order.order_number,
+            value:       finalTotal,
+            deliveryFee: customerDeliveryCharge,
+            discount:    discountAmt,
+            items: items.map((i) => ({
+              id:       i.id,
+              name:     i.menu_item.name,
+              price:    i.menu_item.discounted_price ?? i.menu_item.price,
+              quantity: i.quantity,
+            })),
+          });
           clearCart();
           sessionStorage.removeItem(ADDRESS_SESSION_KEY);
           sessionStorage.setItem("cj_last_order_id", order.id);
