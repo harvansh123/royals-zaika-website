@@ -100,3 +100,29 @@ export function trackPurchase(params: {
     })),
   });
 }
+
+// ─────────────────────────────────────────────
+// 5. User Role — set GA4 user property after auth
+//    Maps internal DB role → GA4 dimension.
+//    No PII (name/email/phone) is sent.
+// ─────────────────────────────────────────────
+type AppRole = "customer" | "restaurant_owner" | "delivery" | "admin";
+
+const ROLE_LABEL: Record<AppRole, string> = {
+  customer:          "customer",
+  restaurant_owner:  "owner",
+  delivery:          "rider",
+  admin:             "admin",
+};
+
+export function trackUserRole(role: AppRole) {
+  if (typeof window === "undefined" || typeof window.gtag !== "function") return;
+  const label = ROLE_LABEL[role] ?? "customer";
+  window.gtag("set", "user_properties", { user_role: label });
+}
+
+// Call on logout / SIGNED_OUT to clear the property
+export function clearUserRole() {
+  if (typeof window === "undefined" || typeof window.gtag !== "function") return;
+  window.gtag("set", "user_properties", { user_role: null });
+}

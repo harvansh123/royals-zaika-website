@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/authStore";
 import type { Session } from "@supabase/supabase-js";
 import type { User } from "@/lib/database.types";
+import { trackUserRole, clearUserRole } from "@/lib/gtag";
 
 // Safely parse role from user_metadata (set during signUp options.data)
 function roleFromMetadata(metadata: Record<string, any>): string | null {
@@ -93,7 +94,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (cancelledRef.current) return;
         if (session) {
           const user = await resolveUser(session);
-          if (!cancelledRef.current) setUser(user);
+          if (!cancelledRef.current) {
+            setUser(user);
+            trackUserRole(user.role as any);  // GA4: set role after DB profile resolved
+          }
         } else {
           if (!cancelledRef.current) setUser(null);
         }
@@ -116,13 +120,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === "SIGNED_OUT") {
         profileCache.clear();
         if (!cancelledRef.current) setUser(null);
+        if (!cancelledRef.current) clearUserRole();       // GA4: clear role on logout
         if (!cancelledRef.current) setLoading(false);
         return;
       }
 
       if (session) {
         const user = await resolveUser(session);
-        if (!cancelledRef.current) setUser(user);
+        if (!cancelledRef.current) {
+          setUser(user);
+          trackUserRole(user.role as any);  // GA4: update role on auth state change
+        }
       } else {
         if (!cancelledRef.current) setUser(null);
       }
