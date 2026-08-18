@@ -1,9 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { AddressModalProvider } from "@/components/providers/AddressModalProvider";
 import { GlobalAlarmProvider } from "@/components/providers/GlobalAlarmProvider";
+
+const GA_ID = "G-20M6RE1KGW";
 
 export const metadata: Metadata = {
   title: {
@@ -53,6 +56,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="font-sans antialiased" suppressHydrationWarning>
+        {/* ── Google Analytics 4 ─────────────────────────────────────────────
+            Strategy "afterInteractive" loads after hydration — non-blocking,
+            fires once for all routes via Next.js root layout.             */}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="ga4-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_ID}', { page_path: window.location.pathname });
+          `}
+        </Script>
         <AuthProvider>
           <GlobalAlarmProvider>
             {children}
