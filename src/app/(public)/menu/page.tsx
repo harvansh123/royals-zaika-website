@@ -14,7 +14,7 @@ import toast from "react-hot-toast";
 import { useRestaurantStatus, formatTime } from "@/hooks/useRestaurantStatus";
 import ClosedPopup from "@/components/restaurant/ClosedPopup";
 import ReferralBanner from "@/components/referral/ReferralBanner";
-import { trackAddToCart } from "@/lib/gtag";
+import { trackAddToCart, trackViewMenu } from "@/lib/gtag";
 
 type ActiveOffer = {
   id: string; title: string; description: string | null;
@@ -64,7 +64,7 @@ const FoodCard = memo(function FoodCard({ item, isOpen }: { item: MenuItem; isOp
       name:     item.name,
       price:    item.discounted_price ?? item.price,
       quantity: 1,
-      category: item.category ?? "Food",
+      category: "Food",
     });
   }, [addItem, item, user, router, isOpen]);
 
@@ -276,7 +276,6 @@ function MenuContent() {
 
   // GA4: view_menu — fires once when customer opens the menu page
   useEffect(() => {
-    const { trackViewMenu } = require("@/lib/gtag");
     trackViewMenu();
   }, []);
 
