@@ -103,13 +103,11 @@ export function trackPurchase(params: {
 
 // ─────────────────────────────────────────────
 // 5. User Role — set GA4 user property after auth
-//    Maps internal DB role → GA4 dimension "user_type".
+//    Maps internal DB role → GA4 custom dimension "user_role".
+//    Uses gtag("set","user_properties") — does NOT fire page_view.
 //    No PII (name/email/phone) is sent.
-//    Uses gtag("config") so property attaches to ALL subsequent events.
 // ─────────────────────────────────────────────
 type AppRole = "customer" | "restaurant_owner" | "delivery" | "admin";
-
-const GA_ID = "G-20M6RE1KGW";
 
 const ROLE_LABEL: Record<AppRole, string> = {
   customer:         "customer",
@@ -121,16 +119,14 @@ const ROLE_LABEL: Record<AppRole, string> = {
 export function trackUserRole(role: AppRole) {
   if (typeof window === "undefined" || typeof window.gtag !== "function") return;
   const label = ROLE_LABEL[role] ?? "customer";
-  // Use gtag("config") so user_type is attached to every subsequent event
-  window.gtag("config", GA_ID, {
-    user_properties: { user_type: label },
-  });
+  // Clear first to avoid stale previous session role bleeding through
+  window.gtag("set", "user_properties", { user_role: null });
+  // Then set the correct role for this session
+  window.gtag("set", "user_properties", { user_role: label });
 }
 
 // Call on logout / SIGNED_OUT to clear the property
 export function clearUserRole() {
   if (typeof window === "undefined" || typeof window.gtag !== "function") return;
-  window.gtag("config", GA_ID, {
-    user_properties: { user_type: null },
-  });
+  window.gtag("set", "user_properties", { user_role: null });
 }

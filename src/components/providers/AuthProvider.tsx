@@ -96,7 +96,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const user = await resolveUser(session);
           if (!cancelledRef.current) {
             setUser(user);
-            trackUserRole(user.role as any);  // GA4: set role after DB profile resolved
+            clearUserRole();                          // always clear stale role first
+            trackUserRole(user.role as any);          // GA4: set correct role from DB
           }
         } else {
           if (!cancelledRef.current) setUser(null);
@@ -129,7 +130,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const user = await resolveUser(session);
         if (!cancelledRef.current) {
           setUser(user);
-          trackUserRole(user.role as any);  // GA4: update role on auth state change
+          clearUserRole();                          // always clear stale role first
+          trackUserRole(user.role as any);          // GA4: update role on auth state change
         }
       } else {
         if (!cancelledRef.current) setUser(null);
