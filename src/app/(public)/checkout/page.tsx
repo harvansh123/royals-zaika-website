@@ -223,9 +223,9 @@ export default function CheckoutPage() {
         payment_status:   "pending",
         subtotal:         sub,
         delivery_fee:     customerDeliveryCharge, // ₹0 if free delivery, else distance-based
-        rider_payout:       pricing?.riderPayout ?? null,
+        rider_payout:       pricingForOrder?.riderPayout ?? null,
         owner_contribution: dynamicOwnerContribution,
-        distance_range:     pricing?.rangeLabel ?? null,
+        distance_range:     pricingForOrder?.rangeLabel ?? null,
         discount_amount:  discountAmt,
         total_amount:     finalTotal,
         estimated_time:   30,
