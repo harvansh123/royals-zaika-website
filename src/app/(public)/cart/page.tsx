@@ -27,26 +27,30 @@ function calcDiscount(offer: ActiveOffer, sub: number): number {
 
 export default function CartPage() {
   const router = useRouter();
-  const { items, updateQty, removeItem, subtotal, deliveryFee, total } = useCartStore();
+  const { items, updateQty, removeItem, subtotal, total } = useCartStore();
   const { user } = useAuthStore();
   const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
   const [activeOffer, setActiveOffer] = useState<ActiveOffer | null>(null);
+  // State declared before computed variables that reference them
+  const [isRestaurantOpen, setIsRestaurantOpen] = useState<boolean | null>(null);
+  const [freeDeliveryMin, setFreeDeliveryMin]   = useState(499); // from restaurant settings
 
   const sub     = subtotal();
-  const fee     = deliveryFee();
   // Offer discount (calculated fresh — not persisted in cart store)
   const offerDiscount = useMemo(() => activeOffer ? calcDiscount(activeOffer, sub) : 0, [activeOffer, sub]);
-  const grand   = Math.max(0, sub + fee - offerDiscount);
-  const freeAt  = 499;
+  // Grand total shown in cart: subtotal - discount only (delivery calculated at checkout after address)
+  const grand   = Math.max(0, sub - offerDiscount);
+  const freeAt  = freeDeliveryMin; // owner-configured, loaded from restaurant settings
   const progress = Math.min((sub / freeAt) * 100, 100);
 
-  // Restaurant open/closed status
-  const [isRestaurantOpen, setIsRestaurantOpen] = useState<boolean | null>(null);
 
   useEffect(() => {
     fetch("/api/restaurant-settings")
       .then(r => r.json())
-      .then(d => setIsRestaurantOpen(d.is_open !== false))
+      .then(d => {
+        setIsRestaurantOpen(d.is_open !== false);
+        setFreeDeliveryMin(Number(d.free_delivery_min_order ?? 499));
+      })
       .catch(() => setIsRestaurantOpen(true));
     // Fetch active offer
     fetch("/api/offers")
@@ -180,7 +184,7 @@ export default function CartPage() {
             <p className="text-green-400/70 text-xs">Your order qualifies for free delivery</p>
           </div>
         </div>
-      ) : fee > 0 && (
+      ) : sub < freeAt && (
         <div className="mb-5 p-4 rounded-2xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
           <div className="flex justify-between text-xs text-gray-400 mb-2">
             <span>Add <span className="text-green-400 font-semibold">{formatPrice(Math.max(0, freeAt - sub))}</span> more for free delivery</span>
@@ -293,10 +297,15 @@ export default function CartPage() {
           {isRestaurantOpen === false ? "🔴 Restaurant Closed" : "Proceed to Checkout"}
         </span>
         <div className="flex items-center gap-2">
-          <span className="font-bold">{formatPrice(sub)}</span>
+          <span className="font-bold">{formatPrice(grand)}</span>
           <ArrowRight size={18} />
         </div>
       </button>
+
+      {/* Delivery charge note */}
+      <p className="text-center text-xs mt-3" style={{ color: "var(--text-muted)" }}>
+        🚚 Delivery charge will be calculated after address selection
+      </p>
     </div>
   );
 }

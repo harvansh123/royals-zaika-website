@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { LayoutDashboard, ShoppingBag, UtensilsCrossed, LogOut, UserCircle, HelpCircle, MapPin, Users, Tag, Bell, BellOff, Star, Clock, DollarSign, Home, Info, ExternalLink, Gift } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, UtensilsCrossed, LogOut, UserCircle, HelpCircle, MapPin, Users, Tag, Bell, BellOff, Star, Clock, DollarSign, Home, Info, ExternalLink, Gift, Truck } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -20,6 +20,7 @@ const tabs = [
   { href: "/owner/support",       icon: HelpCircle,      label: "Support"    },
   { href: "/owner/timing",        icon: Clock,           label: "Timing"     },
   { href: "/owner/delivery-settings", icon: MapPin,      label: "Delivery"   },
+  { href: "/owner/delivery-charges",  icon: Truck,       label: "Charges"    },
   { href: "/owner/profile",       icon: UserCircle,      label: "Profile"    },
 ];
 

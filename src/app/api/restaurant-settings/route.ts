@@ -24,6 +24,14 @@ function computeIsOpen(data: any): boolean {
   return currentMinutes >= (oh * 60 + om) && currentMinutes < (ch * 60 + cm);
 }
 
+// Delivery rate defaults (matches DEFAULT_DELIVERY_RATES in deliveryPricing.ts)
+const RATE_DEFAULTS = {
+  delivery_charge_per_km:    10,
+  owner_contribution_per_km: 5,
+  rider_payout_per_km:       15,
+  free_delivery_min_order:   499,
+};
+
 // GET — Public read (customer validation + owner display)
 export async function GET() {
   const { data, error } = await supabaseAdmin
@@ -44,6 +52,7 @@ export async function GET() {
       closing_time: "23:00",
       status_mode: "auto",
       updated_at: new Date().toISOString(),
+      ...RATE_DEFAULTS,
     };
     return NextResponse.json({ ...defaults, is_currently_open: true });
   }
@@ -54,6 +63,7 @@ export async function GET() {
     closing_time: "23:00",
     status_mode: "auto",
     is_open: true,
+    ...RATE_DEFAULTS,
     ...data,
   };
 
@@ -65,8 +75,6 @@ export async function GET() {
     {
       headers: {
         // No caching — owner must see their saved settings immediately.
-        // Previously had s-maxage=60 which caused a 60-300s delay before
-        // updated timing was visible after Save.
         "Cache-Control": "no-store, no-cache",
       },
     }
@@ -106,20 +114,46 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// PATCH — Owner only: update timing, mode, or legacy is_open toggle
+// PATCH — Owner only: update timing, mode, is_open toggle, OR delivery rates
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
-    const { is_open, opening_time, closing_time, status_mode } = body;
+    const {
+      is_open, opening_time, closing_time, status_mode,
+      // Delivery rate fields
+      delivery_charge_per_km, owner_contribution_per_km,
+      rider_payout_per_km, free_delivery_min_order,
+    } = body;
 
     // Build update payload — only include provided fields
     const update: Record<string, any> = { updated_at: new Date().toISOString() };
 
+    // Timing / open-close fields (unchanged)
     if (typeof is_open === "boolean")      update.is_open      = is_open;
     if (typeof opening_time === "string")  update.opening_time = opening_time;
     if (typeof closing_time  === "string") update.closing_time  = closing_time;
     if (["auto", "manual_open", "temporarily_closed"].includes(status_mode)) {
       update.status_mode = status_mode;
+    }
+
+    // Delivery rate fields — validate: must be a non-negative number
+    const rateFields = {
+      delivery_charge_per_km,
+      owner_contribution_per_km,
+      rider_payout_per_km,
+      free_delivery_min_order,
+    };
+    for (const [key, val] of Object.entries(rateFields)) {
+      if (val !== undefined) {
+        const n = Number(val);
+        if (isNaN(n) || n < 0) {
+          return NextResponse.json(
+            { error: `Invalid value for ${key}: must be a non-negative number` },
+            { status: 400 }
+          );
+        }
+        update[key] = n;
+      }
     }
 
     if (Object.keys(update).length === 1) {
@@ -139,6 +173,7 @@ export async function PATCH(req: NextRequest) {
       closing_time: "23:00",
       status_mode: "auto",
       is_open: true,
+      ...RATE_DEFAULTS,
       ...data,
     };
     return NextResponse.json(

@@ -72,3 +72,60 @@ export function getDeliveryPricing(
 
   return null;
 }
+
+// ─── Dynamic per-km rates (Owner-configurable) ────────────────────────────────
+
+/**
+ * Owner-configured per-km delivery rates stored in restaurant_settings.
+ * Fetched via GET /api/restaurant-settings and passed to getDeliveryPricingFromRates().
+ */
+export interface DeliveryRates {
+  delivery_charge_per_km:    number;  // Customer pays this × distanceKm
+  owner_contribution_per_km: number;  // Owner subsidises this × distanceKm
+  rider_payout_per_km:       number;  // Rider earns this × distanceKm
+  free_delivery_min_order:   number;  // Customer pays ₹0 if subtotal >= this
+}
+
+/** Default rates matching the hardcoded tier averages — used as fallback. */
+export const DEFAULT_DELIVERY_RATES: DeliveryRates = {
+  delivery_charge_per_km:    10,
+  owner_contribution_per_km: 5,
+  rider_payout_per_km:       15,
+  free_delivery_min_order:   499,
+};
+
+/**
+ * Calculates delivery pricing from owner-configured per-km rates.
+ * Formula:
+ *   customerFee       = distanceKm × rates.delivery_charge_per_km  (0 if free delivery)
+ *   riderPayout       = distanceKm × rates.rider_payout_per_km
+ *   ownerContribution = distanceKm × rates.owner_contribution_per_km
+ *                       + customerFee waived (for free delivery orders)
+ *
+ * Returns null if distanceKm is null/0/negative or > MAX_DELIVERY_KM.
+ */
+export function getDeliveryPricingFromRates(
+  distanceKm: number | null | undefined,
+  subtotal: number = 0,
+  rates: DeliveryRates = DEFAULT_DELIVERY_RATES
+): DeliveryPricingTier | null {
+  if (distanceKm == null || distanceKm <= 0 || distanceKm > MAX_DELIVERY_KM) return null;
+
+  const isFreeDelivery      = subtotal >= rates.free_delivery_min_order;
+  const baseCustomerFee     = Math.round(distanceKm * rates.delivery_charge_per_km);
+  const effectiveCustomerFee = isFreeDelivery ? 0 : baseCustomerFee;
+  const riderPayout         = Math.round(distanceKm * rates.rider_payout_per_km);
+  // Owner covers: their per-km contribution + any customer fee waived for free delivery
+  const ownerContribution   = Math.round(distanceKm * rates.owner_contribution_per_km)
+                              + (isFreeDelivery ? baseCustomerFee : 0);
+
+  return {
+    minKm:            0,
+    maxKm:            MAX_DELIVERY_KM,
+    customerFee:      effectiveCustomerFee,
+    riderPayout,
+    ownerContribution,
+    rangeLabel:       `${distanceKm.toFixed(1)} km`,
+    isFreeDelivery,
+  };
+}

@@ -11,7 +11,7 @@ import toast from "react-hot-toast";
 import Image from "next/image";
 import { ADDRESS_SESSION_KEY } from "@/app/(public)/checkout/address/page";
 import { RestaurantSettings } from "@/lib/haversine";
-import { getDeliveryPricing } from "@/lib/deliveryPricing";
+import { getDeliveryPricing, getDeliveryPricingFromRates, DeliveryRates, DEFAULT_DELIVERY_RATES } from "@/lib/deliveryPricing";
 import { useRestaurantStatus } from "@/hooks/useRestaurantStatus";
 import ClosedPopup from "@/components/restaurant/ClosedPopup";
 import { trackPurchase } from "@/lib/gtag";
@@ -57,6 +57,8 @@ export default function CheckoutPage() {
   const [checkoutStep,    setCheckoutStep]    = useState<"bill" | "payment">("bill");
   // Referral reward
   const [referralReward,  setReferralReward]  = useState<{ id: string; reward_amount: number } | null>(null);
+  // Owner-configured delivery rates (loaded from restaurant-settings)
+  const [deliveryRates,   setDeliveryRates]   = useState<DeliveryRates>(DEFAULT_DELIVERY_RATES);
 
   // ── Restaurant timing-aware open/closed status ────────────────────────────
   const {
@@ -68,9 +70,12 @@ export default function CheckoutPage() {
 
   const sub   = subtotal();
   const fee   = deliveryFee();
-  // Distance info for bill display — pass subtotal for free-delivery calculation
+  // Distance info for bill display — use owner-configured per-km rates
   const distKm = deliveryAddress?.delivery_distance_km ?? null;
-  const pricing = getDeliveryPricing(distKm, sub);
+  // Use owner-configured rates when address (and thus distance) is known
+  const pricing = distKm
+    ? getDeliveryPricingFromRates(distKm, sub, deliveryRates)
+    : getDeliveryPricing(distKm, sub); // fallback before address selected
 
   // Offer discount calculated fresh from current offer state
   const offerDiscount = useMemo(() => activeOffer ? calcDiscount(activeOffer, sub) : 0, [activeOffer, sub]);
@@ -106,14 +111,20 @@ export default function CheckoutPage() {
       const addr = JSON.parse(stored);
       setDeliveryAddress(addr);
 
-      // Load settings for final validation
+      // Load settings for final validation + delivery rates
       fetch("/api/restaurant-settings")
         .then(res => res.ok ? res.json() : null)
         .then(data => {
           if (data) {
             setSettings(data);
+            // Load owner-configured delivery rates (with defaults if columns missing)
+            setDeliveryRates({
+              delivery_charge_per_km:    Number(data.delivery_charge_per_km    ?? 10),
+              owner_contribution_per_km: Number(data.owner_contribution_per_km ?? 5),
+              rider_payout_per_km:       Number(data.rider_payout_per_km       ?? 15),
+              free_delivery_min_order:   Number(data.free_delivery_min_order   ?? 499),
+            });
             // Use the Google driving distance already calculated when the address was confirmed.
-            // deliveryAddress.delivery_distance_km is set by confirmAndContinue() in the address page.
             const storedDist = addr.delivery_distance_km;
             if (storedDist && storedDist > data.delivery_radius_km) {
               toast.error(`Sorry, delivery is only available within ${data.delivery_radius_km} KM. This address is outside our delivery area.`);
@@ -190,7 +201,7 @@ export default function CheckoutPage() {
       // Calculate final amounts — use bigger of offer or referral discount
       const discountAmt = bestDiscount;
       // Use actual customer delivery fee from pricing (handles free delivery)
-      const actualPricingForOrder = getDeliveryPricing(deliveryAddress?.delivery_distance_km ?? null, sub);
+      const actualPricingForOrder = getDeliveryPricingFromRates(deliveryAddress?.delivery_distance_km ?? null, sub, deliveryRates);
       const actualCustomerFee = actualPricingForOrder?.customerFee ?? fee;
       const finalTotal = Math.max(0, sub + actualCustomerFee - discountAmt);
 
@@ -198,11 +209,11 @@ export default function CheckoutPage() {
       // confirmed their delivery address. This is the single source of truth for order records.
       const orderDistanceKm = deliveryAddress.delivery_distance_km ?? null;
 
-      const pricing = getDeliveryPricing(orderDistanceKm, sub);
+      const pricingForOrder = getDeliveryPricingFromRates(orderDistanceKm, sub, deliveryRates);
 
       // Determine actual customer delivery charge (0 if free delivery)
-      const customerDeliveryCharge = pricing?.customerFee ?? fee;
-      const dynamicOwnerContribution = pricing?.ownerContribution ?? 0;
+      const customerDeliveryCharge = pricingForOrder?.customerFee ?? fee;
+      const dynamicOwnerContribution = pricingForOrder?.ownerContribution ?? 0;
 
       // Create order
       const { data: order, error: orderErr } = await supabase.from("orders").insert({
