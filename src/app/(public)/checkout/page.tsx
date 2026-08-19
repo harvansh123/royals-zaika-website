@@ -577,8 +577,8 @@ export default function CheckoutPage() {
                     </span>
                   )}
                 </div>
-                <span className={pricing?.isFreeDelivery ? "text-green-400 font-bold" : fee === 0 ? "text-green-400 font-semibold" : "text-white font-medium"}>
-                  {pricing?.isFreeDelivery ? "FREE 🎉" : fee === 0 ? "FREE" : formatPrice(fee)}
+                <span className={pricing?.isFreeDelivery ? "text-green-400 font-bold" : actualFee === 0 ? "text-green-400 font-semibold" : "text-white font-medium"}>
+                  {pricing?.isFreeDelivery ? "FREE 🎉" : actualFee === 0 ? "FREE" : formatPrice(actualFee)}
                 </span>
               </div>
 
@@ -599,16 +599,16 @@ export default function CheckoutPage() {
                 <div className="flex items-center gap-2 py-2 px-3 rounded-xl"
                   style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)" }}>
                   <span className="text-green-400 font-bold text-xs">🎉 Free Delivery Unlocked!</span>
-                  <span className="text-green-400/70 text-xs ml-auto">Orders above ₹499</span>
+                  <span className="text-green-400/70 text-xs ml-auto">Orders above ₹{deliveryRates.free_delivery_min_order}</span>
                 </div>
               )}
 
               {/* Nudge: show how close to free delivery */}
-              {!pricing?.isFreeDelivery && sub > 0 && sub < 499 && (
+              {!pricing?.isFreeDelivery && sub > 0 && sub < deliveryRates.free_delivery_min_order && (
                 <div className="flex items-center gap-2 py-2 px-3 rounded-xl"
                   style={{ background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.15)" }}>
                   <span className="text-orange-400 text-xs">
-                    🛵 Add <strong>₹{Math.ceil(499 - sub)}</strong> more to get <strong>FREE delivery!</strong>
+                    🛵 Add <strong>₹{Math.ceil(deliveryRates.free_delivery_min_order - sub)}</strong> more to get <strong>FREE delivery!</strong>
                   </span>
                 </div>
               )}
@@ -718,7 +718,7 @@ export default function CheckoutPage() {
           <div className="flex justify-between text-gray-400"><span>Subtotal</span><span className="text-white">{formatPrice(sub)}</span></div>
           <div className="flex justify-between text-gray-400">
             <span>Delivery</span>
-            <span className={fee === 0 ? "text-green-400" : "text-white"}>{fee === 0 ? "FREE" : formatPrice(fee)}</span>
+            <span className={actualFee === 0 ? "text-green-400" : "text-white"}>{actualFee === 0 ? "FREE" : formatPrice(actualFee)}</span>
           </div>
 
           {/* Offer Discount Row */}
