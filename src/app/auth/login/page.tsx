@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
@@ -149,7 +149,7 @@ export default function AuthPage() {
           </div>
           <h1 className="font-bold text-2xl sm:text-3xl mb-2"
             style={{ fontFamily: "'Outfit', sans-serif", color: "var(--text-primary)" }}>
-            Royal Zaika
+            Royals Zaika
           </h1>
           <p className="mb-8 sm:mb-10" style={{ color: "var(--text-secondary)" }}>
             Authentic Indian Cuisine — Who are you?

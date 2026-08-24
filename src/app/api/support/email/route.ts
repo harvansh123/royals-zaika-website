@@ -33,13 +33,13 @@ export async function POST(req: Request) {
 
     // ── Email 1: Notify Owner ────────────────────────────────────────
     await transporter.sendMail({
-      from: `"Royal Zaika Support" <${gmailUser}>`,
+      from: `"Royals Zaika Support" <${gmailUser}>`,
       to: OWNER_EMAIL,
       subject: `🎫 New Support Ticket #${shortId} — ${category}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #111; color: #e5e5e5; border-radius: 12px; overflow: hidden; border: 1px solid #333;">
           <div style="background: linear-gradient(135deg, #f97316, #dc2626); padding: 24px 32px;">
-            <h1 style="margin: 0; color: white; font-size: 22px;">🍽️ Royal Zaika — New Support Ticket</h1>
+            <h1 style="margin: 0; color: white; font-size: 22px;">🍽️ Royals Zaika — New Support Ticket</h1>
           </div>
           <div style="padding: 28px 32px;">
             <div style="background: #1e1e1e; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; border-left: 4px solid #f97316;">
@@ -85,7 +85,7 @@ export async function POST(req: Request) {
             </div>` : ""}
 
             <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #2a2a2a; text-align: center;">
-              <p style="color: #6b7280; font-size: 12px; margin: 0;">Royal Zaika Restaurant — Automated Support Notification</p>
+              <p style="color: #6b7280; font-size: 12px; margin: 0;">Royals Zaika Restaurant — Automated Support Notification</p>
             </div>
           </div>
         </div>
@@ -94,13 +94,13 @@ export async function POST(req: Request) {
 
     // ── Email 2: Auto-acknowledgement to User ────────────────────────
     await transporter.sendMail({
-      from: `"Royal Zaika Support" <${gmailUser}>`,
+      from: `"Royals Zaika Support" <${gmailUser}>`,
       to: email,
       subject: `✅ Support Request Received — Ticket #${shortId}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #111; color: #e5e5e5; border-radius: 12px; overflow: hidden; border: 1px solid #333;">
           <div style="background: linear-gradient(135deg, #f97316, #dc2626); padding: 24px 32px;">
-            <h1 style="margin: 0; color: white; font-size: 22px;">🍽️ Royal Zaika</h1>
+            <h1 style="margin: 0; color: white; font-size: 22px;">🍽️ Royals Zaika</h1>
           </div>
           <div style="padding: 28px 32px;">
             <h2 style="color: #22c55e; margin: 0 0 16px;">✅ Your request has been received!</h2>
@@ -120,7 +120,7 @@ export async function POST(req: Request) {
             </p>
 
             <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #2a2a2a; text-align: center;">
-              <p style="color: #6b7280; font-size: 12px; margin: 0;">Royal Zaika Restaurant — We're here to help! 🍽️</p>
+              <p style="color: #6b7280; font-size: 12px; margin: 0;">Royals Zaika Restaurant — We're here to help! 🍽️</p>
             </div>
           </div>
         </div>

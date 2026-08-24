@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import Link from "next/link";
 import { Phone, MapPin, Clock, Instagram, Facebook, MessageCircle } from "lucide-react";
 
@@ -16,7 +16,7 @@ export function Footer() {
               </div>
               <div className="leading-none">
                 <p className="font-bold text-white text-lg" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                  Royal Zaika
+                  Royals Zaika
                 </p>
                 <p className="text-xs text-orange-400 mt-0.5">Authentic Indian Cuisine</p>
               </div>
@@ -85,7 +85,7 @@ export function Footer() {
         {/* ── Bottom bar ── */}
         <div className="mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600"
           style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-          <p>© {new Date().getFullYear()} Royal Zaika. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Royals Zaika. All rights reserved.</p>
           <div className="flex gap-5">
             <Link href="/privacy" className="hover:text-gray-400 transition-colors">Privacy Policy</Link>
             <Link href="/terms"   className="hover:text-gray-400 transition-colors">Terms of Service</Link>

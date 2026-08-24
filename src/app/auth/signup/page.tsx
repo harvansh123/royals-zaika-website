@@ -88,7 +88,7 @@ function SignUpContent() {
             <div className="w-16 h-16 gradient-brand rounded-2xl flex items-center justify-center text-3xl shadow-brand">
               🍱
             </div>
-            <p className="font-bold text-xl text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>Royal Zaika</p>
+            <p className="font-bold text-xl text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>Royals Zaika</p>
           </Link>
           <h1 className="font-bold text-2xl text-white mt-4 mb-1">Create Account</h1>
           <p className="text-gray-500 text-sm">Join us and order your favourite food</p>

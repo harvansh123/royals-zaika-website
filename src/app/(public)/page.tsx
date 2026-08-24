@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Phone, Star, Award, Leaf, Users } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
@@ -7,7 +7,7 @@ import { AuthRedirect } from "@/components/auth/AuthRedirect";
 import type { RestaurantTimingSettings } from "@/hooks/useRestaurantStatus";
 
 export const metadata: Metadata = {
-  title: "Royal Zaika – The Taste of Kings, Prayagraj",
+  title: "Royals Zaika – The Taste of Kings, Prayagraj",
   description:
     "Fresh Pizza, Burger, Shahi Paneer & Delicious Fast Food. Tasty food, quality ingredients, and quick service at affordable prices.",
 };
@@ -209,7 +209,7 @@ export default async function HomePage() {
             <div>
               <p className="text-sm font-semibold tracking-widest uppercase mb-3" style={{ color: "#FBBF24" }}>Our Promise</p>
               <h2 className="font-black text-3xl sm:text-4xl mb-6 leading-tight" style={{ fontFamily: "'Outfit', sans-serif", color: "#FFF8F0" }}>
-                Why Families Choose<br />Royal Zaika
+                Why Families Choose<br />Royals Zaika
               </h2>
               <p className="leading-relaxed mb-8" style={{ color: "#9ca3af" }}>
                 For over a decade, we've remained committed to one simple belief: great food
@@ -289,7 +289,7 @@ export default async function HomePage() {
             Order Online Today
           </h2>
           <p className="max-w-lg mx-auto mb-2" style={{ color: "#d1bfa8" }}>
-            Royal Zaika is a <strong style={{ color: "#FBBF24" }}>Cloud Kitchen</strong> — we prepare fresh,
+            Royals Zaika is a <strong style={{ color: "#FBBF24" }}>Cloud Kitchen</strong> — we prepare fresh,
             authentic North Indian food exclusively for <strong style={{ color: "#FBBF24" }}>Home Delivery</strong>.
             No dine-in, no table booking — just great food delivered to your door.
           </p>

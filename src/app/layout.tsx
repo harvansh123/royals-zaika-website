@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+﻿import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
@@ -10,17 +10,17 @@ const GA_ID = "G-20M6RE1KGW";
 
 export const metadata: Metadata = {
   title: {
-    default: "Royal Zaika — Authentic Indian Cuisine",
-    template: "%s | Royal Zaika",
+    default: "Royals Zaika — Authentic Indian Cuisine",
+    template: "%s | Royals Zaika",
   },
   description:
-    "Order authentic North Indian food online. Fresh thalis, biryanis, dal makhani, and more. Fast delivery from Royal Zaika restaurant.",
-  keywords: ["Indian food", "online food order", "thali", "biryani", "North Indian cuisine", "Royal Zaika"],
+    "Order authentic North Indian food online. Fresh thalis, biryanis, dal makhani, and more. Fast delivery from Royals Zaika restaurant.",
+  keywords: ["Indian food", "online food order", "thali", "biryani", "North Indian cuisine", "Royals Zaika"],
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Royal Zaika",
+    title: "Royals Zaika",
   },
   icons: {
     icon: "/icons/icon-192.png",
@@ -29,8 +29,8 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_IN",
-    siteName: "Royal Zaika",
-    title: "Royal Zaika — Authentic Indian Cuisine",
+    siteName: "Royals Zaika",
+    title: "Royals Zaika — Authentic Indian Cuisine",
     description: "Order authentic North Indian food online with fast delivery.",
   },
   robots: "index, follow",

@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Phone, MapPin, Clock, Award, Heart, Leaf, Shield } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "About Us | Royal Zaika — Cloud Kitchen, Prayagraj",
+  title: "About Us | Royals Zaika — Cloud Kitchen, Prayagraj",
   description:
-    "Royal Zaika is a Cloud Kitchen in Prayagraj serving authentic North Indian food exclusively through Home Delivery. Fresh food made daily — order online and get it delivered to your door.",
+    "Royals Zaika is a Cloud Kitchen in Prayagraj serving authentic North Indian food exclusively through Home Delivery. Fresh food made daily — order online and get it delivered to your door.",
 };
 
 
@@ -67,7 +67,7 @@ export default function AboutPage() {
             </span>
           </h1>
           <p className="text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed" style={{ color: "#d1bfa8" }}>
-            Royal Zaika was born from a simple belief — that real Indian food tells a story.
+            Royals Zaika was born from a simple belief — that real Indian food tells a story.
             We are a <strong style={{ color: "#FBBF24" }}>Cloud Kitchen</strong> in Prayagraj,
             delivering fresh, authentic North Indian food straight to your doorstep.
           </p>
@@ -175,7 +175,7 @@ export default function AboutPage() {
               🚚 Order Fresh, Delivered to You
             </h2>
             <p className="max-w-xl mx-auto" style={{ color: "#9ca3af" }}>
-              Royal Zaika is a <strong style={{ color: "#FBBF24" }}>delivery-only cloud kitchen</strong>.
+              Royals Zaika is a <strong style={{ color: "#FBBF24" }}>delivery-only cloud kitchen</strong>.
               We do not offer dine-in or table booking. All orders are placed online and delivered
               fresh to your home within our delivery area.
             </p>

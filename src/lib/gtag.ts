@@ -1,5 +1,5 @@
-/**
- * GA4 Event Helpers — Royal Zaika
+﻿/**
+ * GA4 Event Helpers — Royals Zaika
  *
  * Central module for all Google Analytics 4 event tracking.
  * Reuses the existing GA4 tag loaded in layout.tsx (G-20M6RE1KGW).
@@ -87,7 +87,7 @@ export function trackPurchase(params: {
 }) {
   gtagEvent("purchase", {
     transaction_id: params.orderId,
-    affiliation:    "Royal Zaika",
+    affiliation:    "Royals Zaika",
     currency:       "INR",
     value:          params.value,
     shipping:       params.deliveryFee,

@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
 import { FileText, ChevronRight } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Terms & Conditions — Royal Zaika",
+  title: "Terms & Conditions — Royals Zaika",
   description:
-    "Read Royal Zaika's Terms & Conditions governing your use of our online food ordering platform, including ordering rules, payment terms, delivery policy, and cancellation policy.",
+    "Read Royals Zaika's Terms & Conditions governing your use of our online food ordering platform, including ordering rules, payment terms, delivery policy, and cancellation policy.",
 };
 
 const sections = [
@@ -115,10 +115,10 @@ export default function TermsPage() {
             <section id="acceptance">
               <SectionHeading number="1" title="Acceptance of Terms" />
               <p className="mb-3">
-                Welcome to <strong className="text-white">Royal Zaika</strong>. These Terms &amp;
-                Conditions (&ldquo;Terms&rdquo;) govern your access to and use of the Royal Zaika website,
+                Welcome to <strong className="text-white">Royals Zaika</strong>. These Terms &amp;
+                Conditions (&ldquo;Terms&rdquo;) govern your access to and use of the Royals Zaika website,
                 web application, and all related services (collectively, the &ldquo;Platform&rdquo;). The
-                Platform is owned and operated by Royal Zaika Restaurant, Prayagraj, India.
+                Platform is owned and operated by Royals Zaika Restaurant, Prayagraj, India.
               </p>
               <p className="mb-3">
                 By accessing or using the Platform — including browsing the menu, creating an
@@ -385,9 +385,9 @@ export default function TermsPage() {
             <section id="ip">
               <SectionHeading number="14" title="Intellectual Property" />
               <p className="mb-3">
-                All content on the Platform — including but not limited to the Royal Zaika name,
+                All content on the Platform — including but not limited to the Royals Zaika name,
                 logo, menu design, food photographs, website design, text, graphics, and code — is
-                the exclusive intellectual property of Royal Zaika Restaurant and is protected
+                the exclusive intellectual property of Royals Zaika Restaurant and is protected
                 under applicable Indian and international intellectual property laws.
               </p>
               <p className="mb-3">
@@ -396,7 +396,7 @@ export default function TermsPage() {
               </p>
               <p>
                 Content submitted by users (such as reviews and ratings) remains the property of
-                the user but grants Royal Zaika a non-exclusive, royalty-free, perpetual licence
+                the user but grants Royals Zaika a non-exclusive, royalty-free, perpetual licence
                 to use, display, and moderate that content on the Platform.
               </p>
             </section>
@@ -405,7 +405,7 @@ export default function TermsPage() {
             <section id="liability">
               <SectionHeading number="15" title="Limitation of Liability" />
               <p className="mb-3">
-                To the fullest extent permitted by applicable law, Royal Zaika shall not be
+                To the fullest extent permitted by applicable law, Royals Zaika shall not be
                 liable for:
               </p>
               <InfoList items={[
@@ -427,7 +427,7 @@ export default function TermsPage() {
             <section id="force-majeure">
               <SectionHeading number="16" title="Force Majeure" />
               <p className="mb-3">
-                Royal Zaika shall not be liable for any failure or delay in fulfilling its
+                Royals Zaika shall not be liable for any failure or delay in fulfilling its
                 obligations under these Terms where such failure or delay is caused by events
                 beyond our reasonable control, including but not limited to:
               </p>
@@ -459,7 +459,7 @@ export default function TermsPage() {
                 "Abusive, threatening, or inappropriate behaviour towards our staff or riders.",
                 "Repeated order cancellations or failed cash-on-delivery collections.",
                 "Provision of false or misleading information during registration or checkout.",
-                "Any activity that we reasonably believe may cause harm to Royal Zaika, our customers, or our staff.",
+                "Any activity that we reasonably believe may cause harm to Royals Zaika, our customers, or our staff.",
               ]} />
               <p className="mt-3">
                 Upon termination, your right to access the Platform immediately ceases. You may
@@ -523,7 +523,7 @@ export default function TermsPage() {
                 style={{ background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.2)" }}
               >
                 <p><span className="text-orange-400 font-semibold">Restaurant:</span>{" "}
-                  <span className="text-white">Royal Zaika</span>
+                  <span className="text-white">Royals Zaika</span>
                 </p>
                 <p><span className="text-orange-400 font-semibold">Address:</span>{" "}
                   <span className="text-white">474 Chak Raghunath, Naini, Prayagraj, Uttar Pradesh – 211008</span>

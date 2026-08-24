@@ -607,7 +607,7 @@ export default function DeliveryDashboard() {
           { label: "Active",   value: orders.filter((o:any) => o.status !== "delivered").length, color: "text-orange-600", icon: "📦" },
           { label: "Today",    value: todayCount,                               color: "text-green-600",  icon: "✅" },
           { label: "Distance", value: todayKm !== null ? `${todayKm} km` : "—", color: "text-blue-600",   icon: "📍" },
-          { label: "Earnings", value: todayEarnings !== null ? `₹${todayEarnings}` : "—", color: "text-emerald-600", icon: "💰" },
+          { label: "Rider Earning", value: todayEarnings !== null ? `₹${todayEarnings}` : "—", color: "text-emerald-600", icon: "💰" },
           { label: "Status",   value: isOnline ? "Online" : "Offline",          color: isOnline ? "text-teal-600" : "text-slate-500", icon: isOnline ? "🟢" : "🔴" },
         ].map(({ label, value, color, icon }) => (
           <div key={label} className="rounded-xl p-2.5 text-center"
@@ -714,7 +714,7 @@ export default function DeliveryDashboard() {
                   <div className="text-right flex flex-col items-end gap-0.5">
                     {order?.rider_payout != null && (
                       <>
-                        <span className="text-[10px] font-bold text-green-600 uppercase tracking-widest">Your Earning</span>
+                        <span className="text-[10px] font-bold text-green-600 uppercase tracking-widest">Rider Earning</span>
                         <p className="text-lg font-black text-green-600 leading-none">{formatPrice(order.rider_payout)}</p>
                       </>
                     )}
@@ -916,7 +916,7 @@ export default function DeliveryDashboard() {
                           <Banknote size={20} />
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-green-700 uppercase tracking-wide">Your Earning</p>
+                          <p className="text-xs font-bold text-green-700 uppercase tracking-wide">Rider Earning</p>
                           <p className="text-sm text-green-800">For delivering this order</p>
                         </div>
                       </div>

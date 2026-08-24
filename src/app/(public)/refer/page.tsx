@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useEffect, useState, useCallback } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { useRouter } from "next/navigation";
@@ -61,8 +61,8 @@ export default function ReferPage() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Royal Zaika — Join karo aur discount pao!",
-          text: `Mera referral code use karo: ${data.code} — Royal Zaika par signup karo aur tasty khana order karo! 🍱`,
+          title: "Royals Zaika — Join karo aur discount pao!",
+          text: `Mera referral code use karo: ${data.code} — Royals Zaika par signup karo aur tasty khana order karo! 🍱`,
           url: data.shareLink,
         });
       } catch { /* user cancelled */ }

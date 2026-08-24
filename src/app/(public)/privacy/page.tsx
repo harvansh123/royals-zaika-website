@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
 import { Shield, ChevronRight } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Royal Zaika",
+  title: "Privacy Policy — Royals Zaika",
   description:
-    "Read Royal Zaika's Privacy Policy to understand how we collect, use, and protect your personal information when you use our food ordering platform.",
+    "Read Royals Zaika's Privacy Policy to understand how we collect, use, and protect your personal information when you use our food ordering platform.",
 };
 
 const sections = [
@@ -106,12 +106,12 @@ export default function PrivacyPolicyPage() {
             <section id="introduction">
               <SectionHeading number="1" title="Introduction" />
               <p className="mb-3">
-                Welcome to <strong className="text-white">Royal Zaika</strong> (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or
+                Welcome to <strong className="text-white">Royals Zaika</strong> (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or
                 &ldquo;our&rdquo;). We operate an online food ordering platform that connects customers
                 with our restaurant for convenient doorstep delivery and takeaway services.
               </p>
               <p className="mb-3">
-                This Privacy Policy explains how Royal Zaika collects, uses, discloses, and
+                This Privacy Policy explains how Royals Zaika collects, uses, discloses, and
                 protects your personal information when you use our website, mobile-optimised
                 web application, or any related services (collectively, the &ldquo;Platform&rdquo;). By
                 accessing or using our Platform, you agree to the practices described in this
@@ -416,7 +416,7 @@ export default function PrivacyPolicyPage() {
             <section id="account-deletion">
               <SectionHeading number="10" title="Account Deletion Policy" />
               <p className="mb-3">
-                You have the right to request deletion of your Royal Zaika account. Upon deletion:
+                You have the right to request deletion of your Royals Zaika account. Upon deletion:
               </p>
               <InfoList items={[
                 "Your profile information (name, email, phone number) will be permanently removed.",
@@ -481,7 +481,7 @@ export default function PrivacyPolicyPage() {
                 className="rounded-2xl p-6 space-y-3 text-sm"
                 style={{ background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.2)" }}
               >
-                <p><span className="text-orange-400 font-semibold">Restaurant:</span> <span className="text-white">Royal Zaika</span></p>
+                <p><span className="text-orange-400 font-semibold">Restaurant:</span> <span className="text-white">Royals Zaika</span></p>
                 <p><span className="text-orange-400 font-semibold">Address:</span> <span className="text-white">474 Chak Raghunath, Naini, Prayagraj, Uttar Pradesh – 211008</span></p>
                 <p><span className="text-orange-400 font-semibold">Privacy Email:</span>{" "}
                   <a href="mailto:harvanshchaurasia@gmail.com" className="text-orange-400 hover:underline">harvanshchaurasia@gmail.com</a>
