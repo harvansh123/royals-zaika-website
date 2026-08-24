@@ -42,7 +42,6 @@ export default function AuthPage() {
       if (mode === "signup") {
         // ── Signup validation ──────────────────────────────────────────
         if (!form.name.trim()) throw new Error("Full name is required");
-        if (!form.identifier.trim()) throw new Error("Email address is required");
         if (!form.phone.trim()) throw new Error("Mobile number is required");
         if (!validateIndianPhone(form.phone)) {
           throw new Error("Enter a valid 10-digit Indian mobile number (starting with 6–9)");
@@ -51,9 +50,11 @@ export default function AuthPage() {
         if (form.password !== form.confirmPassword) throw new Error("Passwords do not match");
 
         const cleanPhone = normalizePhone(form.phone);
+        // Auto-generate email from phone — customer doesn't need to enter email
+        const autoEmail = `${cleanPhone.replace("+", "")}@royalzaika.customer`;
 
         const { data, error } = await supabase.auth.signUp({
-          email: form.identifier.trim(),
+          email: autoEmail,
           password: form.password,
           options: {
             data: {
@@ -74,9 +75,6 @@ export default function AuthPage() {
           });
           const json = await res.json();
           if (!res.ok) {
-            // Phone taken — delete the auth user? No, Supabase doesn't let us easily.
-            // Instead, surface the error so the user knows their account was created
-            // but phone isn't saved yet. They can update it from Profile.
             toast.error(json.error ?? "Account created but mobile number could not be saved. Update it from Profile.");
             setMode("login");
             setLoading(false);
@@ -84,7 +82,7 @@ export default function AuthPage() {
           }
         }
 
-        toast.success("Account created! Check your email to confirm.");
+        toast.success("Account created! You can now sign in 🎉");
         setMode("login");
 
       } else {
@@ -286,22 +284,24 @@ export default function AuthPage() {
               />
             )}
 
-            {/* Email / Identifier */}
-            <div className="relative">
-              {mode === "login" && !form.identifier.includes("@") && form.identifier.length > 0
-                ? <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
-                : <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
-              }
-              <input
-                type={mode === "signup" ? "email" : "text"}
-                value={form.identifier}
-                onChange={(e) => update("identifier", e.target.value)}
-                placeholder={mode === "signup" ? "Email Address" : "Email Address or Mobile Number"}
-                required
-                autoComplete={mode === "signup" ? "email" : "username"}
-                className="input-field pl-11"
-              />
-            </div>
+            {/* Email / Identifier — shown only in login mode (signup uses phone for auto-email) */}
+            {mode === "login" && (
+              <div className="relative">
+                {!form.identifier.includes("@") && form.identifier.length > 0
+                  ? <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
+                  : <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
+                }
+                <input
+                  type="text"
+                  value={form.identifier}
+                  onChange={(e) => update("identifier", e.target.value)}
+                  placeholder="Email Address or Mobile Number"
+                  required
+                  autoComplete="username"
+                  className="input-field pl-11"
+                />
+              </div>
+            )}
 
             {/* Phone — signup only */}
             {mode === "signup" && (
