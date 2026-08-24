@@ -295,7 +295,7 @@ export default function AuthPage() {
                   type="text"
                   value={form.identifier}
                   onChange={(e) => update("identifier", e.target.value)}
-                  placeholder="Email Address or Mobile Number"
+                  placeholder={role === "customer" ? "Enter your mobile number" : "Email Address"}
                   required
                   autoComplete="username"
                   className="input-field pl-11"
