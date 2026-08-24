@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { performSignOut } from "@/lib/sign-out";
+import { RecoverySetupPopup } from "@/components/auth/RecoverySetupPopup";
 
 const tabs = [
   { href: "/owner",               icon: LayoutDashboard, label: "Dashboard"  },
@@ -118,6 +119,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
       >
         {children}
       </main>
+      <RecoverySetupPopup />
 
       {/* ── Mobile Bottom Tab Bar ─────────────────────────────────────── */}
       <nav

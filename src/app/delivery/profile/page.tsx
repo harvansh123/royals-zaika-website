@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   User, Phone, Mail, Camera, Lock, Save, Loader2,
   Eye, EyeOff, ChevronLeft, CheckCircle, Bike, Hash, Clock,
-  WifiOff, Wifi, TrendingUp, Calendar, RefreshCw, HelpCircle, LogOut,
+  WifiOff, Wifi, TrendingUp, Calendar, RefreshCw, HelpCircle, LogOut, Shield,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import Image from "next/image";
@@ -75,6 +75,20 @@ export default function RiderProfilePage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [saved,           setSaved]           = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
+
+  // ── Security section state ─────────────────────────────────────────
+  const [secStatus, setSecStatus]     = useState<{ hasPIN: boolean; hasRecoveryEmail: boolean; recoveryEmail: string | null } | null>(null);
+  const [secLoading, setSecLoading]   = useState(false);
+  const [secOpen, setSecOpen]         = useState(false);
+  const [pinMode, setPinMode]         = useState<"view" | "set" | "change">("view");
+  const [pinInput, setPinInput]       = useState("");
+  const [pinConfirm, setPinConfirm]   = useState("");
+  const [savingPin, setSavingPin]     = useState(false);
+  const [emailMode, setEmailMode]     = useState<"view" | "link" | "otp">("view");
+  const [emailInput, setEmailInput]   = useState("");
+  const [otpInput, setOtpInput]       = useState("");
+  const [sendingOtp, setSendingOtp]   = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
 
   // ── Shift timing ──────────────────────────────────────────────────
   const [shiftEnabled, setShiftEnabled] = useState(false);
@@ -330,6 +344,87 @@ export default function RiderProfilePage() {
     setUser(null);
     toast.success("Signed out successfully");
     await performSignOut();
+  }
+
+  // ── Security helpers ───────────────────────────────────────────────
+  async function fetchSecStatus() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return;
+    setSecLoading(true);
+    try {
+      const res = await fetch("/api/auth/recovery-status", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.ok) { const d = await res.json(); setSecStatus(d); }
+    } catch { /* silent */ }
+    setSecLoading(false);
+  }
+
+  async function handleSavePin() {
+    if (!/^\d{4}$/.test(pinInput)) { toast.error("PIN must be 4 digits"); return; }
+    if (pinInput !== pinConfirm) { toast.error("PINs do not match"); return; }
+    setSavingPin(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    try {
+      const res = await fetch("/api/auth/set-recovery-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ action: secStatus?.hasPIN ? "change" : "set", pin: pinInput }),
+      });
+      const d = await res.json();
+      if (!res.ok) toast.error(d.error ?? "Failed");
+      else { toast.success(d.message); setPinMode("view"); setPinInput(""); setPinConfirm(""); fetchSecStatus(); }
+    } catch { toast.error("Network error"); }
+    setSavingPin(false);
+  }
+
+  async function handleRemovePin() {
+    if (!confirm("Recovery PIN remove karna chahte ho?")) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    try {
+      const res = await fetch("/api/auth/set-recovery-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ action: "remove" }),
+      });
+      const d = await res.json();
+      if (!res.ok) toast.error(d.error ?? "Failed");
+      else { toast.success("Recovery PIN removed"); fetchSecStatus(); }
+    } catch { toast.error("Network error"); }
+  }
+
+  async function handleSendOtp() {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)) { toast.error("Valid email enter karein"); return; }
+    setSendingOtp(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    try {
+      const res = await fetch("/api/auth/link-recovery-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ email: emailInput }),
+      });
+      const d = await res.json();
+      if (!res.ok) toast.error(d.error ?? "Failed");
+      else { toast.success("OTP sent!"); setEmailMode("otp"); }
+    } catch { toast.error("Network error"); }
+    setSendingOtp(false);
+  }
+
+  async function handleVerifyOtp() {
+    if (!otpInput.trim()) { toast.error("OTP enter karein"); return; }
+    setVerifyingOtp(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    try {
+      const res = await fetch("/api/auth/verify-recovery-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ otp: otpInput }),
+      });
+      const d = await res.json();
+      if (!res.ok) toast.error(d.error ?? "Incorrect OTP");
+      else { toast.success("Email verified! ✅"); setEmailMode("view"); setOtpInput(""); fetchSecStatus(); }
+    } catch { toast.error("Network error"); }
+    setVerifyingOtp(false);
   }
 
   // ── Auto-schedule: go online at shift start, offline at shift end ──
@@ -867,6 +962,146 @@ export default function RiderProfilePage() {
           <p className="text-sm mb-4" style={{ color: "var(--text-muted)" }}>View your recent support requests below.</p>
           <TicketHistoryList userType="rider" />
         </div>
+      </div>
+
+      {/* ── Account Security ─────────────────────────────────────── */}
+      <div className="rounded-2xl overflow-hidden mb-5" style={sectionStyle}>
+        <button
+          onClick={() => { setSecOpen(o => !o); if (!secStatus) fetchSecStatus(); }}
+          className="w-full px-6 py-4 flex items-center justify-between"
+          style={sectionHeaderStyle}
+        >
+          <p className="font-bold text-base flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
+            <Shield size={16} className="text-green-500" /> Account Security
+            {secStatus && (secStatus.hasPIN && secStatus.hasRecoveryEmail)
+              ? <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">✅ Secured</span>
+              : secStatus
+              ? <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">⚠️ Incomplete</span>
+              : null}
+          </p>
+          <span style={{ color: "var(--text-muted)", fontSize: 18 }}>{secOpen ? "▲" : "▼"}</span>
+        </button>
+
+        {secOpen && (
+          <div className="px-6 pb-6 space-y-5">
+            {secLoading ? (
+              <div className="flex justify-center py-4"><Loader2 size={20} className="animate-spin text-orange-400" /></div>
+            ) : (
+              <>
+                {/* Owner/Rider: show their login email as default */}
+                <div className="rounded-xl p-4" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border)" }}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <Mail size={16} className="text-blue-500" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>Recovery Email</p>
+                      <p className="text-xs" style={{ color: "var(--text-muted)" }}>Reset link isi email pe aayega</p>
+                    </div>
+                    {secStatus?.hasRecoveryEmail && <CheckCircle size={16} className="text-green-500" />}
+                  </div>
+                  <p className="text-xs px-3 py-2 rounded-lg mb-3 bg-blue-50 text-blue-700 border border-blue-100">
+                    ℹ️ Aapka login email ({email}) automatically recovery ke liye available hai.
+                    Aap chahen to alag email bhi set kar sakte hain.
+                  </p>
+                  {secStatus?.recoveryEmail && emailMode === "view" && (
+                    <p className="text-xs px-3 py-2 rounded-lg mb-3" style={{ background: "var(--card-bg)", color: "var(--text-secondary)" }}>
+                      📧 Custom: {secStatus.recoveryEmail}
+                    </p>
+                  )}
+                  {emailMode === "view" && (
+                    <button onClick={() => { setEmailMode("link"); setEmailInput(secStatus?.recoveryEmail ?? ""); }}
+                      className="text-xs font-semibold px-3 py-2 rounded-lg transition-all"
+                      style={{ background: "var(--card-bg)", color: "var(--text-primary)", border: "1px solid var(--border)" }}>
+                      {secStatus?.recoveryEmail ? "Change Custom Email" : "Set Custom Recovery Email"}
+                    </button>
+                  )}
+                  {emailMode === "link" && (
+                    <div className="space-y-2">
+                      <input type="email" placeholder="you@example.com" value={emailInput}
+                        onChange={e => setEmailInput(e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
+                        style={{ background: "var(--card-bg)", border: "1.5px solid var(--border)", color: "var(--text-primary)" }} />
+                      <div className="flex gap-2">
+                        <button onClick={handleSendOtp} disabled={sendingOtp}
+                          className="flex-1 py-2 rounded-lg font-bold text-xs text-white gradient-brand disabled:opacity-60 flex items-center justify-center gap-1">
+                          {sendingOtp ? <Loader2 size={12} className="animate-spin" /> : "Send OTP"}
+                        </button>
+                        <button onClick={() => setEmailMode("view")} className="px-3 py-2 rounded-lg text-xs"
+                          style={{ background: "var(--card-bg)", color: "var(--text-muted)" }}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
+                  {emailMode === "otp" && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-green-600">✅ OTP bhej diya — email check karein</p>
+                      <input type="text" inputMode="numeric" placeholder="6-digit OTP" maxLength={6} value={otpInput}
+                        onChange={e => setOtpInput(e.target.value.replace(/\D/g,"").slice(0,6))}
+                        className="w-full px-3 py-2.5 rounded-xl text-sm text-center tracking-widest font-bold focus:outline-none"
+                        style={{ background: "var(--card-bg)", border: "1.5px solid var(--border)", color: "var(--text-primary)" }} />
+                      <div className="flex gap-2">
+                        <button onClick={handleVerifyOtp} disabled={verifyingOtp || otpInput.length < 6}
+                          className="flex-1 py-2 rounded-lg font-bold text-xs text-white gradient-brand disabled:opacity-60 flex items-center justify-center gap-1">
+                          {verifyingOtp ? <Loader2 size={12} className="animate-spin" /> : "Verify"}
+                        </button>
+                        <button onClick={() => { setEmailMode("link"); setOtpInput(""); }}
+                          className="px-3 py-2 rounded-lg text-xs" style={{ background: "var(--card-bg)", color: "var(--text-muted)" }}>
+                          Resend
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Recovery PIN */}
+                <div className="rounded-xl p-4" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border)" }}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <Lock size={16} className="text-green-500" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>Recovery PIN</p>
+                      <p className="text-xs" style={{ color: "var(--text-muted)" }}>4-digit PIN se password reset karein</p>
+                    </div>
+                    {secStatus?.hasPIN && <CheckCircle size={16} className="text-green-500" />}
+                  </div>
+                  {!secStatus?.hasPIN && pinMode === "view" && (
+                    <p className="text-xs mb-3 px-3 py-2 rounded-lg bg-orange-50 text-orange-700 border border-orange-100">⚠️ PIN set nahi hai</p>
+                  )}
+                  {pinMode === "view" && (
+                    <div className="flex gap-2">
+                      <button onClick={() => { setPinMode(secStatus?.hasPIN ? "change" : "set"); setPinInput(""); setPinConfirm(""); }}
+                        className="text-xs font-semibold px-3 py-2 rounded-lg"
+                        style={{ background: "var(--card-bg)", color: "var(--text-primary)", border: "1px solid var(--border)" }}>
+                        {secStatus?.hasPIN ? "Change PIN" : "Set PIN"}
+                      </button>
+                      {secStatus?.hasPIN && (
+                        <button onClick={handleRemovePin} className="text-xs font-semibold px-3 py-2 rounded-lg text-red-500"
+                          style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)" }}>Remove</button>
+                      )}
+                    </div>
+                  )}
+                  {(pinMode === "set" || pinMode === "change") && (
+                    <div className="space-y-2">
+                      <input type="password" inputMode="numeric" placeholder="New 4-digit PIN" maxLength={4}
+                        value={pinInput} onChange={e => setPinInput(e.target.value.replace(/\D/g,"").slice(0,4))}
+                        className="w-full text-center py-3 rounded-xl text-xl font-black tracking-[0.5em] focus:outline-none"
+                        style={{ background: "var(--card-bg)", border: "1.5px solid var(--border)", color: "var(--text-primary)" }} />
+                      <input type="password" inputMode="numeric" placeholder="Confirm PIN" maxLength={4}
+                        value={pinConfirm} onChange={e => setPinConfirm(e.target.value.replace(/\D/g,"").slice(0,4))}
+                        className="w-full text-center py-3 rounded-xl text-xl font-black tracking-[0.5em] focus:outline-none"
+                        style={{ background: "var(--card-bg)", border: "1.5px solid var(--border)", color: "var(--text-primary)" }} />
+                      <div className="flex gap-2">
+                        <button onClick={handleSavePin} disabled={savingPin || pinInput.length < 4}
+                          className="flex-1 py-2 rounded-lg font-bold text-xs text-white gradient-brand disabled:opacity-60 flex items-center justify-center gap-1">
+                          {savingPin ? <Loader2 size={12} className="animate-spin" /> : "Save PIN"}
+                        </button>
+                        <button onClick={() => setPinMode("view")}
+                          className="px-3 py-2 rounded-lg text-xs" style={{ background: "var(--card-bg)", color: "var(--text-muted)" }}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Logout ──────────────────────────────────────────────────── */}

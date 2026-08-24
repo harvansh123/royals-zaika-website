@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
@@ -338,6 +338,19 @@ export default function AuthPage() {
                 {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+
+            {/* Forgot Password — login mode only */}
+            {mode === "login" && (
+              <div className="text-right -mt-1">
+                <a
+                  href={`/auth/forgot-password?role=${role ?? "customer"}`}
+                  className="text-xs font-semibold hover:underline transition-all"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Forgot Password?
+                </a>
+              </div>
+            )}
 
             {/* Confirm Password — signup only */}
             {mode === "signup" && (

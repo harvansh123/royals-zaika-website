@@ -7,7 +7,7 @@ import {
   User, Phone, Mail, Save, Loader2, Package,
   ChevronRight, LogOut, LayoutDashboard, ChefHat,
   MapPin, Plus, Trash2, Navigation, Star, Home, Briefcase,
-  Lock, Eye, EyeOff, ExternalLink
+  Lock, Eye, EyeOff, ExternalLink, Shield, CheckCircle, X
 } from "lucide-react";
 import toast from "react-hot-toast";
 import Link from "next/link";
@@ -19,7 +19,7 @@ import TicketHistoryList from "@/components/support/TicketHistoryList";
 import { HelpCircle } from "lucide-react";
 import { performSignOut } from "@/lib/sign-out";
 
-type Tab = "profile" | "orders" | "addresses" | "password" | "support";
+type Tab = "profile" | "orders" | "addresses" | "password" | "support" | "security";
 
 const LABEL_ICONS: Record<string, React.ReactNode> = {
   Home:  <Home size={14} />,
@@ -54,6 +54,18 @@ export default function ProfilePage() {
   const [showSupportModal, setShowSupportModal] = useState(false);
   // ── Order Counter / Loyalty ───────────────────────────────────────────────────
   const [completedOrders, setCompletedOrders] = useState<number | null>(null);
+  // ── Security Tab state ────────────────────────────────────────────────────────
+  const [secStatus, setSecStatus] = useState<{ hasPIN: boolean; hasRecoveryEmail: boolean; recoveryEmail: string | null } | null>(null);
+  const [secLoading, setSecLoading]   = useState(false);
+  const [pinMode, setPinMode]         = useState<"view" | "set" | "change">("view");
+  const [pinInput, setPinInput]       = useState("");
+  const [pinConfirm, setPinConfirm]   = useState("");
+  const [savingPin, setSavingPin]     = useState(false);
+  const [emailMode, setEmailMode]     = useState<"view" | "link" | "otp">("view");
+  const [emailInput, setEmailInput]   = useState("");
+  const [otpInput, setOtpInput]       = useState("");
+  const [sendingOtp, setSendingOtp]   = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
 
   function getCustomerLoyalty(n: number | null): { label: string; emoji: string; color: string } {
     const c = n ?? 0;
@@ -151,6 +163,99 @@ export default function ProfilePage() {
     setUser(null);
     await performSignOut();
   }
+
+  // ── Security Tab helpers ────────────────────────────────────────────────────
+  async function fetchSecStatus() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return;
+    setSecLoading(true);
+    try {
+      const res = await fetch("/api/auth/recovery-status", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.ok) { const d = await res.json(); setSecStatus(d); }
+    } catch { /* silent */ }
+    setSecLoading(false);
+  }
+
+  async function handleSavePin() {
+    if (!/^\d{4}$/.test(pinInput)) { toast.error("PIN must be exactly 4 digits"); return; }
+    if (pinInput !== pinConfirm)   { toast.error("PINs do not match"); return; }
+    setSavingPin(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    try {
+      const res = await fetch("/api/auth/set-recovery-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ action: secStatus?.hasPIN ? "change" : "set", pin: pinInput }),
+      });
+      const d = await res.json();
+      if (!res.ok) { toast.error(d.error ?? "Failed"); }
+      else { toast.success(d.message); setPinMode("view"); setPinInput(""); setPinConfirm(""); fetchSecStatus(); }
+    } catch { toast.error("Network error"); }
+    setSavingPin(false);
+  }
+
+  async function handleRemovePin() {
+    if (!confirm("Recovery PIN remove karna chahte ho?")) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    try {
+      const res = await fetch("/api/auth/set-recovery-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ action: "remove" }),
+      });
+      const d = await res.json();
+      if (!res.ok) toast.error(d.error ?? "Failed");
+      else { toast.success("Recovery PIN removed"); fetchSecStatus(); }
+    } catch { toast.error("Network error"); }
+  }
+
+  async function handleSendOtp() {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)) { toast.error("Valid email enter karein"); return; }
+    setSendingOtp(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    try {
+      const res = await fetch("/api/auth/link-recovery-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ email: emailInput }),
+      });
+      const d = await res.json();
+      if (!res.ok) toast.error(d.error ?? "Failed");
+      else { toast.success("OTP sent! Email check karein."); setEmailMode("otp"); }
+    } catch { toast.error("Network error"); }
+    setSendingOtp(false);
+  }
+
+  async function handleVerifyOtp() {
+    if (!otpInput.trim()) { toast.error("OTP enter karein"); return; }
+    setVerifyingOtp(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    try {
+      const res = await fetch("/api/auth/verify-recovery-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ otp: otpInput }),
+      });
+      const d = await res.json();
+      if (!res.ok) toast.error(d.error ?? "Incorrect OTP");
+      else { toast.success("Email verified! ✅"); setEmailMode("view"); setOtpInput(""); fetchSecStatus(); }
+    } catch { toast.error("Network error"); }
+    setVerifyingOtp(false);
+  }
+
+  // Load security status when security tab opened; also read ?tab= from URL
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      const t = p.get("tab") as Tab | null;
+      if (t && ["profile","orders","addresses","password","support","security"].includes(t)) setTab(t);
+    }
+  }, []);
+  useEffect(() => {
+    if (tab === "security" && !secStatus && !secLoading) fetchSecStatus();
+  }, [tab]);
 
   // ── Use Current Location ─────────────────────────────────────────────
   // Refs hold the freshest GPS coords synchronously so the Supabase insert
@@ -289,6 +394,7 @@ export default function ProfilePage() {
     { id: "profile",   label: "Profile",   icon: <User size={15} /> },
     { id: "orders",    label: "Orders",    icon: <Package size={15} /> },
     { id: "addresses", label: "Addresses", icon: <MapPin size={15} /> },
+    { id: "security",  label: "Security",  icon: <Shield size={15} /> },
     { id: "support",   label: "Support",   icon: <HelpCircle size={15} /> },
   ];
 
@@ -695,6 +801,145 @@ export default function ProfilePage() {
               <TicketHistoryList userType="customer" />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════ TAB: SECURITY ══ */}
+      {tab === "security" && (
+        <div className="space-y-4">
+          {secLoading && (
+            <div className="flex justify-center py-8"><Loader2 size={24} className="animate-spin text-orange-400" /></div>
+          )}
+          {!secLoading && (
+            <>
+              {/* ── Recovery Email ── */}
+              <div className="rounded-2xl p-5" style={{ background: "var(--card-bg)", border: "1px solid var(--border)" }}>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center"><Mail size={18} className="text-blue-600" /></div>
+                  <div>
+                    <p className="font-bold text-sm" style={{ color: "var(--text-primary)" }}>Recovery Email</p>
+                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>Password reset link isi email pe aayega</p>
+                  </div>
+                  {secStatus?.hasRecoveryEmail && (
+                    <span className="ml-auto flex items-center gap-1 text-xs font-bold text-green-600"><CheckCircle size={14} /> Verified</span>
+                  )}
+                </div>
+
+                {secStatus?.recoveryEmail && emailMode === "view" && (
+                  <p className="text-sm px-3 py-2 rounded-lg mb-3" style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>
+                    📧 {secStatus.recoveryEmail}
+                  </p>
+                )}
+                {!secStatus?.hasRecoveryEmail && emailMode === "view" && (
+                  <p className="text-xs mb-3 px-3 py-2 rounded-lg bg-orange-50 text-orange-700 border border-orange-100">
+                    ⚠️ Recovery email set nahi hai. Set karein taaki forgot password mein kaam aaye.
+                  </p>
+                )}
+
+                {emailMode === "view" && (
+                  <button onClick={() => { setEmailMode("link"); setEmailInput(secStatus?.recoveryEmail ?? ""); }}
+                    className="text-sm font-semibold px-4 py-2 rounded-xl transition-all"
+                    style={{ background: "var(--bg-secondary)", color: "var(--text-primary)", border: "1px solid var(--border)" }}>
+                    {secStatus?.hasRecoveryEmail ? "Change Email" : "Link Email"}
+                  </button>
+                )}
+                {emailMode === "link" && (
+                  <div className="space-y-3">
+                    <input type="email" placeholder="you@example.com" value={emailInput}
+                      onChange={e => setEmailInput(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400/30"
+                      style={{ background: "var(--input-bg)", border: "1.5px solid var(--border)", color: "var(--text-primary)" }} />
+                    <div className="flex gap-2">
+                      <button onClick={handleSendOtp} disabled={sendingOtp}
+                        className="flex-1 py-2.5 rounded-xl font-bold text-sm text-white gradient-brand disabled:opacity-60 flex items-center justify-center gap-2">
+                        {sendingOtp ? <Loader2 size={14} className="animate-spin" /> : "Send OTP"}
+                      </button>
+                      <button onClick={() => setEmailMode("view")} className="px-4 py-2.5 rounded-xl text-sm"
+                        style={{ background: "var(--bg-secondary)", color: "var(--text-muted)" }}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+                {emailMode === "otp" && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-green-600 font-medium">✅ OTP bhej diya gaya — email check karein</p>
+                    <input type="text" inputMode="numeric" placeholder="6-digit OTP" maxLength={6} value={otpInput}
+                      onChange={e => setOtpInput(e.target.value.replace(/\D/g,"").slice(0,6))}
+                      className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400/30 text-center tracking-widest font-bold"
+                      style={{ background: "var(--input-bg)", border: "1.5px solid var(--border)", color: "var(--text-primary)" }} />
+                    <div className="flex gap-2">
+                      <button onClick={handleVerifyOtp} disabled={verifyingOtp || otpInput.length < 6}
+                        className="flex-1 py-2.5 rounded-xl font-bold text-sm text-white gradient-brand disabled:opacity-60 flex items-center justify-center gap-2">
+                        {verifyingOtp ? <Loader2 size={14} className="animate-spin" /> : "Verify OTP"}
+                      </button>
+                      <button onClick={() => { setEmailMode("link"); setOtpInput(""); }}
+                        className="px-4 py-2.5 rounded-xl text-sm" style={{ background: "var(--bg-secondary)", color: "var(--text-muted)" }}>
+                        Resend
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Recovery PIN ── */}
+              <div className="rounded-2xl p-5" style={{ background: "var(--card-bg)", border: "1px solid var(--border)" }}>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-9 h-9 rounded-xl bg-green-100 flex items-center justify-center"><Lock size={18} className="text-green-600" /></div>
+                  <div>
+                    <p className="font-bold text-sm" style={{ color: "var(--text-primary)" }}>Recovery PIN</p>
+                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>4-digit PIN se bina email ke password reset karein</p>
+                  </div>
+                  {secStatus?.hasPIN && (
+                    <span className="ml-auto flex items-center gap-1 text-xs font-bold text-green-600"><CheckCircle size={14} /> Set</span>
+                  )}
+                </div>
+
+                {!secStatus?.hasPIN && pinMode === "view" && (
+                  <p className="text-xs mb-3 px-3 py-2 rounded-lg bg-orange-50 text-orange-700 border border-orange-100">
+                    ⚠️ Recovery PIN set nahi hai. Set karein taaki easily password reset kar sako.
+                  </p>
+                )}
+
+                {pinMode === "view" && (
+                  <div className="flex gap-2">
+                    <button onClick={() => { setPinMode(secStatus?.hasPIN ? "change" : "set"); setPinInput(""); setPinConfirm(""); }}
+                      className="text-sm font-semibold px-4 py-2 rounded-xl transition-all"
+                      style={{ background: "var(--bg-secondary)", color: "var(--text-primary)", border: "1px solid var(--border)" }}>
+                      {secStatus?.hasPIN ? "Change PIN" : "Set PIN"}
+                    </button>
+                    {secStatus?.hasPIN && (
+                      <button onClick={handleRemovePin}
+                        className="text-sm font-semibold px-4 py-2 rounded-xl text-red-500 transition-all"
+                        style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)" }}>
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                )}
+                {(pinMode === "set" || pinMode === "change") && (
+                  <div className="space-y-3">
+                    <input type="password" inputMode="numeric" placeholder={`New 4-digit PIN`} maxLength={4}
+                      value={pinInput} onChange={e => setPinInput(e.target.value.replace(/\D/g,"").slice(0,4))}
+                      className="w-full text-center py-3 rounded-xl text-xl font-black tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-orange-400/30"
+                      style={{ background: "var(--input-bg)", border: "1.5px solid var(--border)", color: "var(--text-primary)" }} />
+                    <input type="password" inputMode="numeric" placeholder="Confirm PIN" maxLength={4}
+                      value={pinConfirm} onChange={e => setPinConfirm(e.target.value.replace(/\D/g,"").slice(0,4))}
+                      className="w-full text-center py-3 rounded-xl text-xl font-black tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-orange-400/30"
+                      style={{ background: "var(--input-bg)", border: "1.5px solid var(--border)", color: "var(--text-primary)" }} />
+                    <div className="flex gap-2">
+                      <button onClick={handleSavePin} disabled={savingPin || pinInput.length < 4}
+                        className="flex-1 py-2.5 rounded-xl font-bold text-sm text-white gradient-brand disabled:opacity-60 flex items-center justify-center gap-2">
+                        {savingPin ? <Loader2 size={14} className="animate-spin" /> : "Save PIN"}
+                      </button>
+                      <button onClick={() => setPinMode("view")}
+                        className="px-4 py-2.5 rounded-xl text-sm" style={{ background: "var(--bg-secondary)", color: "var(--text-muted)" }}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
 
