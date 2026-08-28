@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Mail, Phone, Eye, EyeOff, ArrowRight, ChefHat, ShoppingBag } from "lucide-react";
 import toast from "react-hot-toast";
-import { cn } from "@/lib/utils";
-import { validateIndianPhone, normalizePhone } from "@/lib/utils";
+import { cn, validateIndianPhone, normalizePhone } from "@/lib/utils";
+import { useAuthStore } from "@/stores/authStore";
 
 type Role = "customer" | "owner" | "rider";
 type Mode = "login" | "signup";
@@ -105,24 +105,39 @@ export default function AuthPage() {
           emailToUse = json.email;
         }
 
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data: authData, error } = await supabase.auth.signInWithPassword({
           email: emailToUse, password: form.password,
         });
         if (error) throw error;
 
         toast.success("Welcome back! 👋");
+
+        const targetRole = role === "owner" ? "restaurant_owner" : role === "rider" ? "delivery" : "customer";
         try {
-          const res = await fetch("/api/auth/role", { credentials: "include" });
+          const res = await fetch(`/api/auth/role?role=${targetRole}`, {
+            headers: {
+              Authorization: `Bearer ${authData.session?.access_token}`,
+            },
+          });
           if (res.ok) {
             const { profile } = await res.json();
-            const userRole = profile?.role;
-            if (userRole === "admin")            { router.push("/admin");    router.refresh(); return; }
-            if (userRole === "restaurant_owner") { router.push("/owner");    router.refresh(); return; }
-            if (userRole === "delivery")         { router.push("/delivery"); router.refresh(); return; }
+            if (profile) {
+              useAuthStore.getState().setUser(profile);
+              const userRole = profile.role;
+              if (userRole === "admin")            { window.location.href = "/admin";    return; }
+              if (userRole === "restaurant_owner") { window.location.href = "/owner";    return; }
+              if (userRole === "delivery")         { window.location.href = "/delivery"; return; }
+              window.location.href = "/menu";
+              return;
+            }
           }
-        } catch { /* fall through */ }
-        router.push("/menu");
-        router.refresh();
+        } catch (e) {
+          console.error("Role fetch failed:", e);
+        }
+
+        if (role === "owner") window.location.href = "/owner";
+        else if (role === "rider") window.location.href = "/delivery";
+        else window.location.href = "/menu";
       }
     } catch (err: any) {
       toast.error(err.message ?? "Something went wrong");

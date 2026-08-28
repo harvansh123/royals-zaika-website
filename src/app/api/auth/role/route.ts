@@ -14,21 +14,36 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const requestedRole = searchParams.get("role");
 
-    // 1. Verify the caller is actually authenticated (uses anon + session cookie)
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return cookieStore.getAll(); },
-          setAll() {},
-        },
-      }
-    );
+    let user: any = null;
 
-    const { data: { user }, error: authErr } = await supabase.auth.getUser();
-    if (authErr || !user) {
+    // First try Authorization header token (fastest & works directly after client-side signInWithPassword)
+    const authHeader = request.headers.get("Authorization");
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.replace("Bearer ", "").trim();
+      if (token) {
+        const { data } = await adminClient.auth.getUser(token);
+        user = data.user ?? null;
+      }
+    }
+
+    // Fallback to SSR cookie store
+    if (!user) {
+      const cookieStore = await cookies();
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            getAll() { return cookieStore.getAll(); },
+            setAll() {},
+          },
+        }
+      );
+      const { data: { user: cookieUser } } = await supabase.auth.getUser();
+      user = cookieUser ?? null;
+    }
+
+    if (!user) {
       return NextResponse.json({ role: null }, { status: 401 });
     }
 
