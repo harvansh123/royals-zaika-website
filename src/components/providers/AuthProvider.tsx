@@ -57,7 +57,13 @@ async function resolveUser(session: Session): Promise<User> {
   }
 
   try {
-    const res = await fetch("/api/auth/role", { credentials: "include" });
+    // Send Bearer token so the API works immediately on fresh login
+    // (Vercel edge cookies may not propagate instantly after signInWithPassword)
+    const token = session.access_token;
+    const res = await fetch("/api/auth/role", {
+      credentials: "include",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     if (res.ok) {
       const { profile } = await res.json();
       if (profile) {
@@ -82,10 +88,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     cancelledRef.current = false;
 
-    // ── Safety timeout: if nothing responds in 5 s, stop loading ──────
+    // ── Safety timeout: if nothing responds in 2 s, stop loading ──────
     const safetyTimer = setTimeout(() => {
       if (!cancelledRef.current) setLoading(false);
-    }, 5000);
+    }, 2000);
 
     // ── Initial session check ──────────────────────────────────────────
     supabase.auth
