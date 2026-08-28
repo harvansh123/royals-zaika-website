@@ -23,7 +23,6 @@ type Role = "customer" | "owner" | "rider";
 type Mode = "login" | "signup";
 
 export default function AuthPage() {
-  const router = useRouter();
   const [role, setRole]         = useState<Role | null>(null);
   const [mode, setMode]         = useState<Mode>("login");
   const [loading, setLoading]   = useState(false);
