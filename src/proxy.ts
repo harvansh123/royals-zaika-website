@@ -1,13 +1,17 @@
 import { createServerClient } from "@supabase/ssr";
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Service-role client: bypasses ALL RLS policies — safe to use server-side only
-function getAdminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+// ── Read role purely from JWT metadata — ZERO DB calls ───────────────────────
+// Supabase sets user_metadata.role during signUp (options.data.role).
+// Google OAuth sets it in the callback. This is always present in the JWT
+// so we never need a DB round-trip inside Edge middleware.
+function getRoleFromUser(user: any): string {
+  const meta = user?.user_metadata ?? {};
+  const r = meta.role ?? meta.full_role ?? null;
+  if (r === "restaurant_owner" || r === "admin" || r === "delivery" || r === "customer") return r;
+  // Fallback: inspect email pattern for legacy customers
+  if (user?.email?.endsWith("@royalzaika.customer")) return "customer";
+  return "customer";
 }
 
 async function handler(request: NextRequest) {
@@ -30,39 +34,22 @@ async function handler(request: NextRequest) {
     }
   );
 
+  // getUser() only validates the JWT — no external DB call, safe in Edge
   const { data: { user } } = await supabase.auth.getUser();
-
-  // Helper: fetch role using service-role client (bypasses RLS infinite recursion)
-  async function getUserRole(userId: string): Promise<string> {
-    const { data } = await getAdminClient()
-      .from("users")
-      .select("role")
-      .eq("id", userId)
-      .single();
-    return data?.role ?? "customer";
-  }
-
   const { pathname } = request.nextUrl;
 
-  // ── Redirect staff from root '/' directly to their dashboard ─────────
-  // When an owner/admin/delivery staff visits the website URL, they go
-  // straight to their dashboard instead of the public home page.
-  // Exception: ?view=public allows staff to preview the public home page
-  // (used by the 'Home' link inside the owner/admin sidebar).
+  // ── Redirect staff from '/' directly to their dashboard ──────────────────
   if (pathname === "/") {
     const viewPublic = request.nextUrl.searchParams.get("view") === "public";
     if (user && !viewPublic) {
-      const role = await getUserRole(user.id);
+      const role = getRoleFromUser(user);
       if (role === "restaurant_owner") return NextResponse.redirect(new URL("/owner",    request.url));
       if (role === "admin")            return NextResponse.redirect(new URL("/admin",    request.url));
       if (role === "delivery")         return NextResponse.redirect(new URL("/delivery", request.url));
     }
   }
 
-  // ── Add Cache-Control: no-store to ALL protected pages ────────────────
-  // This prevents browsers from storing these pages in the Back-Forward
-  // Cache (bfcache). Without this, pressing Back after logout restores a
-  // cached version of the protected page without re-running auth checks.
+  // ── Cache-Control: no-store on protected pages (bfcache fix) ─────────────
   const protectedPrefixes = [
     "/admin", "/owner", "/delivery",
     "/profile", "/orders", "/cart", "/checkout",
@@ -72,41 +59,37 @@ async function handler(request: NextRequest) {
     (p) => pathname === p || pathname.startsWith(p + "/")
   );
   if (isProtectedPage) {
-    supabaseResponse.headers.set(
-      "Cache-Control",
-      "no-store, no-cache, must-revalidate"
-    );
+    supabaseResponse.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
     supabaseResponse.headers.set("Pragma", "no-cache");
     supabaseResponse.headers.set("Expires", "0");
   }
 
-  // ── Protect admin routes ──────────────────────────────────────────────
+  // ── Protect admin routes ──────────────────────────────────────────────────
   if (pathname.startsWith("/admin")) {
     if (!user) return NextResponse.redirect(new URL("/auth/login", request.url));
-    const role = await getUserRole(user.id);
+    const role = getRoleFromUser(user);
     if (role !== "admin") return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // ── Protect owner routes ──────────────────────────────────────────────
+  // ── Protect owner routes ──────────────────────────────────────────────────
   if (pathname.startsWith("/owner")) {
     if (!user) return NextResponse.redirect(new URL("/auth/login", request.url));
-    const role = await getUserRole(user.id);
+    const role = getRoleFromUser(user);
     if (!["restaurant_owner", "admin"].includes(role)) {
       return NextResponse.redirect(new URL("/", request.url));
     }
   }
 
-  // ── Protect delivery routes ───────────────────────────────────────────
+  // ── Protect delivery routes ───────────────────────────────────────────────
   if (pathname.startsWith("/delivery")) {
     if (!user) return NextResponse.redirect(new URL("/auth/login", request.url));
-    const role = await getUserRole(user.id);
+    const role = getRoleFromUser(user);
     if (!["delivery", "admin"].includes(role)) {
       return NextResponse.redirect(new URL("/", request.url));
     }
   }
 
-  // ── Protect customer routes ───────────────────────────────────────────
-  // /profile, /orders, /cart, /checkout, /track, /review
+  // ── Protect customer routes ───────────────────────────────────────────────
   const customerProtected = ["/profile", "/orders", "/cart", "/checkout", "/track", "/review"];
   if (customerProtected.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     if (!user) {
@@ -116,9 +99,9 @@ async function handler(request: NextRequest) {
     }
   }
 
-  // ── Redirect logged-in users away from login page → correct dashboard ─
+  // ── Redirect already-logged-in users away from /auth/login ───────────────
   if (pathname.startsWith("/auth/login") && user) {
-    const role = await getUserRole(user.id);
+    const role = getRoleFromUser(user);
     if (role === "admin")            return NextResponse.redirect(new URL("/admin",    request.url));
     if (role === "restaurant_owner") return NextResponse.redirect(new URL("/owner",    request.url));
     if (role === "delivery")         return NextResponse.redirect(new URL("/delivery", request.url));
@@ -133,20 +116,16 @@ export default handler;
 
 export const config = {
   matcher: [
-    // Root — redirect staff to their dashboard
     "/",
-    // Staff dashboards
     "/admin/:path*",
     "/owner/:path*",
     "/delivery/:path*",
-    // Customer protected pages
     "/profile/:path*",
     "/orders/:path*",
     "/cart/:path*",
     "/checkout/:path*",
     "/track/:path*",
     "/review/:path*",
-    // Auth redirect
     "/auth/login",
   ],
 };
