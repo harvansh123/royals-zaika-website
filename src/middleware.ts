@@ -1,20 +1,17 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// ── Read role purely from JWT metadata — ZERO DB calls ───────────────────────
-// Supabase sets user_metadata.role during signUp (options.data.role).
-// Google OAuth sets it in the callback. This is always present in the JWT
-// so we never need a DB round-trip inside Edge middleware.
+// ── Read role from JWT metadata ONLY — ZERO DB calls ─────────────────────────
+// Role is stored in user_metadata during signUp (options.data.role).
+// JWT validation via supabase.auth.getUser() is the only async call needed.
 function getRoleFromUser(user: any): string {
   const meta = user?.user_metadata ?? {};
   const r = meta.role ?? meta.full_role ?? null;
   if (r === "restaurant_owner" || r === "admin" || r === "delivery" || r === "customer") return r;
-  // Fallback: inspect email pattern for legacy customers
-  if (user?.email?.endsWith("@royalzaika.customer")) return "customer";
   return "customer";
 }
 
-async function handler(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -34,11 +31,11 @@ async function handler(request: NextRequest) {
     }
   );
 
-  // getUser() only validates the JWT — no external DB call, safe in Edge
+  // Validate JWT — no external DB call, safe for Edge runtime
   const { data: { user } } = await supabase.auth.getUser();
   const { pathname } = request.nextUrl;
 
-  // ── Redirect staff from '/' directly to their dashboard ──────────────────
+  // ── Redirect staff from '/' to their dashboard ───────────────────────────
   if (pathname === "/") {
     const viewPublic = request.nextUrl.searchParams.get("view") === "public";
     if (user && !viewPublic) {
@@ -49,49 +46,39 @@ async function handler(request: NextRequest) {
     }
   }
 
-  // ── Cache-Control: no-store on protected pages (bfcache fix) ─────────────
-  const protectedPrefixes = [
-    "/admin", "/owner", "/delivery",
-    "/profile", "/orders", "/cart", "/checkout",
-    "/track", "/review",
-  ];
-  const isProtectedPage = protectedPrefixes.some(
-    (p) => pathname === p || pathname.startsWith(p + "/")
-  );
-  if (isProtectedPage) {
+  // ── Set no-cache headers on protected pages (prevents bfcache issues) ─────
+  const protectedPrefixes = ["/admin", "/owner", "/delivery", "/profile", "/orders", "/cart", "/checkout", "/track", "/review"];
+  if (protectedPrefixes.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     supabaseResponse.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
     supabaseResponse.headers.set("Pragma", "no-cache");
     supabaseResponse.headers.set("Expires", "0");
   }
 
-  // ── Protect admin routes ──────────────────────────────────────────────────
+  // ── Protect /admin ────────────────────────────────────────────────────────
   if (pathname.startsWith("/admin")) {
     if (!user) return NextResponse.redirect(new URL("/auth/login", request.url));
-    const role = getRoleFromUser(user);
-    if (role !== "admin") return NextResponse.redirect(new URL("/", request.url));
+    if (getRoleFromUser(user) !== "admin") return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // ── Protect owner routes ──────────────────────────────────────────────────
+  // ── Protect /owner ────────────────────────────────────────────────────────
   if (pathname.startsWith("/owner")) {
     if (!user) return NextResponse.redirect(new URL("/auth/login", request.url));
-    const role = getRoleFromUser(user);
-    if (!["restaurant_owner", "admin"].includes(role)) {
+    if (!["restaurant_owner", "admin"].includes(getRoleFromUser(user))) {
       return NextResponse.redirect(new URL("/", request.url));
     }
   }
 
-  // ── Protect delivery routes ───────────────────────────────────────────────
+  // ── Protect /delivery ─────────────────────────────────────────────────────
   if (pathname.startsWith("/delivery")) {
     if (!user) return NextResponse.redirect(new URL("/auth/login", request.url));
-    const role = getRoleFromUser(user);
-    if (!["delivery", "admin"].includes(role)) {
+    if (!["delivery", "admin"].includes(getRoleFromUser(user))) {
       return NextResponse.redirect(new URL("/", request.url));
     }
   }
 
-  // ── Protect customer routes ───────────────────────────────────────────────
-  const customerProtected = ["/profile", "/orders", "/cart", "/checkout", "/track", "/review"];
-  if (customerProtected.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+  // ── Protect customer pages ────────────────────────────────────────────────
+  const customerRoutes = ["/profile", "/orders", "/cart", "/checkout", "/track", "/review"];
+  if (customerRoutes.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     if (!user) {
       const loginUrl = new URL("/auth/login", request.url);
       loginUrl.searchParams.set("next", pathname);
@@ -99,7 +86,7 @@ async function handler(request: NextRequest) {
     }
   }
 
-  // ── Redirect already-logged-in users away from /auth/login ───────────────
+  // ── Redirect logged-in users away from /auth/login ────────────────────────
   if (pathname.startsWith("/auth/login") && user) {
     const role = getRoleFromUser(user);
     if (role === "admin")            return NextResponse.redirect(new URL("/admin",    request.url));
@@ -110,9 +97,6 @@ async function handler(request: NextRequest) {
 
   return supabaseResponse;
 }
-
-export { handler as proxy };
-export default handler;
 
 export const config = {
   matcher: [
