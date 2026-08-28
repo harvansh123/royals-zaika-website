@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabase/client";
 import { Mail, Phone, Eye, EyeOff, ArrowRight, ChefHat, ShoppingBag } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn, validateIndianPhone, normalizePhone } from "@/lib/utils";
-import { useAuthStore } from "@/stores/authStore";
 
 type Role = "customer" | "owner" | "rider";
 type Mode = "login" | "signup";
@@ -105,39 +104,19 @@ export default function AuthPage() {
           emailToUse = json.email;
         }
 
-        const { data: authData, error } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signInWithPassword({
           email: emailToUse, password: form.password,
         });
         if (error) throw error;
 
         toast.success("Welcome back! 👋");
 
-        const targetRole = role === "owner" ? "restaurant_owner" : role === "rider" ? "delivery" : "customer";
-        try {
-          const res = await fetch(`/api/auth/role?role=${targetRole}`, {
-            headers: {
-              Authorization: `Bearer ${authData.session?.access_token}`,
-            },
-          });
-          if (res.ok) {
-            const { profile } = await res.json();
-            if (profile) {
-              useAuthStore.getState().setUser(profile);
-              const userRole = profile.role;
-              if (userRole === "admin")            { window.location.href = "/admin";    return; }
-              if (userRole === "restaurant_owner") { window.location.href = "/owner";    return; }
-              if (userRole === "delivery")         { window.location.href = "/delivery"; return; }
-              window.location.href = "/menu";
-              return;
-            }
-          }
-        } catch (e) {
-          console.error("Role fetch failed:", e);
-        }
-
-        if (role === "owner") window.location.href = "/owner";
-        else if (role === "rider") window.location.href = "/delivery";
-        else window.location.href = "/menu";
+        // Redirect immediately based on the role the user selected.
+        // AuthProvider on the target page will pick up the session and
+        // fetch the full profile — no need to wait here.
+        if (role === "owner")       { window.location.href = "/owner";    return; }
+        if (role === "rider")       { window.location.href = "/delivery"; return; }
+        window.location.href = "/menu";
       }
     } catch (err: any) {
       toast.error(err.message ?? "Something went wrong");
