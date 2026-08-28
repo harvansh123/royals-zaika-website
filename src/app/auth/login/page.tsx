@@ -102,40 +102,53 @@ export default function AuthPage() {
         let emailToUse = id;
 
         if (!id.includes("@")) {
-          // Treat as mobile number → look up email
+          // Phone number → derive email locally using same formula as signup.
+          // No API call needed: signup creates email as "91XXXXXXXXXX@royalzaika.customer"
           if (!validateIndianPhone(id)) {
             throw new Error("Enter a valid email address or 10-digit mobile number");
           }
-          // withTimeout prevents an infinite hang if the API is unreachable
-          const res = await withTimeout(
-            fetch("/api/auth/phone-lookup", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ phone: id }),
-            }),
-            12000,
-            "Phone lookup"
-          );
-          const json = await res.json();
-          if (!res.ok) throw new Error(json.error ?? "No account found with this mobile number");
-          emailToUse = json.email;
+          const digits = normalizePhone(id); // strips country code → 10 digits
+          emailToUse = `${digits}@royalzaika.customer`;
         }
 
         // withTimeout ensures signInWithPassword never hangs forever.
-        // Without this, a slow Supabase Auth response leaves the button
-        // permanently stuck on "Please wait..."
-        const { error } = await withTimeout(
+        const { data: signInData, error } = await withTimeout(
           supabase.auth.signInWithPassword({ email: emailToUse, password: form.password }),
-          12000,
+          15000,
           "Sign in"
         );
         if (error) throw error;
 
         toast.success("Welcome back! 👋");
 
-        // Hard navigation — AuthProvider on the target page picks up the session.
-        // Role from the user-selected button is used to pick the correct dashboard.
-        // The actual DB role is enforced by each dashboard page itself.
+        // ── Redirect based on ACTUAL DB role, not the UI card selected ────
+        // This fixes owners/riders being sent to /menu when their JWT
+        // metadata has the wrong or missing role.
+        try {
+          const token = signInData.session?.access_token;
+          const roleRes = await withTimeout(
+            fetch("/api/auth/role", {
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+            }),
+            8000,
+            "Role check"
+          );
+          if (roleRes.ok) {
+            const json = await roleRes.json();
+            // API returns { profile: { role, ... } }
+            const dbRole = json?.profile?.role ?? json?.role ?? null;
+            if (dbRole === "restaurant_owner" || dbRole === "admin") {
+              window.location.href = "/owner"; return;
+            }
+            if (dbRole === "delivery") {
+              window.location.href = "/delivery"; return;
+            }
+          }
+        } catch {
+          // Role fetch failed → fall back to card selection
+        }
+
+        // Fallback: use the card the user selected
         if (role === "owner")  { window.location.href = "/owner";    return; }
         if (role === "rider")  { window.location.href = "/delivery"; return; }
         window.location.href = "/menu";

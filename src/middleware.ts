@@ -51,25 +51,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // ── /admin and /owner and /delivery role guard ────────────────────────────────
-  // Only enforce role if it IS known from JWT metadata.
-  // If metadata is missing (old user), let the page itself handle it —
-  // avoids wrongly redirecting existing owners/riders to homepage.
+  // ── /admin role guard (admin only) ────────────────────────────────────────
+  // /owner and /delivery: only check authentication (done above).
+  // Role enforcement for owner/rider is done client-side via AuthProvider.
+  // This avoids wrongly blocking existing users whose JWT metadata
+  // shows a different role than what is stored in the database.
   if (user && pathname.startsWith("/admin")) {
     const role = getRoleFromJWT(user);
     if (role !== null && role !== "admin") {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
-  }
-  if (user && pathname.startsWith("/owner")) {
-    const role = getRoleFromJWT(user);
-    if (role !== null && !["restaurant_owner", "admin"].includes(role)) {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
-  }
-  if (user && pathname.startsWith("/delivery")) {
-    const role = getRoleFromJWT(user);
-    if (role !== null && !["delivery", "admin"].includes(role)) {
       return NextResponse.redirect(new URL("/", request.url));
     }
   }
@@ -82,14 +71,17 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── Redirect already-logged-in users away from /auth/login ───────────────────
+  // NOTE: We only redirect if role is confidently known from JWT.
+  // If role is null/unknown, allow the login page to load so the user
+  // can re-authenticate and get the correct role-based redirect.
   if (pathname.startsWith("/auth/login") && user) {
     const role = getRoleFromJWT(user);
-    // If role is known from JWT → direct to dashboard
     if (role === "admin")            return NextResponse.redirect(new URL("/admin",    request.url));
     if (role === "restaurant_owner") return NextResponse.redirect(new URL("/owner",    request.url));
     if (role === "delivery")         return NextResponse.redirect(new URL("/delivery", request.url));
-    // Unknown role or customer → go to menu
-    return NextResponse.redirect(new URL("/menu", request.url));
+    if (role === "customer")         return NextResponse.redirect(new URL("/menu",     request.url));
+    // role is null (old user, metadata missing) → let them log in again
+    // to get a proper role-based redirect from the login page
   }
 
   // ── Redirect staff from '/' to their dashboard ───────────────────────────────
