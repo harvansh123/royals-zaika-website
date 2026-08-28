@@ -1,14 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// ── Read role from JWT metadata ONLY — ZERO DB calls ─────────────────────────
-// Role is stored in user_metadata during signUp (options.data.role).
-// JWT validation via supabase.auth.getUser() is the only async call needed.
-function getRoleFromUser(user: any): string {
+// ── Read role from JWT user_metadata — no DB call ─────────────────────────────
+// Falls back gracefully for users who registered before role-metadata was added.
+function getRoleFromJWT(user: any): string | null {
   const meta = user?.user_metadata ?? {};
   const r = meta.role ?? meta.full_role ?? null;
   if (r === "restaurant_owner" || r === "admin" || r === "delivery" || r === "customer") return r;
-  return "customer";
+  return null; // null = unknown, let the page handle it
 }
 
 export async function middleware(request: NextRequest) {
@@ -31,68 +30,77 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Validate JWT — no external DB call, safe for Edge runtime
-  const { data: { user } } = await supabase.auth.getUser();
+  // ── getSession() reads JWT from cookie locally — ZERO network calls ──────────
+  // Unlike getUser(), getSession() does NOT call Supabase Auth server.
+  // This is safe for Edge middleware (avoids 504 MIDDLEWARE_INVOCATION_TIMEOUT).
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
   const { pathname } = request.nextUrl;
 
-  // ── Redirect staff from '/' to their dashboard ───────────────────────────
-  if (pathname === "/") {
-    const viewPublic = request.nextUrl.searchParams.get("view") === "public";
-    if (user && !viewPublic) {
-      const role = getRoleFromUser(user);
-      if (role === "restaurant_owner") return NextResponse.redirect(new URL("/owner",    request.url));
-      if (role === "admin")            return NextResponse.redirect(new URL("/admin",    request.url));
-      if (role === "delivery")         return NextResponse.redirect(new URL("/delivery", request.url));
+  // ── Unauthenticated → redirect to login ──────────────────────────────────────
+  const authRequired = [
+    "/admin", "/owner", "/delivery",
+    "/profile", "/orders", "/cart", "/checkout", "/track", "/review",
+  ];
+  const needsAuth = authRequired.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  if (needsAuth && !user) {
+    const loginUrl = new URL("/auth/login", request.url);
+    if (!pathname.startsWith("/admin") && !pathname.startsWith("/owner") && !pathname.startsWith("/delivery")) {
+      loginUrl.searchParams.set("next", pathname);
+    }
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // ── /admin and /owner and /delivery role guard ────────────────────────────────
+  // Only enforce role if it IS known from JWT metadata.
+  // If metadata is missing (old user), let the page itself handle it —
+  // avoids wrongly redirecting existing owners/riders to homepage.
+  if (user && pathname.startsWith("/admin")) {
+    const role = getRoleFromJWT(user);
+    if (role !== null && role !== "admin") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
+  if (user && pathname.startsWith("/owner")) {
+    const role = getRoleFromJWT(user);
+    if (role !== null && !["restaurant_owner", "admin"].includes(role)) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
+  if (user && pathname.startsWith("/delivery")) {
+    const role = getRoleFromJWT(user);
+    if (role !== null && !["delivery", "admin"].includes(role)) {
+      return NextResponse.redirect(new URL("/", request.url));
     }
   }
 
-  // ── Set no-cache headers on protected pages (prevents bfcache issues) ─────
-  const protectedPrefixes = ["/admin", "/owner", "/delivery", "/profile", "/orders", "/cart", "/checkout", "/track", "/review"];
-  if (protectedPrefixes.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+  // ── Cache-Control: no-store on protected pages ───────────────────────────────
+  if (needsAuth) {
     supabaseResponse.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
     supabaseResponse.headers.set("Pragma", "no-cache");
     supabaseResponse.headers.set("Expires", "0");
   }
 
-  // ── Protect /admin ────────────────────────────────────────────────────────
-  if (pathname.startsWith("/admin")) {
-    if (!user) return NextResponse.redirect(new URL("/auth/login", request.url));
-    if (getRoleFromUser(user) !== "admin") return NextResponse.redirect(new URL("/", request.url));
-  }
-
-  // ── Protect /owner ────────────────────────────────────────────────────────
-  if (pathname.startsWith("/owner")) {
-    if (!user) return NextResponse.redirect(new URL("/auth/login", request.url));
-    if (!["restaurant_owner", "admin"].includes(getRoleFromUser(user))) {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
-  }
-
-  // ── Protect /delivery ─────────────────────────────────────────────────────
-  if (pathname.startsWith("/delivery")) {
-    if (!user) return NextResponse.redirect(new URL("/auth/login", request.url));
-    if (!["delivery", "admin"].includes(getRoleFromUser(user))) {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
-  }
-
-  // ── Protect customer pages ────────────────────────────────────────────────
-  const customerRoutes = ["/profile", "/orders", "/cart", "/checkout", "/track", "/review"];
-  if (customerRoutes.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
-    if (!user) {
-      const loginUrl = new URL("/auth/login", request.url);
-      loginUrl.searchParams.set("next", pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-  }
-
-  // ── Redirect logged-in users away from /auth/login ────────────────────────
+  // ── Redirect already-logged-in users away from /auth/login ───────────────────
   if (pathname.startsWith("/auth/login") && user) {
-    const role = getRoleFromUser(user);
+    const role = getRoleFromJWT(user);
+    // If role is known from JWT → direct to dashboard
     if (role === "admin")            return NextResponse.redirect(new URL("/admin",    request.url));
     if (role === "restaurant_owner") return NextResponse.redirect(new URL("/owner",    request.url));
     if (role === "delivery")         return NextResponse.redirect(new URL("/delivery", request.url));
+    // Unknown role or customer → go to menu
     return NextResponse.redirect(new URL("/menu", request.url));
+  }
+
+  // ── Redirect staff from '/' to their dashboard ───────────────────────────────
+  if (pathname === "/") {
+    const viewPublic = request.nextUrl.searchParams.get("view") === "public";
+    if (user && !viewPublic) {
+      const role = getRoleFromJWT(user);
+      if (role === "restaurant_owner") return NextResponse.redirect(new URL("/owner",    request.url));
+      if (role === "admin")            return NextResponse.redirect(new URL("/admin",    request.url));
+      if (role === "delivery")         return NextResponse.redirect(new URL("/delivery", request.url));
+    }
   }
 
   return supabaseResponse;

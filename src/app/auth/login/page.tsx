@@ -1,10 +1,23 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Mail, Phone, Eye, EyeOff, ArrowRight, ChefHat, ShoppingBag } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn, validateIndianPhone, normalizePhone } from "@/lib/utils";
+
+// Rejects after `ms` milliseconds — prevents infinite "Please wait..." hangs
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() =>
+      reject(new Error(`${label} timed out. Please check your connection and try again.`)),
+      ms
+    );
+    promise.then(
+      (v) => { clearTimeout(timer); resolve(v); },
+      (e) => { clearTimeout(timer); reject(e); }
+    );
+  });
+}
 
 type Role = "customer" | "owner" | "rider";
 type Mode = "login" | "signup";
@@ -85,7 +98,7 @@ export default function AuthPage() {
         setMode("login");
 
       } else {
-        // ── Login ─────────────────────────────────────────────────────
+        // ── Login ─────────────────────────────────────────────────────────
         const id = form.identifier.trim();
         let emailToUse = id;
 
@@ -94,28 +107,38 @@ export default function AuthPage() {
           if (!validateIndianPhone(id)) {
             throw new Error("Enter a valid email address or 10-digit mobile number");
           }
-          const res = await fetch("/api/auth/phone-lookup", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone: id }),
-          });
+          // withTimeout prevents an infinite hang if the API is unreachable
+          const res = await withTimeout(
+            fetch("/api/auth/phone-lookup", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ phone: id }),
+            }),
+            12000,
+            "Phone lookup"
+          );
           const json = await res.json();
           if (!res.ok) throw new Error(json.error ?? "No account found with this mobile number");
           emailToUse = json.email;
         }
 
-        const { error } = await supabase.auth.signInWithPassword({
-          email: emailToUse, password: form.password,
-        });
+        // withTimeout ensures signInWithPassword never hangs forever.
+        // Without this, a slow Supabase Auth response leaves the button
+        // permanently stuck on "Please wait..."
+        const { error } = await withTimeout(
+          supabase.auth.signInWithPassword({ email: emailToUse, password: form.password }),
+          12000,
+          "Sign in"
+        );
         if (error) throw error;
 
         toast.success("Welcome back! 👋");
 
-        // Redirect immediately based on the role the user selected.
-        // AuthProvider on the target page will pick up the session and
-        // fetch the full profile — no need to wait here.
-        if (role === "owner")       { window.location.href = "/owner";    return; }
-        if (role === "rider")       { window.location.href = "/delivery"; return; }
+        // Hard navigation — AuthProvider on the target page picks up the session.
+        // Role from the user-selected button is used to pick the correct dashboard.
+        // The actual DB role is enforced by each dashboard page itself.
+        if (role === "owner")  { window.location.href = "/owner";    return; }
+        if (role === "rider")  { window.location.href = "/delivery"; return; }
         window.location.href = "/menu";
       }
     } catch (err: any) {
