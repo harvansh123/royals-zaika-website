@@ -133,6 +133,29 @@ export default function OwnerDashboard() {
   async function updateStatus(orderId: string, status: string) {
     // CHANGE 2: When confirming an order, auto-jump to "preparing" (Cooking)
     const finalStatus = status === "confirmed" ? "preparing" : status;
+
+    // ── "delivered": use dedicated API that updates BOTH orders + delivery_tracking ──
+    // This triggers the rider's Realtime subscription so they see it immediately.
+    if (finalStatus === "delivered") {
+      try {
+        const res = await fetch("/api/owner/orders/deliver", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId }),
+        });
+        if (!res.ok) {
+          const j = await res.json();
+          throw new Error(j.error ?? "Failed to mark delivered");
+        }
+        setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: "delivered" } : o));
+        setStats((prev) => ({ ...prev, completedOrders: prev.completedOrders + 1, pendingOrders: Math.max(0, prev.pendingOrders - 1) }));
+        toast.success("Order delivered! 🎉");
+      } catch (err: any) {
+        toast.error(err.message ?? "Failed to update");
+      }
+      return;
+    }
+
     const { error } = await supabase.from("orders").update({ status: finalStatus }).eq("id", orderId);
     if (error) { toast.error("Failed to update"); return; }
     setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: finalStatus } : o));
@@ -144,6 +167,7 @@ export default function OwnerDashboard() {
     const msg = finalStatus === "preparing" ? "✅ Confirmed & Cooking started!" : `Order ${finalStatus}`;
     toast.success(msg);
   }
+
 
 
   const statCards = [

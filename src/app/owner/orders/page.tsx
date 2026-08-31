@@ -213,12 +213,46 @@ export default function OwnerOrdersPage() {
       return;
     }
 
+    // ── "delivered": use dedicated API that updates BOTH orders + delivery_tracking ──
+    // This ensures the rider's Supabase Realtime subscription fires and their
+    // dashboard shows "Delivered" immediately, freeing them for new orders.
+    if (status === "delivered") {
+      try {
+        const res = await fetch("/api/owner/orders/deliver", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId, orderNumber: order?.order_number }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? "Failed to mark delivered");
+
+        setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: "delivered" } : o));
+        toast.success("Order delivered! 🎉");
+
+        // Notify customer (non-fatal)
+        fetch("/api/push/send-to-customer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId, status: "delivered", orderNumber: order?.order_number }),
+        }).catch(() => {});
+
+        // Trigger referral completion check (non-blocking)
+        fetch("/api/referral/complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId }),
+        }).catch(() => {});
+      } catch (err: any) {
+        toast.error(err.message ?? "Failed to mark delivered");
+      }
+      return;
+    }
+
     const { error } = await supabase.from("orders").update({ status }).eq("id", orderId);
     if (error) { toast.error("Failed to update"); return; }
     setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status } : o));
     const labels: Record<string, string> = {
       ready: "Order marked ready! 🔔",
-      delivered: "Order delivered! 🎉",
       cancelled: "Order cancelled",
     };
     toast.success(labels[status] ?? "Status updated!");
@@ -228,16 +262,8 @@ export default function OwnerOrdersPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ orderId, status, orderNumber: order?.order_number }),
     }).catch(() => {});
-
-    // Trigger referral completion check when order is delivered (non-blocking)
-    if (status === "delivered") {
-      fetch("/api/referral/complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId }),
-      }).catch(() => {});
-    }
   }
+
 
   async function handleCancelOrder() {
     if (!cancelModal) return;
