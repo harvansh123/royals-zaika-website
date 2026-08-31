@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { formatPrice, playAlarmSound } from "@/lib/utils";
+import { formatPrice } from "@/lib/utils";
+import { startLoopingAlarm, stopCurrentAlarm } from "@/lib/alarm";
 import Link from "next/link";
 import {
   ShoppingBag, TrendingUp, Clock, CheckCircle,
@@ -39,6 +40,9 @@ export default function OwnerDashboard() {
   // Restaurant Online/Offline using unified hook
   const { isOpen, isTemporarilyClosed, refetch } = useRestaurantStatus();
   const [togglingStatus, setTogglingStatus] = useState(false);
+  // Alarm ref — stop function returned by startLoopingAlarm()
+  const stopAlarmRef = useRef<(() => void) | null>(null);
+  const alarmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     loadDashboard();
@@ -52,7 +56,16 @@ export default function OwnerDashboard() {
         const json = await res.json();
         if (json.orders) setOrders(json.orders.slice(0, 10));
         setStats((prev) => ({ ...prev, todayOrders: prev.todayOrders + 1, pendingOrders: prev.pendingOrders + 1, todayRevenue: prev.todayRevenue + newOrder.total_amount }));
-        playAlarmSound();
+        // Stop any previous alarm first
+        if (stopAlarmRef.current) stopAlarmRef.current();
+        if (alarmTimerRef.current) clearTimeout(alarmTimerRef.current);
+        // Start looping MP3 alarm
+        stopAlarmRef.current = startLoopingAlarm();
+        // Auto-stop after 60 seconds if owner doesn't act
+        alarmTimerRef.current = setTimeout(() => {
+          stopCurrentAlarm();
+          stopAlarmRef.current = null;
+        }, 60000);
         toast.custom((t) => (
           <div className={cn("flex items-center gap-3 px-5 py-4 rounded-2xl shadow-brand", t.visible ? "animate-slide-bottom" : "opacity-0")}
             style={{ background: "var(--card-bg)", border: "1px solid rgba(249,115,22,0.4)" }}>
@@ -133,6 +146,11 @@ export default function OwnerDashboard() {
   async function updateStatus(orderId: string, status: string) {
     // CHANGE 2: When confirming an order, auto-jump to "preparing" (Cooking)
     const finalStatus = status === "confirmed" ? "preparing" : status;
+    // Stop alarm as soon as owner takes action on any order
+    if (alarmTimerRef.current) clearTimeout(alarmTimerRef.current);
+    stopCurrentAlarm();
+    stopAlarmRef.current = null;
+
 
     // ── "delivered": use dedicated API that updates BOTH orders + delivery_tracking ──
     // This triggers the rider's Realtime subscription so they see it immediately.

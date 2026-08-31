@@ -48,6 +48,8 @@ export default function DeliveryDashboard() {
     isReassignment?: boolean;
   } | null>(null);
   const stopCancelAlarmRef = useRef<(() => void) | null>(null);
+  const stopNewOrderAlarmRef = useRef<(() => void) | null>(null);
+  const newOrderAlarmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seenOrdersRef = useRef<Set<string>>(new Set());
 
   // OTP state per tracking-id
@@ -197,7 +199,23 @@ export default function DeliveryDashboard() {
         event: "INSERT", schema: "public", table: "delivery_tracking",
         filter: `partner_id=eq.${user.id}`,
       }, () => {
-        // Keep the existing toast for quick visual feedback on-screen
+        // ── Play looping alarm so rider is alerted immediately ──────
+        if (stopNewOrderAlarmRef.current) stopNewOrderAlarmRef.current();
+        if (newOrderAlarmTimerRef.current) clearTimeout(newOrderAlarmTimerRef.current);
+        stopNewOrderAlarmRef.current = startLoopingAlarm();
+        // Auto-stop after 60 seconds if rider doesn't act
+        newOrderAlarmTimerRef.current = setTimeout(() => {
+          stopCurrentAlarm();
+          stopNewOrderAlarmRef.current = null;
+        }, 60000);
+
+        // Browser notification
+        showBrowserNotification(
+          "📦 New Order Assigned!",
+          "A new delivery order is waiting. Open the app to pick it up."
+        );
+
+        // Toast visual feedback
         toast.custom((t) => (
           <div className={cn(
             "flex items-center gap-4 px-5 py-4 rounded-2xl shadow-xl border",
@@ -381,10 +399,13 @@ export default function DeliveryDashboard() {
 
       console.log("[updateDeliveryStatus] Success:", json);
 
-      // ── Stop alarm when rider picks up or delivers ──────────────────
+      // ── Stop new-order alarm when rider picks up or delivers ────────
       if (newStatus === "picked_up" || newStatus === "delivered") {
-        // Handled by GlobalAlarmProvider auto-dismiss or manual dismiss
+        if (newOrderAlarmTimerRef.current) clearTimeout(newOrderAlarmTimerRef.current);
+        stopCurrentAlarm();
+        stopNewOrderAlarmRef.current = null;
       }
+
 
       if (newStatus === "delivered") {
         // Keep the delivered order in state but update its status
