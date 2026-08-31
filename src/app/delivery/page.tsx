@@ -26,7 +26,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function DeliveryDashboard() {
-  const { user }  = useAuthStore();
+  const { user, loading: authLoading } = useAuthStore();
   const router    = useRouter();
   const [orders, setOrders]         = useState<any[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -133,6 +133,10 @@ export default function DeliveryDashboard() {
   }, [user]);
 
   useEffect(() => {
+    // Wait for AuthProvider to finish fetching the real role from DB.
+    // Without this guard, user.role is null/"customer" on first render
+    // (before /api/auth/role responds), causing a premature redirect.
+    if (authLoading) return;
     if (!user) { router.push("/auth/login"); return; }
     if (user.role !== "delivery") { router.push("/"); return; }
 
@@ -305,7 +309,7 @@ export default function DeliveryDashboard() {
       supabase.removeChannel(reassignChannel);
       if (watchId) navigator.geolocation.clearWatch(watchId);
     };
-  }, [user, fetchMyOrders]);
+  }, [user, authLoading, fetchMyOrders]);
 
   // Notification permission now handled globally in GlobalAlarmProvider
 
@@ -508,7 +512,7 @@ export default function DeliveryDashboard() {
     }
   }
 
-  if (loading) return (
+  if (authLoading || loading) return (
     <div className="flex h-screen items-center justify-center gap-3" style={{ background: "var(--bg-primary)" }}>
       <Loader2 size={28} className="animate-spin text-orange-500" />
       <span style={{ color: "var(--text-secondary)" }}>Loading...</span>
