@@ -68,25 +68,21 @@ export async function PATCH(req: NextRequest) {
 
       // ── 3. Increment rider's total_deliveries count ─────────────────
       if (trackingRow.partner_id) {
-        await adminClient.rpc("increment_rider_deliveries", {
-          rider_id: trackingRow.partner_id,
-        }).catch(() => {
-          // If RPC doesn't exist, do it manually
-          adminClient
+        try {
+          const { data: dp } = await adminClient
             .from("delivery_partners")
             .select("total_deliveries")
             .eq("id", trackingRow.partner_id)
-            .single()
-            .then(({ data }) => {
-              if (data) {
-                adminClient
-                  .from("delivery_partners")
-                  .update({ total_deliveries: (data.total_deliveries ?? 0) + 1 })
-                  .eq("id", trackingRow.partner_id)
-                  .then(() => {});
-              }
-            });
-        });
+            .single();
+          if (dp) {
+            await adminClient
+              .from("delivery_partners")
+              .update({ total_deliveries: (dp.total_deliveries ?? 0) + 1 })
+              .eq("id", trackingRow.partner_id);
+          }
+        } catch {
+          // Non-critical — ignore if it fails
+        }
       }
 
       return NextResponse.json({ ok: true, trackingUpdated: true, durationMinutes });
