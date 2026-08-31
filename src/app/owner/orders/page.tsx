@@ -602,7 +602,23 @@ export default function OwnerOrdersPage() {
                     style={{ color: "var(--text-muted)" }} />
                 </div>
 
-                {/* ── Quick Action Buttons (visible WITHOUT expanding) ── */}
+                {/* ── Items Preview (always visible, no expand needed) ── */}
+                {order.order_items && order.order_items.length > 0 && (
+                  <div className="px-4 pb-2 flex flex-wrap gap-1.5"
+                    onClick={(e) => e.stopPropagation()}>
+                    {order.order_items.map((item, i) => (
+                      <span key={i}
+                        className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg font-medium"
+                        style={{ background: "rgba(249,115,22,0.08)", color: "var(--text-secondary)", border: "1px solid rgba(249,115,22,0.15)" }}>
+                        <span className="font-bold text-orange-500">×{item.quantity}</span>
+                        {item.name}
+                        <span style={{ color: "var(--text-muted)" }}>· {formatPrice(item.subtotal ?? item.price * item.quantity)}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* ── Quick Action Buttons (always visible) ── */}
                 {order.status !== "delivered" && order.status !== "cancelled" && (
                   <div
                     className="px-4 pb-4 flex flex-wrap gap-2"
@@ -646,14 +662,22 @@ export default function OwnerOrdersPage() {
                       </button>
                     )}
 
-                    {/* OUT FOR DELIVERY / PICKED UP: Reassign */}
+                    {/* PICKED_UP / OUT_FOR_DELIVERY: Delivered + Reassign */}
                     {(order.status === "picked_up" || order.status === "out_for_delivery") && (
-                      <button
-                        onClick={() => openAssignModal(order, true)}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.97]"
-                        style={{ background: "linear-gradient(135deg,#f59e0b,#d97706)" }}>
-                        <UserCheck size={15} /> Reassign Rider
-                      </button>
+                      <>
+                        <button
+                          onClick={() => updateStatus(order.id, "delivered")}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.97]"
+                          style={{ background: "linear-gradient(135deg,#22c55e,#16a34a)", minWidth: 120 }}>
+                          <Check size={15} /> ✅ Delivered
+                        </button>
+                        <button
+                          onClick={() => openAssignModal(order, true)}
+                          className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl text-sm font-bold transition-all hover:opacity-90 active:scale-[0.97]"
+                          style={{ background: "rgba(245,158,11,0.12)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.35)" }}>
+                          <UserCheck size={15} /> Reassign
+                        </button>
+                      </>
                     )}
 
                     {/* CONFIRMED: Start Cooking */}
@@ -665,8 +689,19 @@ export default function OwnerOrdersPage() {
                         🍳 Start Cooking
                       </button>
                     )}
+
+                    {/* CANCEL ORDER — always visible for active orders */}
+                    {order.status !== "pending" && (
+                      <button
+                        onClick={() => { setCancelModal({ order }); setCancelReason(""); }}
+                        className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.97]"
+                        style={{ background: "rgba(239,68,68,0.08)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)" }}>
+                        <X size={14} /> Cancel
+                      </button>
+                    )}
                   </div>
                 )}
+
 
                 {/* ── CHANGE 1: Full Expanded Details ── */}
                 {isExp && (
