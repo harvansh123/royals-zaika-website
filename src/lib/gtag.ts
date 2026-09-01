@@ -1,4 +1,4 @@
-﻿/**
+/**
  * GA4 Event Helpers — Royals Zaika
  *
  * Central module for all Google Analytics 4 event tracking.
@@ -13,10 +13,27 @@ declare global {
   }
 }
 
-/** Fire any GA4 event safely (no-ops if gtag not loaded) */
+/**
+ * Fire any GA4 event safely.
+ *
+ * Primary path : window.gtag("event", ...) — uses the official gtag.js queue.
+ * Fallback path: dataLayer.push() directly — handles the narrow window where
+ *   the ga4-init inline script has run (so dataLayer exists) but gtag.js
+ *   hasn't finished loading yet.  gtag.js processes queued dataLayer items
+ *   on load, so no events are lost.
+ */
 function gtagEvent(eventName: string, params?: Record<string, any>) {
-  if (typeof window === "undefined" || typeof window.gtag !== "function") return;
-  window.gtag("event", eventName, params ?? {});
+  if (typeof window === "undefined") return;
+
+  if (typeof window.gtag === "function") {
+    // Normal path — gtag.js is loaded and ready
+    window.gtag("event", eventName, params ?? {});
+  } else {
+    // Fallback — push raw arguments object so gtag.js can replay it once loaded
+    window.dataLayer = window.dataLayer || [];
+    // gtag() is shorthand for dataLayer.push(arguments); replicate that shape
+    window.dataLayer.push(["event", eventName, params ?? {}]);
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -59,16 +76,17 @@ export function trackAddToCart(item: {
 // ─────────────────────────────────────────────
 export function trackBeginCheckout(params: {
   value: number;
-  items: { id: string; name: string; price: number; quantity: number }[];
+  items: { id: string; name: string; price: number; quantity: number; category?: string }[];
 }) {
   gtagEvent("begin_checkout", {
     currency: "INR",
     value:    params.value,
     items: params.items.map((i) => ({
-      item_id:   i.id,
-      item_name: i.name,
-      price:     i.price,
-      quantity:  i.quantity,
+      item_id:       i.id,
+      item_name:     i.name,
+      item_category: i.category ?? "Food",
+      price:         i.price,
+      quantity:      i.quantity,
     })),
   });
 }
@@ -76,30 +94,36 @@ export function trackBeginCheckout(params: {
 // ─────────────────────────────────────────────
 // 4. purchase — order confirmed in Supabase
 //    Call ONCE per successful order.
+//    transaction_id = order_number (human-readable, GA4 reports mein readable)
+//    order_id       = Supabase UUID (cross-reference ke liye custom param)
 // ─────────────────────────────────────────────
 export function trackPurchase(params: {
-  orderId:     string;
-  orderNumber: string;
+  orderId:     string;   // Supabase UUID  (custom param, not transaction_id)
+  orderNumber: string;   // e.g. "1042"    ← used as transaction_id
   value:       number;
   deliveryFee: number;
   discount:    number;
-  items: { id: string; name: string; price: number; quantity: number }[];
+  items: { id: string; name: string; price: number; quantity: number; category?: string }[];
 }) {
   gtagEvent("purchase", {
-    transaction_id: params.orderId,
+    transaction_id: params.orderNumber,          // readable, e.g. "1042"
+    order_id:       params.orderId,              // custom: Supabase UUID for cross-ref
     affiliation:    "Royals Zaika",
     currency:       "INR",
     value:          params.value,
     shipping:       params.deliveryFee,
+    tax:            0,                           // included in value; explicitly 0
     coupon:         params.discount > 0 ? `DISCOUNT_${params.discount}` : undefined,
     items: params.items.map((i) => ({
-      item_id:   i.id,
-      item_name: i.name,
-      price:     i.price,
-      quantity:  i.quantity,
+      item_id:       i.id,
+      item_name:     i.name,
+      item_category: i.category ?? "Food",
+      price:         i.price,
+      quantity:      i.quantity,
     })),
   });
 }
+
 
 // ─────────────────────────────────────────────
 // 5. User Role — set GA4 user property after auth
