@@ -137,6 +137,14 @@ export default function AuthPage() {
             const json = await roleRes.json();
             // API returns { profile: { role, ... } }
             const dbRole = json?.profile?.role ?? json?.role ?? null;
+
+            // ── Write role to JWT metadata (one-time fix per user) ─────────
+            // After this, middleware reads role from JWT cookie and redirects
+            // server-side BEFORE any HTML is sent → zero homepage flash forever.
+            if (dbRole) {
+              await supabase.auth.updateUser({ data: { role: dbRole } }).catch(() => {});
+            }
+
             if (dbRole === "restaurant_owner" || dbRole === "admin") {
               window.location.href = "/owner"; return;
             }
@@ -147,6 +155,7 @@ export default function AuthPage() {
         } catch {
           // Role fetch failed → fall back to card selection
         }
+
 
         // Fallback: use the card the user selected
         if (role === "owner")  { window.location.href = "/owner";    return; }
