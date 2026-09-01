@@ -1,10 +1,11 @@
-﻿import type { Metadata, Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { AddressModalProvider } from "@/components/providers/AddressModalProvider";
 import { GlobalAlarmProvider } from "@/components/providers/GlobalAlarmProvider";
+import { Analytics } from "@vercel/analytics/next";
 
 const GA_ID = "G-20M6RE1KGW";
 
@@ -60,6 +61,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             Strategy "afterInteractive" loads after hydration — non-blocking,
             fires once for all routes via Next.js root layout.             */}
         <Script
+          id="ga4-script"
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
           strategy="afterInteractive"
         />
@@ -71,6 +73,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             gtag('config', '${GA_ID}', { page_path: window.location.pathname });
           `}
         </Script>
+        {/* ── Vercel Web Analytics ──────────────────────────────────────────
+            Tracks page views and performance. Separate from GA4 (gtag.js).
+            No config needed — works automatically on Vercel deployment.   */}
+        <Analytics />
         <AuthProvider>
           <GlobalAlarmProvider>
             {children}
