@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/stores/cartStore";
@@ -107,12 +107,19 @@ export default function CheckoutPage() {
       router.push("/checkout/address");
       return;
     }
+
+    // AbortController for all 3 parallel fetches — prevents infinite hangs
+    // on slow networks and cleans up when component unmounts / re-renders.
+    const ac = new AbortController();
+    const FETCH_TIMEOUT = 8_000; // 8s — generous enough for slow 3G
+    const timer = setTimeout(() => ac.abort(), FETCH_TIMEOUT);
+
     try {
       const addr = JSON.parse(stored);
       setDeliveryAddress(addr);
 
       // Load settings for final validation + delivery rates
-      fetch("/api/restaurant-settings")
+      fetch("/api/restaurant-settings", { signal: ac.signal })
         .then(res => res.ok ? res.json() : null)
         .then(data => {
           if (data) {
@@ -131,23 +138,30 @@ export default function CheckoutPage() {
               router.push("/checkout/address");
             }
           }
-        });
+        })
+        .catch(() => {}); // Network error / abort — non-critical, pricing shown from cart state
 
       // Fetch active offer
-      fetch("/api/offers")
+      fetch("/api/offers", { signal: ac.signal })
         .then(r => r.json())
         .then(d => setActiveOffer(d.offer ?? null))
         .catch(() => {});
 
       // Fetch best available referral reward
-      fetch("/api/referral/my-referrals")
+      fetch("/api/referral/my-referrals", { signal: ac.signal })
         .then(r => r.json())
         .then(d => { if (d.bestReward) setReferralReward(d.bestReward); })
         .catch(() => {});
 
       // COD popup will be shown when user navigates to payment step
     } catch { router.push("/checkout/address"); }
+
+    return () => {
+      clearTimeout(timer);
+      ac.abort(); // Cancel any in-flight requests on unmount / re-render
+    };
   }, [user, authLoading, items.length, router]);
+
 
   async function placeOrder() {
     if (!user) return;

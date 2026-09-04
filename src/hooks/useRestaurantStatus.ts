@@ -59,21 +59,27 @@ export function useRestaurantStatus(): UseRestaurantStatusReturn {
   const [loading,  setLoading]  = useState(true);
 
   const fetchSettings = useCallback(async () => {
+    // Abort after 8 s — on slow 3G this fetch can hang indefinitely.
+    // Existing catch block already handles failure gracefully (defaults to open).
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8_000);
     try {
       // No cache:"no-store" — let the browser use the Cache-Control header
       // from the API response (60s fresh). Realtime subscription handles
       // instant invalidation when the owner changes settings.
-      const res = await fetch("/api/restaurant-settings");
+      const res = await fetch("/api/restaurant-settings", { signal: controller.signal });
       if (res.ok) {
         const data = await res.json();
         setSettings(data as RestaurantTimingSettings);
       }
     } catch {
-      // Network error — assume open as safe default
+      // Network error or timeout — assume open as safe default
     } finally {
+      clearTimeout(timer);
       setLoading(false);
     }
   }, []);
+
 
   useEffect(() => {
     fetchSettings();
