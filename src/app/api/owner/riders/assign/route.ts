@@ -83,12 +83,22 @@ export async function POST(req: NextRequest) {
         .insert({ order_id: orderId, partner_id: riderId, status: "assigned" });
     }
 
-    // Update order status to 'confirmed' if still pending
+    // Update order status upon assignment:
+    // • pending → confirmed  (safety fallback — normally order is already past pending)
+    // • ready   → out_for_delivery  (most common: rider assigned after food is ready)
+    //   This UPDATE fires a Supabase Realtime event so the owner dashboard
+    //   immediately fetches the real status and shows Delivered + Reassign buttons.
     await supabaseAdmin
       .from("orders")
       .update({ status: "confirmed" })
       .eq("id", orderId)
       .eq("status", "pending");
+
+    await supabaseAdmin
+      .from("orders")
+      .update({ status: "out_for_delivery" })
+      .eq("id", orderId)
+      .eq("status", "ready");
 
     // Notify rider (in-app notification)
     await supabaseAdmin.from("notifications").insert({

@@ -454,9 +454,9 @@ export default function OwnerOrdersPage() {
         return;
       }
 
-      // Optimistic UI update — mark as out-for-delivery
+      // Optimistic UI update — matches what the assign API now sets in DB
       setOrders((prev) => prev.map((o) =>
-        o.id === assignModal.order.id ? { ...o, status: "picked_up" } : o
+        o.id === assignModal.order.id ? { ...o, status: "out_for_delivery" } : o
       ));
       toast.success(`✅ Order assigned to ${rider.name}!`);
       setAssignModal(null);
