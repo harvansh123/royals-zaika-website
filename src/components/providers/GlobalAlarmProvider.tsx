@@ -8,8 +8,9 @@ import {
   stopCurrentAlarm,
   requestNotificationPermission,
   showBrowserNotification,
+  isAudioUnlocked,
 } from "@/lib/alarm";
-import { BellOff } from "lucide-react";
+import { BellOff, Volume2, VolumeX } from "lucide-react";
 
 // ── Web Push Helpers ──────────────────────────────────────────────────────
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
@@ -78,6 +79,23 @@ export function GlobalAlarmProvider({ children }: { children: React.ReactNode })
 
   const stopAlarmRef = useRef<(() => void) | null>(null);
   const hasShownPermRef = useRef(false);
+
+  // Track whether audio has been unlocked by user interaction
+  const [soundEnabled, setSoundEnabled] = useState(false);
+
+  // Poll every 500ms to detect when audio gets unlocked (e.g. by global touch listener)
+  useEffect(() => {
+    if (soundEnabled) return;
+    const isOwner = user?.role === "restaurant_owner" || user?.role === "admin";
+    if (!isOwner) return;
+    const id = setInterval(() => {
+      if (isAudioUnlocked()) {
+        setSoundEnabled(true);
+        clearInterval(id);
+      }
+    }, 500);
+    return () => clearInterval(id);
+  }, [soundEnabled, user?.role]);
 
   // Stop alarm + clear state
   const dismissAlarm = useCallback(() => {
@@ -288,7 +306,41 @@ export function GlobalAlarmProvider({ children }: { children: React.ReactNode })
   return (
     <>
       {children}
-      
+
+      {/* ── Owner: Enable Sound Banner ─────────────────────────────────────
+          Mobile browsers block audio autoplay until user interaction.
+          Show a sticky tap-to-enable banner on owner pages so alarm works.  */}
+      {(user?.role === "restaurant_owner" || user?.role === "admin") &&
+        !soundEnabled &&
+        (pathname.startsWith("/owner") || pathname.startsWith("/admin")) && (
+        <div
+          onClick={() => {
+            // This real user tap propagates to document → triggers unlockAudio() in alarm.ts
+            // Check state after async unlock completes
+            setTimeout(() => setSoundEnabled(isAudioUnlocked()), 400);
+          }}
+          className="fixed bottom-24 left-1/2 z-[9998] cursor-pointer select-none"
+          style={{
+            transform: "translateX(-50%)",
+            background: "linear-gradient(135deg,#f97316,#ea580c)",
+            color: "#fff",
+            borderRadius: "999px",
+            padding: "10px 20px",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            fontSize: "13px",
+            fontWeight: 700,
+            boxShadow: "0 4px 20px rgba(249,115,22,0.5)",
+            whiteSpace: "nowrap",
+            animation: "pulse 2s ease-in-out infinite",
+          }}
+        >
+          <VolumeX size={16} />
+          Tap to Enable Alarm Sound
+        </div>
+      )}
+
       {/* ── Owner Banner — New Orders ───────────────────── */}
       {newOrderNums.length > 0 && (
         <div
