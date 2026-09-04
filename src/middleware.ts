@@ -77,7 +77,8 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith("/auth/login") && user) {
     const role = getRoleFromJWT(user);
     if (role === "admin")            return NextResponse.redirect(new URL("/admin",    request.url));
-    if (role === "restaurant_owner") return NextResponse.redirect(new URL("/owner",    request.url));
+    if (role === "restaurant_owner") return NextResponse.redirect(new URL("/owner/orders", request.url));
+
     if (role === "delivery")         return NextResponse.redirect(new URL("/delivery", request.url));
     if (role === "customer")         return NextResponse.redirect(new URL("/menu",     request.url));
     // role is null (old user, metadata missing) → let them log in again
@@ -89,7 +90,8 @@ export async function middleware(request: NextRequest) {
     const viewPublic = request.nextUrl.searchParams.get("view") === "public";
     if (user && !viewPublic) {
       const role = getRoleFromJWT(user);
-      if (role === "restaurant_owner") return NextResponse.redirect(new URL("/owner",    request.url));
+      if (role === "restaurant_owner") return NextResponse.redirect(new URL("/owner/orders", request.url));
+
       if (role === "admin")            return NextResponse.redirect(new URL("/admin",    request.url));
       if (role === "delivery")         return NextResponse.redirect(new URL("/delivery", request.url));
     }

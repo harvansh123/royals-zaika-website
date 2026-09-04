@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
 
       // Role-based redirect
       if (dbRole === "admin") return NextResponse.redirect(`${origin}/admin`);
-      if (dbRole === "restaurant_owner") return NextResponse.redirect(`${origin}/owner`);
+      if (dbRole === "restaurant_owner") return NextResponse.redirect(`${origin}/owner/orders`);
       if (dbRole === "delivery") return NextResponse.redirect(`${origin}/delivery`);
       // Default: customer → menu
       return NextResponse.redirect(`${origin}/menu`);

@@ -16,7 +16,8 @@ export function AuthRedirect() {
     if (!user) return;           // not logged in — show homepage normally
 
     // Staff roles → redirect to their dashboard, keep overlay visible
-    if (user.role === "restaurant_owner") { setRedirecting(true); router.replace("/owner");    return; }
+    if (user.role === "restaurant_owner") { setRedirecting(true); router.replace("/owner/orders"); return; }
+
     if (user.role === "admin")            { setRedirecting(true); router.replace("/admin");    return; }
     if (user.role === "delivery")         { setRedirecting(true); router.replace("/delivery"); return; }
     // customer → fall through, overlay hides, homepage shows

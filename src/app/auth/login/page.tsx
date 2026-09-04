@@ -146,8 +146,9 @@ export default function AuthPage() {
             }
 
             if (dbRole === "restaurant_owner" || dbRole === "admin") {
-              window.location.href = "/owner"; return;
+              window.location.href = "/owner/orders"; return;
             }
+
             if (dbRole === "delivery") {
               window.location.href = "/delivery"; return;
             }
