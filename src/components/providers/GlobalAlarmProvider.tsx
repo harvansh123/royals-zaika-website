@@ -82,6 +82,7 @@ export function GlobalAlarmProvider({ children }: { children: React.ReactNode })
 
   // Track whether audio has been unlocked by user interaction
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [soundJustEnabled, setSoundJustEnabled] = useState(false);
 
   // Poll every 500ms to detect when audio gets unlocked (e.g. by global touch listener)
   useEffect(() => {
@@ -91,6 +92,8 @@ export function GlobalAlarmProvider({ children }: { children: React.ReactNode })
     const id = setInterval(() => {
       if (isAudioUnlocked()) {
         setSoundEnabled(true);
+        setSoundJustEnabled(true);
+        setTimeout(() => setSoundJustEnabled(false), 2500);
         clearInterval(id);
       }
     }, 500);
@@ -307,38 +310,67 @@ export function GlobalAlarmProvider({ children }: { children: React.ReactNode })
     <>
       {children}
 
-      {/* ── Owner: Enable Sound Banner ─────────────────────────────────────
-          Mobile browsers block audio autoplay until user interaction.
-          Show a sticky tap-to-enable banner on owner pages so alarm works.  */}
+      {/* ── Owner: Sound Status Banner ──────────────────────────────────────
+          Before enable : orange pulsing pill — "Tap to Enable Alarm Sound"
+          After enable  : green pill — "✅ Alarm Sound ON!" shown for 2.5s  */}
       {(user?.role === "restaurant_owner" || user?.role === "admin") &&
-        !soundEnabled &&
         (pathname.startsWith("/owner") || pathname.startsWith("/admin")) && (
-        <div
-          onClick={() => {
-            // This real user tap propagates to document → triggers unlockAudio() in alarm.ts
-            // Check state after async unlock completes
-            setTimeout(() => setSoundEnabled(isAudioUnlocked()), 400);
-          }}
-          className="fixed bottom-24 left-1/2 z-[9998] cursor-pointer select-none"
-          style={{
-            transform: "translateX(-50%)",
-            background: "linear-gradient(135deg,#f97316,#ea580c)",
-            color: "#fff",
-            borderRadius: "999px",
-            padding: "10px 20px",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            fontSize: "13px",
-            fontWeight: 700,
-            boxShadow: "0 4px 20px rgba(249,115,22,0.5)",
-            whiteSpace: "nowrap",
-            animation: "pulse 2s ease-in-out infinite",
-          }}
-        >
-          <VolumeX size={16} />
-          Tap to Enable Alarm Sound
-        </div>
+        <>
+          {!soundEnabled && (
+            <div
+              onClick={() => {
+                setTimeout(() => {
+                  setSoundEnabled(isAudioUnlocked());
+                  if (isAudioUnlocked()) {
+                    setSoundJustEnabled(true);
+                    setTimeout(() => setSoundJustEnabled(false), 2500);
+                  }
+                }, 400);
+              }}
+              className="fixed bottom-24 left-1/2 z-[9998] cursor-pointer select-none"
+              style={{
+                transform: "translateX(-50%)",
+                background: "linear-gradient(135deg,#f97316,#ea580c)",
+                color: "#fff",
+                borderRadius: "999px",
+                padding: "10px 20px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "13px",
+                fontWeight: 700,
+                boxShadow: "0 4px 20px rgba(249,115,22,0.5)",
+                whiteSpace: "nowrap",
+                animation: "pulse 2s ease-in-out infinite",
+              }}
+            >
+              <VolumeX size={16} />
+              Tap to Enable Alarm Sound
+            </div>
+          )}
+          {soundJustEnabled && (
+            <div
+              className="fixed bottom-24 left-1/2 z-[9998] select-none pointer-events-none"
+              style={{
+                transform: "translateX(-50%)",
+                background: "linear-gradient(135deg,#16a34a,#15803d)",
+                color: "#fff",
+                borderRadius: "999px",
+                padding: "10px 20px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "13px",
+                fontWeight: 700,
+                boxShadow: "0 4px 20px rgba(22,163,74,0.5)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Volume2 size={16} />
+              ✅ Alarm Sound ON!
+            </div>
+          )}
+        </>
       )}
 
       {/* ── Owner Banner — New Orders ───────────────────── */}
