@@ -602,18 +602,31 @@ export default function OwnerOrdersPage() {
                     style={{ color: "var(--text-muted)" }} />
                 </div>
 
-                {/* ── Items Preview (always visible, no expand needed) ── */}
+                {/* ── Items List (always visible — no expand needed) ── */}
                 {order.order_items && order.order_items.length > 0 && (
-                  <div className="px-4 pb-2 flex flex-wrap gap-1.5"
+                  <div className="mx-4 mb-3 rounded-xl overflow-hidden"
+                    style={{ border: "1px solid rgba(249,115,22,0.18)", background: "rgba(249,115,22,0.04)" }}
                     onClick={(e) => e.stopPropagation()}>
                     {order.order_items.map((item, i) => (
-                      <span key={i}
-                        className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg font-medium"
-                        style={{ background: "rgba(249,115,22,0.08)", color: "var(--text-secondary)", border: "1px solid rgba(249,115,22,0.15)" }}>
-                        <span className="font-bold text-orange-500">×{item.quantity}</span>
-                        {item.name}
-                        <span style={{ color: "var(--text-muted)" }}>· {formatPrice(item.subtotal ?? item.price * item.quantity)}</span>
-                      </span>
+                      <div key={i}
+                        className="flex items-center justify-between px-3 py-2"
+                        style={{
+                          borderBottom: i < order.order_items!.length - 1
+                            ? "1px solid rgba(249,115,22,0.1)" : "none"
+                        }}>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="w-6 h-6 rounded-md text-xs font-black flex items-center justify-center flex-shrink-0"
+                            style={{ background: "rgba(249,115,22,0.15)", color: "#f97316" }}>
+                            {item.quantity}
+                          </span>
+                          <span className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>
+                            {item.name}
+                          </span>
+                        </div>
+                        <span className="text-sm font-semibold ml-2 flex-shrink-0" style={{ color: "#f97316" }}>
+                          {formatPrice(item.subtotal ?? item.price * item.quantity)}
+                        </span>
+                      </div>
                     ))}
                   </div>
                 )}
