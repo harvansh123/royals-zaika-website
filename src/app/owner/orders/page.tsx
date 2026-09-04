@@ -652,14 +652,30 @@ export default function OwnerOrdersPage() {
                       </button>
                     )}
 
-                    {/* READY: Assign Rider */}
+                    {/* READY: Assign Rider + Delivered + Reassign
+                        (Delivered/Reassign shown for old orders where rider was
+                         assigned but orders.status stayed "ready" before the fix) */}
                     {order.status === "ready" && (
-                      <button
-                        onClick={() => openAssignModal(order)}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.97]"
-                        style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
-                        <Bike size={15} /> Assign Rider
-                      </button>
+                      <>
+                        <button
+                          onClick={() => openAssignModal(order)}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.97]"
+                          style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
+                          <Bike size={15} /> Assign Rider
+                        </button>
+                        <button
+                          onClick={() => updateStatus(order.id, "delivered")}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.97]"
+                          style={{ background: "linear-gradient(135deg,#22c55e,#16a34a)", minWidth: 120 }}>
+                          <Check size={15} /> ✅ Delivered
+                        </button>
+                        <button
+                          onClick={() => openAssignModal(order, true)}
+                          className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl text-sm font-bold transition-all hover:opacity-90 active:scale-[0.97]"
+                          style={{ background: "rgba(245,158,11,0.12)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.35)" }}>
+                          <UserCheck size={15} /> Reassign
+                        </button>
+                      </>
                     )}
 
                     {/* PICKED_UP / OUT_FOR_DELIVERY: Delivered + Reassign */}
