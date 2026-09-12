@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { formatPrice } from "@/lib/utils";
@@ -69,10 +69,10 @@ export default function OwnerDashboard() {
         toast.custom((t) => (
           <div className={cn("flex items-center gap-3 px-5 py-4 rounded-2xl shadow-brand", t.visible ? "animate-slide-bottom" : "opacity-0")}
             style={{ background: "var(--card-bg)", border: "1px solid rgba(249,115,22,0.4)" }}>
-            <span className="text-2xl animate-bounce">≡ƒöö</span>
+            <span className="text-2xl animate-bounce">🔔</span>
             <div>
               <p className="font-bold text-sm" style={{ color: "var(--text-primary)" }}>New Order!</p>
-              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>#{newOrder.order_number} ┬╖ {formatPrice(newOrder.total_amount)}</p>
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>#{newOrder.order_number} · {formatPrice(newOrder.total_amount)}</p>
             </div>
             <Link href="/owner/orders" className="btn-primary py-1.5 px-3 text-xs ml-1">View</Link>
           </div>
@@ -113,7 +113,7 @@ export default function OwnerDashboard() {
       // Force refresh of the hook
       refetch();
       
-      toast.success(!isOpen ? "≡ƒƒó Restaurant is now OPEN" : "≡ƒö┤ Restaurant is now CLOSED");
+      toast.success(!isOpen ? "🟢 Restaurant is now OPEN" : "🔴 Restaurant is now CLOSED");
     } catch (err: any) {
       toast.error("Status update failed: " + err.message);
     }
@@ -167,7 +167,7 @@ export default function OwnerDashboard() {
         }
         setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: "delivered" } : o));
         setStats((prev) => ({ ...prev, completedOrders: prev.completedOrders + 1, pendingOrders: Math.max(0, prev.pendingOrders - 1) }));
-        toast.success("Order delivered! ≡ƒÄë");
+        toast.success("Order delivered! 🎉");
       } catch (err: any) {
         toast.error(err.message ?? "Failed to update");
       }
@@ -182,7 +182,7 @@ export default function OwnerDashboard() {
       pendingOrders: finalStatus !== "pending" ? Math.max(0, prev.pendingOrders - 1) : prev.pendingOrders,
       completedOrders: finalStatus === "delivered" ? prev.completedOrders + 1 : prev.completedOrders,
     }));
-    const msg = finalStatus === "preparing" ? "Γ£à Confirmed & Cooking started!" : `Order ${finalStatus}`;
+    const msg = finalStatus === "preparing" ? "✅ Confirmed & Cooking started!" : `Order ${finalStatus}`;
     toast.success(msg);
   }
 
@@ -222,7 +222,7 @@ export default function OwnerDashboard() {
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
           <h1 className="font-bold text-xl sm:text-2xl md:text-3xl" style={{ fontFamily: "'Outfit', sans-serif", color: "var(--text-primary)" }}>
-            Dashboard ≡ƒæï
+            Dashboard 🍽️
           </h1>
           <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
             {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
@@ -247,7 +247,7 @@ export default function OwnerDashboard() {
           <p className="font-bold text-base flex items-center gap-2"
             style={{ color: isOpen ? "#22c55e" : "#ef4444" }}>
             {isOpen ? <Wifi size={18} /> : <WifiOff size={18} />}
-            Restaurant {isOpen ? "Open ≡ƒƒó" : "Closed ≡ƒö┤"}
+            Restaurant {isOpen ? "Open 🟢" : "Closed 🔴"}
           </p>
           <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
             {isOpen
@@ -287,7 +287,7 @@ export default function OwnerDashboard() {
       {/* Aaj ke Orders */}
       <div className="rounded-2xl overflow-hidden" style={{ background: "var(--card-bg)", border: "1px solid var(--border)" }}>
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
-          <h2 className="font-bold" style={{ color: "var(--text-primary)" }}>≡ƒôà Aaj ke Orders</h2>
+          <h2 className="font-bold" style={{ color: "var(--text-primary)" }}>📋 Aaj ke Orders</h2>
           <Link href="/owner/orders" className="flex items-center gap-1 text-sm text-orange-500 hover:underline">
             Saare dekho <ArrowRight size={14} />
           </Link>
@@ -318,7 +318,7 @@ export default function OwnerDashboard() {
                         </span>
                         {order.users?.name && (
                           <span className="text-[11px] hidden sm:inline" style={{ color: "var(--text-muted)" }}>
-                            ┬╖ {order.users.name}
+                            · {order.users.name}
                           </span>
                         )}
                       </div>
@@ -374,7 +374,7 @@ export default function OwnerDashboard() {
                             {order.users.name?.[0]?.toUpperCase() ?? "?"}
                           </div>
                           <div>
-                            <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{order.users.name ?? "ΓÇö"}</p>
+                            <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{order.users.name ?? "—"}</p>
                             {order.users.phone && (
                               <a href={`tel:${order.users.phone}`} className="text-xs text-orange-400 hover:underline flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                                 <Phone size={10} /> {order.users.phone}
@@ -401,7 +401,7 @@ export default function OwnerDashboard() {
                               className="grid grid-cols-12 px-3 py-2.5 text-sm items-center"
                               style={{ borderBottom: i < order.order_items!.length - 1 ? "1px solid var(--border)" : undefined }}>
                               <span className="col-span-5 font-medium truncate pr-2" style={{ color: "var(--text-primary)" }}>{item.name}</span>
-                              <span className="col-span-2 text-center font-bold text-orange-400">├ù{item.quantity}</span>
+                              <span className="col-span-2 text-center font-bold text-orange-400">×{item.quantity}</span>
                               <span className="col-span-2 text-right text-xs" style={{ color: "var(--text-muted)" }}>{formatPrice(item.price)}</span>
                               <span className="col-span-3 text-right font-semibold" style={{ color: "var(--text-primary)" }}>
                                 {formatPrice(item.subtotal ?? item.price * item.quantity)}
@@ -430,7 +430,7 @@ export default function OwnerDashboard() {
                       <Link href="/owner/orders"
                         className="mt-3 flex items-center justify-center gap-1.5 text-xs text-orange-400 hover:underline"
                         onClick={(e) => e.stopPropagation()}>
-                        <Receipt size={12} /> View full order details ΓåÆ
+                        <Receipt size={12} /> View full order details →
                       </Link>
                     </div>
                   )}
