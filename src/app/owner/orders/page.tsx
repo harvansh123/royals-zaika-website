@@ -42,6 +42,7 @@ type Order = {
   order_type?: "dine_in" | "takeaway" | "home_delivery" | null;
   table_number?: string | null;
   guest_count?: number | null;
+  delivery_distance_km?: number | string | null;
 };
 
 type Rider = {
@@ -876,6 +877,20 @@ export default function OwnerOrdersPage() {
                         style={{ background: "rgba(59,130,246,0.07)", border: "1px solid rgba(59,130,246,0.25)" }}>
                         <span>🛍️</span>
                         <span className="font-semibold" style={{ color: "#3b82f6" }}>Takeaway — Customer will collect from restaurant</span>
+                      </div>
+                    )}
+                    {order.order_type === "home_delivery" && (
+                      <div className="mx-5 mt-3 p-3 rounded-xl text-xs flex items-start gap-2"
+                        style={{ background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.25)" }}>
+                        <span>🛵</span>
+                        <div style={{ color: "var(--text-secondary)" }}>
+                          <span className="font-semibold" style={{ color: "#22c55e" }}>Home Delivery</span>
+                          {order.delivery_distance_km != null && (
+                            <span className="ml-2">
+                              · Distance: <strong style={{ color: "#f97316", fontSize: "13px" }}>{parseFloat(String(order.delivery_distance_km)).toFixed(1)} km</strong>
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )}
 

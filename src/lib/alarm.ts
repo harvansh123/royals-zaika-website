@@ -7,14 +7,18 @@
  * first touch/click anywhere on the screen so it can be played
  * programmatically later when an order arrives.
  *
- * FIX: If an order arrives BEFORE the user has touched the screen,
- * we set _pendingAlarm = true. The next touch/click will both unlock
+ * KEY FIX: If an order arrives BEFORE the user has touched the screen,
+ * we set _pendingAlarm = true. The next TOUCHSTART (mobile) will both unlock
  * the audio AND immediately start playing the alarm.
+ *
+ * IMPORTANT: We intentionally do NOT auto-play pending alarm on generic document
+ * click events — this prevents status-update button clicks from triggering alarm
+ * every time the owner changes an order's status.
  */
 
 let _audio: HTMLAudioElement | null = null;
 let _isUnlocked = false;
-let _pendingAlarm = false; // alarm was requested but blocked — play on next interaction
+let _pendingAlarm = false; // alarm was requested but blocked — play on next touchstart only
 
 function getAudio(): HTMLAudioElement | null {
   if (typeof window === "undefined") return null;
@@ -27,11 +31,11 @@ function getAudio(): HTMLAudioElement | null {
 }
 
 /**
- * Unlocks the audio object by playing and pausing it immediately
- * in response to a direct user interaction.
+ * Unlocks the audio object on touchstart (mobile).
  * If an alarm was pending (order arrived before unlock), plays it immediately.
+ * This is ONLY wired to touchstart — NOT to generic click events.
  */
-function unlockAudio() {
+function unlockAudioOnTouch() {
   const audio = getAudio();
   if (!audio) return;
 
@@ -47,20 +51,44 @@ function unlockAudio() {
       _isUnlocked = true;
     })
     .catch(() => {
-      // Unlock failed (should not happen on trusted event)
+      // Unlock failed — browser still blocking
     });
 
-  // Clean up listeners — they're one-shot
+  // One-shot listener — remove after first touch
   if (typeof document !== "undefined") {
-    document.removeEventListener("touchstart", unlockAudio);
-    document.removeEventListener("click",      unlockAudio);
+    document.removeEventListener("touchstart", unlockAudioOnTouch);
   }
 }
 
-// Bind the unlock listeners globally (passive for touchstart = better scroll perf)
+/**
+ * Silently unlock audio context on click (desktop).
+ * This ensures audio context is ready for when alarm is needed, but does NOT
+ * auto-start a pending alarm — preventing status-update button clicks from
+ * accidentally ringing the alarm.
+ */
+function unlockAudioSilentOnClick() {
+  const audio = getAudio();
+  if (!audio || _isUnlocked) return;
+
+  audio.play()
+    .then(() => {
+      // Always pause immediately — never auto-play alarm from generic click
+      audio.pause();
+      audio.currentTime = 0;
+      _isUnlocked = true;
+    })
+    .catch(() => {});
+
+  // One-shot listener
+  if (typeof document !== "undefined") {
+    document.removeEventListener("click", unlockAudioSilentOnClick);
+  }
+}
+
+// Register unlock listeners globally (runs once on module load in browser)
 if (typeof document !== "undefined") {
-  document.addEventListener("touchstart", unlockAudio, { passive: true });
-  document.addEventListener("click",      unlockAudio);
+  document.addEventListener("touchstart", unlockAudioOnTouch,      { passive: true });
+  document.addEventListener("click",      unlockAudioSilentOnClick);
 }
 
 /** Returns true if audio has been unlocked by a user interaction. */
@@ -70,10 +98,10 @@ export function isAudioUnlocked(): boolean {
 
 /**
  * Starts a continuously looping alarm using the project's ringtone file.
- * Stops any previously running alarm automatically.
  *
- * If the browser blocks autoplay (audio not yet unlocked by user interaction),
- * the alarm is queued and will play on the very next touch/click.
+ * If the browser blocks autoplay (audio not yet unlocked), the alarm is queued
+ * and will play on the very next TOUCHSTART interaction (mobile touch only —
+ * NOT on generic click, to prevent status-update buttons from triggering alarm).
  *
  * @returns a stop function — call it to silence the alarm.
  */
@@ -95,15 +123,13 @@ export function startLoopingAlarm(): () => void {
         _pendingAlarm = false;
       })
       .catch(() => {
-        // Autoplay blocked — queue alarm for next user interaction
+        // Autoplay blocked — queue alarm for next touchstart ONLY (not click)
         _pendingAlarm = true;
 
-        // Re-register interaction listeners so the alarm fires on next touch/click
+        // Re-register touchstart listener so alarm fires on next mobile touch
         if (typeof document !== "undefined") {
-          document.removeEventListener("touchstart", unlockAudio);
-          document.removeEventListener("click",      unlockAudio);
-          document.addEventListener("touchstart", unlockAudio, { passive: true });
-          document.addEventListener("click",      unlockAudio);
+          document.removeEventListener("touchstart", unlockAudioOnTouch);
+          document.addEventListener("touchstart", unlockAudioOnTouch, { passive: true });
         }
       });
   }
