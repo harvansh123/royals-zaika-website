@@ -597,7 +597,7 @@ export default function CheckoutPage() {
               />
             </div>
             <div className="flex-1">
-              <label className="text-xs text-gray-500 mb-1 block">Guests</label>
+              <label className="text-xs text-gray-500 mb-1 block">Members</label>
               <input
                 type="number"
                 value={localGuestCount}

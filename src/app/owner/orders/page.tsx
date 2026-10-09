@@ -866,7 +866,7 @@ export default function OwnerOrdersPage() {
                         <div style={{ color: "var(--text-secondary)" }}>
                           <span className="font-semibold" style={{ color: "#a855f7" }}>Dine-In</span>
                           {order.table_number  && <span className="ml-2">· Table: <strong>{order.table_number}</strong></span>}
-                          {order.guest_count   && <span className="ml-2">· Guests: <strong>{order.guest_count}</strong></span>}
+                          {order.guest_count   && <span className="ml-2">· Members: <strong>{order.guest_count}</strong></span>}
                           {!order.table_number && <span className="ml-2 opacity-60">(Table number not provided)</span>}
                         </div>
                       </div>
