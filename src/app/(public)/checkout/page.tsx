@@ -15,6 +15,7 @@ import { getDeliveryPricing, getDeliveryPricingFromRates, DeliveryRates, DEFAULT
 import { useRestaurantStatus } from "@/hooks/useRestaurantStatus";
 import ClosedPopup from "@/components/restaurant/ClosedPopup";
 import { trackPurchase } from "@/lib/gtag";
+import { useOrderTypeStore } from "@/stores/orderTypeStore";
 
 declare global { interface Window { Razorpay: any; } }
 
@@ -60,6 +61,13 @@ export default function CheckoutPage() {
   // Owner-configured delivery rates (loaded from restaurant-settings)
   const [deliveryRates,   setDeliveryRates]   = useState<DeliveryRates>(DEFAULT_DELIVERY_RATES);
 
+  // ── Order Type (dine_in | takeaway | home_delivery) ──────────────────────
+  const { orderType, tableNumber: savedTableNum, guestCount: savedGuestCount } = useOrderTypeStore();
+  // true for home_delivery or if no type selected (safe fallback)
+  const isDelivery = !orderType || orderType === "home_delivery";
+  const [localTableNum,   setLocalTableNum]   = useState(savedTableNum   || "");
+  const [localGuestCount, setLocalGuestCount] = useState(savedGuestCount || "");
+
   // ── Restaurant timing-aware open/closed status ────────────────────────────
   const {
     isOpen: restaurantIsOpen,
@@ -86,7 +94,8 @@ export default function CheckoutPage() {
   const activeDiscountSource: "offer" | "referral" | "none" =
     bestDiscount === 0 ? "none" : offerDiscount >= referralDiscount ? "offer" : "referral";
   // Use actual customer fee from pricing (handles free delivery), else fallback to cartStore fee
-  const actualFee = pricing?.customerFee ?? fee;
+  // For dine-in / takeaway: delivery fee is always ₹0
+  const actualFee = isDelivery ? (pricing?.customerFee ?? fee) : 0;
   const grand = Math.max(0, sub + actualFee - bestDiscount);
 
   useEffect(() => {
@@ -100,12 +109,15 @@ export default function CheckoutPage() {
     // "Please select address first" toast. Bail out early to prevent it.
     if (orderPlacedRef.current) return;
 
-    // Read address selected at /checkout/address
-    const stored = sessionStorage.getItem(ADDRESS_SESSION_KEY);
-    if (!stored) {
-      toast.error("Please select a delivery address first");
-      router.push("/checkout/address");
-      return;
+    // Only home_delivery orders require a saved address.
+    // Dine-In and Takeaway skip the address flow entirely.
+    if (isDelivery) {
+      const stored = sessionStorage.getItem(ADDRESS_SESSION_KEY);
+      if (!stored) {
+        toast.error("Please select a delivery address first");
+        router.push("/checkout/address");
+        return;
+      }
     }
 
     // AbortController for all 3 parallel fetches — prevents infinite hangs
@@ -115,31 +127,36 @@ export default function CheckoutPage() {
     const timer = setTimeout(() => ac.abort(), FETCH_TIMEOUT);
 
     try {
-      const addr = JSON.parse(stored);
-      setDeliveryAddress(addr);
+      if (isDelivery) {
+        const stored = sessionStorage.getItem(ADDRESS_SESSION_KEY);
+        const addr = stored ? JSON.parse(stored) : null;
+        if (addr) {
+          setDeliveryAddress(addr);
 
-      // Load settings for final validation + delivery rates
-      fetch("/api/restaurant-settings", { signal: ac.signal })
-        .then(res => res.ok ? res.json() : null)
-        .then(data => {
-          if (data) {
-            setSettings(data);
-            // Load owner-configured delivery rates (with defaults if columns missing)
-            setDeliveryRates({
-              delivery_charge_per_km:    Number(data.delivery_charge_per_km    ?? 10),
-              owner_contribution_per_km: Number(data.owner_contribution_per_km ?? 5),
-              rider_payout_per_km:       Number(data.rider_payout_per_km       ?? 15),
-              free_delivery_min_order:   Number(data.free_delivery_min_order   ?? 499),
-            });
-            // Use the Google driving distance already calculated when the address was confirmed.
-            const storedDist = addr.delivery_distance_km;
-            if (storedDist && storedDist > data.delivery_radius_km) {
-              toast.error(`Sorry, delivery is only available within ${data.delivery_radius_km} KM. This address is outside our delivery area.`);
-              router.push("/checkout/address");
-            }
-          }
-        })
-        .catch(() => {}); // Network error / abort — non-critical, pricing shown from cart state
+          // Load settings for final validation + delivery rates
+          fetch("/api/restaurant-settings", { signal: ac.signal })
+            .then(res => res.ok ? res.json() : null)
+            .then(data => {
+              if (data) {
+                setSettings(data);
+                // Load owner-configured delivery rates (with defaults if columns missing)
+                setDeliveryRates({
+                  delivery_charge_per_km:    Number(data.delivery_charge_per_km    ?? 10),
+                  owner_contribution_per_km: Number(data.owner_contribution_per_km ?? 5),
+                  rider_payout_per_km:       Number(data.rider_payout_per_km       ?? 15),
+                  free_delivery_min_order:   Number(data.free_delivery_min_order   ?? 499),
+                });
+                // Use the Google driving distance already calculated when the address was confirmed.
+                const storedDist = addr.delivery_distance_km;
+                if (storedDist && storedDist > data.delivery_radius_km) {
+                  toast.error(`Sorry, delivery is only available within ${data.delivery_radius_km} KM. This address is outside our delivery area.`);
+                  router.push("/checkout/address");
+                }
+              }
+            })
+            .catch(() => {}); // Network error / abort — non-critical
+        }
+      }
 
       // Fetch active offer
       fetch("/api/offers", { signal: ac.signal })
@@ -154,7 +171,7 @@ export default function CheckoutPage() {
         .catch(() => {});
 
       // COD popup will be shown when user navigates to payment step
-    } catch { router.push("/checkout/address"); }
+    } catch { if (isDelivery) router.push("/checkout/address"); }
 
     return () => {
       clearTimeout(timer);
@@ -166,18 +183,17 @@ export default function CheckoutPage() {
   async function placeOrder() {
     if (!user) return;
 
-    // PRIMARY CHECK: delivery_distance_km is set by confirmAndContinue only after
-    // distance is calculated AND address is within delivery radius. If it is missing,
-    // the customer bypassed the address validation flow — block the order.
-    if (!deliveryAddress?.delivery_distance_km || deliveryAddress.delivery_distance_km <= 0) {
-      toast.error("Delivery distance could not be verified. Please go back and select a valid delivery address.");
-      return;
-    }
-
-    // SECONDARY CHECK: coordinates must be present for final server-side radius validation.
-    if (!deliveryAddress?.latitude || !deliveryAddress?.longitude) {
-      toast.error("Delivery address location could not be verified. Please go back and re-select your address.");
-      return;
+    // PRIMARY CHECK: for home delivery only — delivery_distance_km must be set.
+    if (isDelivery) {
+      if (!deliveryAddress?.delivery_distance_km || deliveryAddress.delivery_distance_km <= 0) {
+        toast.error("Delivery distance could not be verified. Please go back and select a valid delivery address.");
+        return;
+      }
+      // SECONDARY CHECK: coordinates must be present for final server-side radius validation.
+      if (!deliveryAddress?.latitude || !deliveryAddress?.longitude) {
+        toast.error("Delivery address location could not be verified. Please go back and re-select your address.");
+        return;
+      }
     }
 
     // Restaurant open/closed check (timing-aware: auto/manual/temporarily_closed)
@@ -214,20 +230,13 @@ export default function CheckoutPage() {
 
       // Calculate final amounts — use bigger of offer or referral discount
       const discountAmt = bestDiscount;
-      // Use actual customer delivery fee from pricing (handles free delivery)
-      const actualPricingForOrder = getDeliveryPricingFromRates(deliveryAddress?.delivery_distance_km ?? null, sub, deliveryRates);
-      const actualCustomerFee = actualPricingForOrder?.customerFee ?? fee;
-      const finalTotal = Math.max(0, sub + actualCustomerFee - discountAmt);
 
-      // Use the Google driving distance that was calculated (and stored) when the customer
-      // confirmed their delivery address. This is the single source of truth for order records.
-      const orderDistanceKm = deliveryAddress.delivery_distance_km ?? null;
-
-      const pricingForOrder = getDeliveryPricingFromRates(orderDistanceKm, sub, deliveryRates);
-
-      // Determine actual customer delivery charge (0 if free delivery)
-      const customerDeliveryCharge = pricingForOrder?.customerFee ?? fee;
-      const dynamicOwnerContribution = pricingForOrder?.ownerContribution ?? 0;
+      // For dine-in / takeaway: delivery fee is ₹0, no distance pricing needed
+      const orderDistanceKm      = isDelivery ? (deliveryAddress?.delivery_distance_km ?? null) : null;
+      const pricingForOrder      = isDelivery ? getDeliveryPricingFromRates(orderDistanceKm, sub, deliveryRates) : null;
+      const customerDeliveryCharge    = isDelivery ? (pricingForOrder?.customerFee      ?? fee) : 0;
+      const dynamicOwnerContribution  = isDelivery ? (pricingForOrder?.ownerContribution ?? 0)   : 0;
+      const finalTotal = Math.max(0, sub + customerDeliveryCharge - discountAmt);
 
       // Create order
       const { data: order, error: orderErr } = await supabase.from("orders").insert({
@@ -236,16 +245,20 @@ export default function CheckoutPage() {
         payment_method:   method,
         payment_status:   "pending",
         subtotal:         sub,
-        delivery_fee:     customerDeliveryCharge, // ₹0 if free delivery, else distance-based
-        rider_payout:       pricingForOrder?.riderPayout ?? null,
+        delivery_fee:     customerDeliveryCharge,
+        rider_payout:       pricingForOrder?.riderPayout      ?? null,
         owner_contribution: dynamicOwnerContribution,
-        distance_range:     pricingForOrder?.rangeLabel ?? null,
+        distance_range:     pricingForOrder?.rangeLabel       ?? null,
         discount_amount:  discountAmt,
         total_amount:     finalTotal,
         estimated_time:   30,
         delivery_distance_km: orderDistanceKm,
-        radius_validated: true,
-        delivery_address: deliveryAddress
+        radius_validated: isDelivery,
+        // Order type feature
+        order_type:    orderType ?? "home_delivery",
+        table_number:  orderType === "dine_in" ? (localTableNum.trim()  || null) : null,
+        guest_count:   orderType === "dine_in" ? (localGuestCount ? parseInt(localGuestCount, 10) : null) : null,
+        delivery_address: isDelivery && deliveryAddress
           ? {
               label:         deliveryAddress.label,
               address_line1: deliveryAddress.address_line1,
@@ -253,12 +266,10 @@ export default function CheckoutPage() {
               city:          deliveryAddress.city,
               state:         deliveryAddress.state,
               pincode:       deliveryAddress.pincode,
-              // Verified coordinates — used by rider dashboard for GPS navigation
               latitude:      (deliveryAddress as any).latitude  ?? null,
               longitude:     (deliveryAddress as any).longitude ?? null,
             }
           : null,
-
       }).select("id,order_number").single();
 
       if (orderErr || !order) throw new Error(orderErr?.message ?? "Order failed");
@@ -278,10 +289,14 @@ export default function CheckoutPage() {
       // COD flow — use finalTotal (after best discount applied)
       if (method === "cash_on_delivery") {
         await supabase.from("payments").insert({ order_id: order.id, amount: finalTotal, method: "cash_on_delivery", status: "pending" });
-        await fetch("/api/generate-otp", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId: order.id }),
-        });
+        // OTP is only for rider delivery handoff — skip for dine-in and takeaway
+        if (isDelivery) {
+          await fetch("/api/generate-otp", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orderId: order.id }),
+          });
+        }
+
 
         // Background push notification to owner (non-blocking)
         fetch("/api/push/send-to-owners", {
@@ -434,11 +449,12 @@ export default function CheckoutPage() {
     }
   }
 
-  if (authLoading || !user || !deliveryAddress) return (
+  if (authLoading || !user || (isDelivery && !deliveryAddress)) return (
     <div className="flex items-center justify-center min-h-[60vh]">
       <Loader2 size={32} className="animate-spin text-orange-500" />
     </div>
   );
+
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 pb-10">
@@ -511,8 +527,41 @@ export default function CheckoutPage() {
         })}
       </div>
 
-      {/* Delivery address summary */}
-      {deliveryAddress && (
+      {/* Order Type Banner — always visible */}
+      <div className="rounded-2xl p-3 mb-4 flex items-center gap-3"
+        style={{
+          background: orderType === "dine_in"  ? "rgba(168,85,247,0.07)"
+                    : orderType === "takeaway" ? "rgba(59,130,246,0.07)"
+                    :                            "rgba(249,115,22,0.06)",
+          border: `1px solid ${
+            orderType === "dine_in"  ? "rgba(168,85,247,0.3)"
+          : orderType === "takeaway" ? "rgba(59,130,246,0.3)"
+          :                            "rgba(249,115,22,0.2)"
+          }`,
+        }}>
+        <span className="text-xl shrink-0">
+          {orderType === "dine_in" ? "🍽️" : orderType === "takeaway" ? "🛍️" : "🛵"}
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-bold"
+            style={{ color: orderType === "dine_in" ? "#a855f7" : orderType === "takeaway" ? "#3b82f6" : "#f97316" }}>
+            {orderType === "dine_in" ? "Dine-In" : orderType === "takeaway" ? "Takeaway" : "Home Delivery"}
+          </p>
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+            {orderType === "dine_in"  ? "Your food will be served at the restaurant"
+           : orderType === "takeaway" ? "Collect your order from the restaurant"
+           :                            "Delivery to your address"}
+          </p>
+        </div>
+        <button onClick={() => router.push("/order-type")}
+          className="text-xs transition-colors shrink-0"
+          style={{ color: "var(--text-muted)" }}>
+          Change
+        </button>
+      </div>
+
+      {/* Delivery address summary — home delivery only */}
+      {isDelivery && deliveryAddress && (
         <div className="rounded-2xl p-3 mb-5 flex items-center gap-3"
           style={{ background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.2)" }}>
           <MapPin size={15} className="text-orange-400 shrink-0" />
@@ -529,6 +578,54 @@ export default function CheckoutPage() {
         </div>
       )}
 
+      {/* Dine-In: optional table number + guest count */}
+      {orderType === "dine_in" && (
+        <div className="rounded-2xl p-4 mb-4"
+          style={{ background: "rgba(168,85,247,0.06)", border: "1px solid rgba(168,85,247,0.2)" }}>
+          <p className="text-xs font-semibold mb-3" style={{ color: "#a855f7" }}>🍽️ Dine-In Details (Optional)</p>
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="text-xs text-gray-500 mb-1 block">Table Number</label>
+              <input
+                type="text"
+                value={localTableNum}
+                onChange={(e) => setLocalTableNum(e.target.value)}
+                placeholder="e.g. T4"
+                maxLength={10}
+                className="w-full rounded-xl px-3 py-2 text-sm text-white bg-white/5 border focus:outline-none focus:border-purple-500 transition-colors"
+                style={{ borderColor: "rgba(168,85,247,0.3)" }}
+              />
+            </div>
+            <div className="flex-1">
+              <label className="text-xs text-gray-500 mb-1 block">Guests</label>
+              <input
+                type="number"
+                value={localGuestCount}
+                onChange={(e) => setLocalGuestCount(e.target.value)}
+                placeholder="e.g. 2"
+                min={1} max={20}
+                className="w-full rounded-xl px-3 py-2 text-sm text-white bg-white/5 border focus:outline-none focus:border-purple-500 transition-colors"
+                style={{ borderColor: "rgba(168,85,247,0.3)" }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Takeaway: pickup reminder */}
+      {orderType === "takeaway" && (
+        <div className="rounded-2xl p-3 mb-4 flex items-center gap-3"
+          style={{ background: "rgba(59,130,246,0.07)", border: "1px solid rgba(59,130,246,0.2)" }}>
+          <span className="text-xl">📍</span>
+          <div>
+            <p className="text-xs font-bold text-blue-400">Collect from Restaurant</p>
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+              Please come to the restaurant to collect your order
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ═══ BILL SUMMARY STEP ═══ */}
       {checkoutStep === "bill" && (
         <>
@@ -540,6 +637,7 @@ export default function CheckoutPage() {
               <p className="text-base font-bold text-white">Your Bill</p>
               <span className="ml-auto text-xs text-gray-500">{items.length} item{items.length > 1 ? "s" : ""}</span>
             </div>
+
 
             {/* Item list */}
             <div className="space-y-2.5 mb-4 max-h-52 overflow-y-auto">
@@ -685,17 +783,18 @@ export default function CheckoutPage() {
                 sessionStorage.setItem("cod_popup_shown", "1");
               }
             }}
-            disabled={!restaurantIsOpen || !deliveryAddress?.delivery_distance_km}
+            disabled={!restaurantIsOpen || (isDelivery && !deliveryAddress?.delivery_distance_km)}
             className="w-full flex items-center justify-center gap-3 py-4 text-base rounded-2xl font-bold text-white transition-all disabled:opacity-60"
             style={{ background: "linear-gradient(135deg,#f97316,#dc2626)" }}>
             {!restaurantIsOpen ? (
               <>{isTemporarilyClosed ? "🔴 Temporarily Closed" : "🔴 Restaurant Closed"}</>
-            ) : !deliveryAddress?.delivery_distance_km ? (
+            ) : (isDelivery && !deliveryAddress?.delivery_distance_km) ? (
               <>⚠️ Address Not Verified</>
             ) : (
               <>Continue to Payment <ArrowRight size={18} /></>
             )}
           </button>
+
 
           <p className="text-center text-xs text-gray-600 mt-3">
             Review your bill above, then proceed to select payment method.

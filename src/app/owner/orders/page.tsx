@@ -38,6 +38,10 @@ type Order = {
   delivery_address: any;
   order_items?: OrderItem[];
   users?: OrderUser | null;
+  // Order type feature
+  order_type?: "dine_in" | "takeaway" | "home_delivery" | null;
+  table_number?: string | null;
+  guest_count?: number | null;
 };
 
 type Rider = {
@@ -577,6 +581,17 @@ export default function OwnerOrdersPage() {
                         style={{ background: st.bg, color: st.color }}>
                         {st.label}
                       </span>
+                      {/* Order Type Badge */}
+                      {order.order_type && order.order_type !== "home_delivery" && (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-bold"
+                          style={{
+                            background: order.order_type === "dine_in" ? "rgba(168,85,247,0.15)" : "rgba(59,130,246,0.15)",
+                            color:      order.order_type === "dine_in" ? "#a855f7"                : "#3b82f6",
+                          }}>
+                          {order.order_type === "dine_in" ? "🍽️ Dine-In" : "🛍️ Takeaway"}
+                          {order.order_type === "dine_in" && order.table_number ? ` · T${order.table_number}` : ""}
+                        </span>
+                      )}
                       {order.payment_method === "cash_on_delivery" && (
                         <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                           style={{ background: "rgba(251,191,36,0.12)", color: "#fbbf24" }}>
@@ -666,28 +681,31 @@ export default function OwnerOrdersPage() {
                     )}
 
                     {/* READY: Assign Rider + Delivered + Reassign
-                        (Delivered/Reassign shown for old orders where rider was
-                         assigned but orders.status stayed "ready" before the fix) */}
+                        For dine-in/takeaway: hide Assign Rider, only show Mark Collected */}
                     {order.status === "ready" && (
                       <>
-                        <button
-                          onClick={() => openAssignModal(order)}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.97]"
-                          style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
-                          <Bike size={15} /> Assign Rider
-                        </button>
+                        {(!order.order_type || order.order_type === "home_delivery") && (
+                          <button
+                            onClick={() => openAssignModal(order)}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.97]"
+                            style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
+                            <Bike size={15} /> Assign Rider
+                          </button>
+                        )}
                         <button
                           onClick={() => updateStatus(order.id, "delivered")}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.97]"
                           style={{ background: "linear-gradient(135deg,#22c55e,#16a34a)", minWidth: 120 }}>
-                          <Check size={15} /> ✅ Delivered
+                          <Check size={15} /> {(!order.order_type || order.order_type === "home_delivery") ? "✅ Delivered" : "✅ Collected"}
                         </button>
-                        <button
-                          onClick={() => openAssignModal(order, true)}
-                          className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl text-sm font-bold transition-all hover:opacity-90 active:scale-[0.97]"
-                          style={{ background: "rgba(245,158,11,0.12)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.35)" }}>
-                          <UserCheck size={15} /> Reassign
-                        </button>
+                        {(!order.order_type || order.order_type === "home_delivery") && (
+                          <button
+                            onClick={() => openAssignModal(order, true)}
+                            className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl text-sm font-bold transition-all hover:opacity-90 active:scale-[0.97]"
+                            style={{ background: "rgba(245,158,11,0.12)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.35)" }}>
+                            <UserCheck size={15} /> Reassign
+                          </button>
+                        )}
                       </>
                     )}
 
@@ -840,6 +858,27 @@ export default function OwnerOrdersPage() {
                       </div>
                     )}
 
+                    {/* Order Type Details (dine-in / takeaway) */}
+                    {order.order_type === "dine_in" && (
+                      <div className="mx-5 mt-3 p-3 rounded-xl text-xs flex items-start gap-2"
+                        style={{ background: "rgba(168,85,247,0.07)", border: "1px solid rgba(168,85,247,0.25)" }}>
+                        <span>🍽️</span>
+                        <div style={{ color: "var(--text-secondary)" }}>
+                          <span className="font-semibold" style={{ color: "#a855f7" }}>Dine-In</span>
+                          {order.table_number  && <span className="ml-2">· Table: <strong>{order.table_number}</strong></span>}
+                          {order.guest_count   && <span className="ml-2">· Guests: <strong>{order.guest_count}</strong></span>}
+                          {!order.table_number && <span className="ml-2 opacity-60">(Table number not provided)</span>}
+                        </div>
+                      </div>
+                    )}
+                    {order.order_type === "takeaway" && (
+                      <div className="mx-5 mt-3 p-3 rounded-xl text-xs flex items-start gap-2"
+                        style={{ background: "rgba(59,130,246,0.07)", border: "1px solid rgba(59,130,246,0.25)" }}>
+                        <span>🛍️</span>
+                        <span className="font-semibold" style={{ color: "#3b82f6" }}>Takeaway — Customer will collect from restaurant</span>
+                      </div>
+                    )}
+
                     {/* Special Instructions */}
                     {order.special_instructions && (
                       <div className="mx-5 mt-3 p-3 rounded-xl text-xs flex items-start gap-2"
@@ -848,6 +887,7 @@ export default function OwnerOrdersPage() {
                         <span style={{ color: "var(--text-secondary)" }}>{order.special_instructions}</span>
                       </div>
                     )}
+
 
                     {/* Financial Breakdown */}
                     <div className="mx-5 mt-3 p-4 rounded-xl"

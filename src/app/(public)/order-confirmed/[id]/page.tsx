@@ -24,6 +24,8 @@ interface Order {
   payment_method: string;
   estimated_time: number;
   status: string;
+  order_type?: string | null;
+  table_number?: string | null;
   order_items: { name: string; quantity: number; price: number }[];
 }
 
@@ -38,7 +40,7 @@ export default function OrderConfirmedPage() {
     async function load() {
       const { data } = await supabase
         .from("orders")
-        .select("id,order_number,total_amount,payment_method,estimated_time,status,order_items(name,quantity,price)")
+        .select("id,order_number,total_amount,payment_method,estimated_time,status,order_type,table_number,order_items(name,quantity,price)")
         .eq("id", id)
         .single();
       setOrder(data as Order);
@@ -159,37 +161,60 @@ export default function OrderConfirmedPage() {
         )}
       </div>
 
-      {/* Main OTP Focus */}
-      {otp ? (
-        <div className="rounded-2xl p-6 mb-8 text-center"
-          style={{ background: "linear-gradient(145deg, rgba(99,102,241,0.15) 0%, rgba(99,102,241,0.05) 100%)", border: "2px solid rgba(99,102,241,0.5)", boxShadow: "0 8px 32px rgba(99,102,241,0.15)" }}>
-          <div className="flex flex-col items-center justify-center gap-2 mb-5">
-            <Shield size={28} className="text-indigo-400" />
-            <h2 className="font-black text-xl text-indigo-400">Delivery OTP</h2>
+      {/* OTP — home delivery only */}
+      {(!order?.order_type || order.order_type === "home_delivery") && (
+        otp ? (
+          <div className="rounded-2xl p-6 mb-8 text-center"
+            style={{ background: "linear-gradient(145deg, rgba(99,102,241,0.15) 0%, rgba(99,102,241,0.05) 100%)", border: "2px solid rgba(99,102,241,0.5)", boxShadow: "0 8px 32px rgba(99,102,241,0.15)" }}>
+            <div className="flex flex-col items-center justify-center gap-2 mb-5">
+              <Shield size={28} className="text-indigo-400" />
+              <h2 className="font-black text-xl text-indigo-400">Delivery OTP</h2>
+            </div>
+            <div className="flex justify-center gap-3 mb-6">
+              {otp.split("").map((digit, i) => (
+                <div key={i}
+                  className="w-14 h-16 rounded-xl flex items-center justify-center font-black text-4xl text-white shadow-lg"
+                  style={{ background: "rgba(99,102,241,0.4)", border: "1px solid rgba(99,102,241,0.8)" }}>
+                  {digit}
+                </div>
+              ))}
+            </div>
+            <div className="rounded-xl px-4 py-3" style={{ background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.25)" }}>
+              <p className="text-sm leading-relaxed text-center" style={{ color: "var(--text-secondary)" }}>
+                <span className="text-lg">🔐</span> <strong className="text-indigo-300 block mb-1 text-base">Share this OTP with the delivery rider.</strong>
+                Please keep this code handy. The rider will ask for it when they arrive with your order!
+              </p>
+            </div>
           </div>
-          
-          <div className="flex justify-center gap-3 mb-6">
-            {otp.split("").map((digit, i) => (
-              <div key={i}
-                className="w-14 h-16 rounded-xl flex items-center justify-center font-black text-4xl text-white shadow-lg"
-                style={{ background: "rgba(99,102,241,0.4)", border: "1px solid rgba(99,102,241,0.8)" }}>
-                {digit}
-              </div>
-            ))}
+        ) : (
+          <div className="rounded-2xl p-6 mb-8 text-center flex flex-col items-center justify-center gap-3"
+            style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.15)" }}>
+            <div className="w-8 h-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+            <p className="text-sm text-gray-400">Generating your Delivery OTP...</p>
           </div>
+        )
+      )}
 
-          <div className="rounded-xl px-4 py-3" style={{ background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.25)" }}>
-            <p className="text-sm leading-relaxed text-center" style={{ color: "var(--text-secondary)" }}>
-              <span className="text-lg">🔐</span> <strong className="text-indigo-300 block mb-1 text-base">Share this OTP with the delivery rider.</strong>
-              Please keep this code handy. The rider will ask for it when they arrive with your order!
-            </p>
-          </div>
+      {/* Dine-In info card */}
+      {order?.order_type === "dine_in" && (
+        <div className="rounded-2xl p-5 mb-8 text-center"
+          style={{ background: "rgba(168,85,247,0.08)", border: "1px solid rgba(168,85,247,0.3)" }}>
+          <p className="text-3xl mb-2">🍽️</p>
+          <p className="font-bold text-purple-400 text-base mb-1">Dine-In Order</p>
+          {order.table_number
+            ? <p className="text-gray-400 text-sm">Please be seated at <strong className="text-white">Table {order.table_number}</strong>. Your food will be served shortly.</p>
+            : <p className="text-gray-400 text-sm">Please let our staff know you are seated. Your food will be served shortly.</p>
+          }
         </div>
-      ) : (
-        <div className="rounded-2xl p-6 mb-8 text-center flex flex-col items-center justify-center gap-3"
-          style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.15)" }}>
-          <div className="w-8 h-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
-          <p className="text-sm text-gray-400">Generating your Delivery OTP...</p>
+      )}
+
+      {/* Takeaway info card */}
+      {order?.order_type === "takeaway" && (
+        <div className="rounded-2xl p-5 mb-8 text-center"
+          style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.3)" }}>
+          <p className="text-3xl mb-2">🛍️</p>
+          <p className="font-bold text-blue-400 text-base mb-1">Takeaway Order</p>
+          <p className="text-gray-400 text-sm">Come to the restaurant when your order is ready. Show your order number <strong className="text-white">#{order.order_number}</strong> at the counter.</p>
         </div>
       )}
 
@@ -205,16 +230,23 @@ export default function OrderConfirmedPage() {
 
       {/* Actions */}
       <div className="flex flex-col gap-3">
-        {/* PRIMARY: Track Order */}
-        <Link href={`/track/${order?.id ?? id}`}
-          className="flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-base transition-all btn-primary shadow-lg shadow-orange-500/20">
-          🛵 Track Your Order
+        {/* Track Order — home delivery only */}
+        {(!order?.order_type || order.order_type === "home_delivery") && (
+          <Link href={`/track/${order?.id ?? id}`}
+            className="flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-base transition-all btn-primary shadow-lg shadow-orange-500/20">
+            🛵 Track Your Order
+          </Link>
+        )}
+        <Link href="/menu"
+          className="flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm transition-all"
+          style={{ background: "rgba(255,255,255,0.05)", color: "var(--text-secondary)", border: "1px solid rgba(255,255,255,0.1)" }}>
+          🏠 Back to Menu
         </Link>
       </div>
 
       <p className="text-gray-600 text-xs mt-8">
         Thank you for ordering from Royal Zaika! 🙏<br />
-        We'll have your food ready as soon as possible.
+        We will have your food ready as soon as possible.
       </p>
     </div>
   );

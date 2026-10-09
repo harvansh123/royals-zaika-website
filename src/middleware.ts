@@ -80,7 +80,7 @@ export async function middleware(request: NextRequest) {
     if (role === "restaurant_owner") return NextResponse.redirect(new URL("/owner/orders", request.url));
 
     if (role === "delivery")         return NextResponse.redirect(new URL("/delivery", request.url));
-    if (role === "customer")         return NextResponse.redirect(new URL("/menu",     request.url));
+    if (role === "customer")         return NextResponse.redirect(new URL("/order-type", request.url));
     // role is null (old user, metadata missing) → let them log in again
     // to get a proper role-based redirect from the login page
   }

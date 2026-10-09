@@ -15,6 +15,8 @@ import { useRestaurantStatus, formatTime } from "@/hooks/useRestaurantStatus";
 import ClosedPopup from "@/components/restaurant/ClosedPopup";
 import ReferralBanner from "@/components/referral/ReferralBanner";
 import { trackAddToCart, trackViewMenu } from "@/lib/gtag";
+import { useOrderTypeStore } from "@/stores/orderTypeStore";
+
 
 type ActiveOffer = {
   id: string; title: string; description: string | null;
@@ -217,8 +219,19 @@ function MenuContent() {
   // ── Restaurant open/closed status ────────────────────────────────
   const { isOpen, isTemporarilyClosed, openingTimeFormatted, closingTimeFormatted, statusMode } = useRestaurantStatus();
 
+  const { user } = useAuthStore();
+  const { orderType } = useOrderTypeStore();
+
+  // Guard: logged-in customer must select order type before browsing
+  useEffect(() => {
+    if (user && user.role === "customer" && !orderType) {
+      router.push("/order-type");
+    }
+  }, [user, orderType, router]);
+
   const totalItems  = useCartStore((s) => s.totalItems());
   const total       = useCartStore((s) => s.total());
+
 
   const load = useCallback(async (bustCache = false) => {
     if (!bustCache) {
