@@ -169,18 +169,16 @@ export function GlobalAlarmProvider({ children }: { children: React.ReactNode })
           }
         )
         // ── Stop alarm when order is accepted on ANY device ──────────
-        // When any owner device accepts an order, its status changes in DB.
-        // This UPDATE fires on ALL connected owner devices via Supabase realtime,
-        // so the alarm stops everywhere — not just on the device that clicked Accept.
+        // payload.old does NOT carry status without REPLICA IDENTITY FULL,
+        // so we only check payload.new.status: if no longer "pending" → stop.
         .on(
           "postgres_changes",
           { event: "UPDATE", schema: "public", table: "orders" },
           (payload) => {
             const updated = payload.new as { order_number?: string; status?: string };
-            const oldRow  = payload.old as { status?: string };
 
-            // Only act when order moves OUT of "pending"
-            if (oldRow.status !== "pending" || updated.status === "pending") return;
+            // Still pending — keep alarm ringing, nothing to do
+            if (updated.status === "pending") return;
 
             const orderTag = `#${updated.order_number ?? ""}`;
 
@@ -195,6 +193,7 @@ export function GlobalAlarmProvider({ children }: { children: React.ReactNode })
             });
           }
         )
+
         .subscribe();
 
       // ── Owner Alarm — rider rejection notifications ───

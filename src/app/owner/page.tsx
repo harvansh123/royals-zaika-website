@@ -56,16 +56,9 @@ export default function OwnerDashboard() {
         const json = await res.json();
         if (json.orders) setOrders(json.orders.slice(0, 10));
         setStats((prev) => ({ ...prev, todayOrders: prev.todayOrders + 1, pendingOrders: prev.pendingOrders + 1, todayRevenue: prev.todayRevenue + newOrder.total_amount }));
-        // Stop any previous alarm first
-        if (stopAlarmRef.current) stopAlarmRef.current();
-        if (alarmTimerRef.current) clearTimeout(alarmTimerRef.current);
-        // Start looping MP3 alarm
-        stopAlarmRef.current = startLoopingAlarm();
-        // Auto-stop after 60 seconds if owner doesn't act
-        alarmTimerRef.current = setTimeout(() => {
-          stopCurrentAlarm();
-          stopAlarmRef.current = null;
-        }, 60000);
+        // Stop any previous alarm first — let GlobalAlarmProvider handle alarm
+        // (removing duplicate alarm; GlobalAlarmProvider already listens to INSERT)
+
         toast.custom((t) => (
           <div className={cn("flex items-center gap-3 px-5 py-4 rounded-2xl shadow-brand", t.visible ? "animate-slide-bottom" : "opacity-0")}
             style={{ background: "var(--card-bg)", border: "1px solid rgba(249,115,22,0.4)" }}>
