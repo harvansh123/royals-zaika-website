@@ -91,10 +91,19 @@ export async function middleware(request: NextRequest) {
     if (user && !viewPublic) {
       const role = getRoleFromJWT(user);
       if (role === "restaurant_owner") return NextResponse.redirect(new URL("/owner/orders", request.url));
-
       if (role === "admin")            return NextResponse.redirect(new URL("/admin",    request.url));
       if (role === "delivery")         return NextResponse.redirect(new URL("/delivery", request.url));
+      // Customers: skip home page — go straight to order type selection
+      if (role === "customer")         return NextResponse.redirect(new URL("/order-type", request.url));
     }
+  }
+
+  // ── Customers: redirect /about (and other public info pages) to /order-type ──
+  // Logged-in customers don't need the home/about pages — take them straight
+  // to order type selection so they can start ordering.
+  if (user && (pathname === "/about" || pathname.startsWith("/about/"))) {
+    const role = getRoleFromJWT(user);
+    if (role === "customer") return NextResponse.redirect(new URL("/order-type", request.url));
   }
 
   return supabaseResponse;
@@ -103,6 +112,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/",
+    "/about/:path*",
     "/admin/:path*",
     "/owner/:path*",
     "/delivery/:path*",
