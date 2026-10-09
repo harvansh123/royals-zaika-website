@@ -950,19 +950,20 @@ export default function CheckoutPage() {
       {/* Place Order */}
       <button onClick={placeOrder}
         disabled={placing
-          || !deliveryAddress?.delivery_distance_km
+          || (isDelivery && !deliveryAddress?.delivery_distance_km)
           || !restaurantIsOpen}
         className="w-full btn-primary flex items-center justify-center gap-3 py-4 text-base rounded-2xl disabled:opacity-70">
         {placing ? (
           <><Loader2 size={20} className="animate-spin" /> Processing...</>
         ) : !restaurantIsOpen ? (
           <>{isTemporarilyClosed ? "🔴 Temporarily Closed" : "🔴 Restaurant Closed"}</>
-        ) : !deliveryAddress?.delivery_distance_km ? (
+        ) : (isDelivery && !deliveryAddress?.delivery_distance_km) ? (
           <>⚠️ Address Not Verified</>
         ) : (
           <><Check size={18} /> Place Order · {formatPrice(grand)}</>
         )}
       </button>
+
 
       <div className="flex items-center gap-3 mt-3">
         <button onClick={() => setCheckoutStep("bill")}

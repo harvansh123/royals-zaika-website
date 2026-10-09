@@ -1,6 +1,7 @@
 "use client";
 import { useCartStore } from "@/stores/cartStore";
 import { useAuthStore } from "@/stores/authStore";
+import { useOrderTypeStore } from "@/stores/orderTypeStore";
 import Link from "next/link";
 import Image from "next/image";
 import { Minus, Plus, Trash2, ArrowRight, ShoppingBag, ChevronLeft, Tag } from "lucide-react";
@@ -29,6 +30,8 @@ export default function CartPage() {
   const router = useRouter();
   const { items, updateQty, removeItem, subtotal, total } = useCartStore();
   const { user } = useAuthStore();
+  const { orderType } = useOrderTypeStore();
+  const isDelivery = !orderType || orderType === "home_delivery";
   const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
   const [activeOffer, setActiveOffer] = useState<ActiveOffer | null>(null);
   // State declared before computed variables that reference them
@@ -273,7 +276,7 @@ export default function CartPage() {
         </div>
       )}
 
-      {/* Proceed to Address / Checkout */}
+      {/* Proceed to Checkout — skip address for dine-in / takeaway */}
       <button
         onClick={() => {
           if (!user) { toast.error("Please login first"); router.push("/auth/login"); return; }
@@ -288,7 +291,8 @@ export default function CartPage() {
               quantity: i.quantity,
             })),
           });
-          router.push("/checkout/address");
+          // Dine-in / takeaway skip address selection — go directly to checkout
+          router.push(isDelivery ? "/checkout/address" : "/checkout");
         }}
         disabled={isRestaurantOpen === false}
         className="w-full btn-primary flex items-center justify-between py-4 px-6 text-base rounded-2xl disabled:opacity-60"
@@ -302,9 +306,13 @@ export default function CartPage() {
         </div>
       </button>
 
-      {/* Delivery charge note */}
+      {/* Context-aware note below button */}
       <p className="text-center text-xs mt-3" style={{ color: "var(--text-muted)" }}>
-        🚚 Delivery charge will be calculated after address selection
+        {isDelivery
+          ? "🚚 Delivery charge will be calculated after address selection"
+          : orderType === "dine_in"
+          ? "🍽️ No delivery fee for dine-in orders"
+          : "🛍️ No delivery fee — collect from restaurant"}
       </p>
     </div>
   );
