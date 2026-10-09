@@ -1,11 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // ── TypeScript: Use standalone tsc for type-checking (tsc --noEmit passes ✅)
-  // Next.js 16.2.6's internal TS worker is incompatible with TypeScript 7.x
-  typescript: { ignoreBuildErrors: true },
-
-
   // ── Image Optimization ─────────────────────────────────────────────
   images: {
     formats: ["image/avif", "image/webp"],   // Auto-convert to WebP/AVIF (30-50% smaller)
