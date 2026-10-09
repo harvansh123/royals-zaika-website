@@ -1,6 +1,6 @@
 "use client";
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 export type OrderType = "dine_in" | "takeaway" | "home_delivery";
 
@@ -26,6 +26,11 @@ export const useOrderTypeStore = create<OrderTypeStore>()(
       setGuestCount:  (guestCount)  => set({ guestCount }),
       reset: () => set({ orderType: null, tableNumber: "", guestCount: "" }),
     }),
-    { name: "rz-order-type" }   // persisted to localStorage
+    {
+      name:    "rz-order-type",
+      // sessionStorage: clears when browser tab/window is closed.
+      // Customer sees the 3 options every new visit. ✅
+      storage: createJSONStorage(() => sessionStorage),
+    }
   )
 );
