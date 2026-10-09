@@ -177,8 +177,8 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* Free delivery progress */}
-      {sub >= freeAt ? (
+      {/* Free delivery progress — only for home delivery */}
+      {isDelivery && (sub >= freeAt ? (
         <div className="mb-5 p-4 rounded-2xl flex items-center gap-3"
           style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)" }}>
           <span className="text-xl">🎉</span>
@@ -187,7 +187,7 @@ export default function CartPage() {
             <p className="text-green-400/70 text-xs">Your order qualifies for free delivery</p>
           </div>
         </div>
-      ) : sub < freeAt && (
+      ) : (
         <div className="mb-5 p-4 rounded-2xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
           <div className="flex justify-between text-xs text-gray-400 mb-2">
             <span>Add <span className="text-green-400 font-semibold">{formatPrice(Math.max(0, freeAt - sub))}</span> more for free delivery</span>
@@ -197,7 +197,7 @@ export default function CartPage() {
             <div className="h-full bg-green-400 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
           </div>
         </div>
-      )}
+      ))}
 
       <div className="space-y-3 mb-6">
         {items.map(({ id, menu_item, quantity }) => (
