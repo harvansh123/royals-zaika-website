@@ -12,7 +12,7 @@ export function Footer() {
           <div className="sm:col-span-1 space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 gradient-brand rounded-xl flex items-center justify-center text-xl shadow-brand">
-                ??
+                🍽️
               </div>
               <div className="leading-none">
                 <p className="font-bold text-white text-lg" style={{ fontFamily: "'Outfit', sans-serif" }}>

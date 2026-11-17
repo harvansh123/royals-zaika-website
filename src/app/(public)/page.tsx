@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Phone, Star, Award, Leaf, Users } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
@@ -7,9 +7,9 @@ import { AuthRedirect } from "@/components/auth/AuthRedirect";
 import type { RestaurantTimingSettings } from "@/hooks/useRestaurantStatus";
 
 export const metadata: Metadata = {
-  title: "Chaurasia's Restaurant - The Taste of Kings, Prayagraj",
+  title: "Chaurasia's Restaurant — The Taste of Kings, Prayagraj",
   description:
-    "Fresh Pizza, Burger, Shahi Paneer & Delicious Fast Food. Tasty food, quality ingredients, and quick service at affordable prices.",
+    "Fresh Shahi Paneer, Biryani, Thali & Delicious North Indian Food. Dine In, Takeaway & Home Delivery. Authentic taste, quality ingredients at affordable prices.",
 };
 
 async function getTopRatedItems() {
@@ -34,7 +34,7 @@ async function getTopRatedItems() {
 async function getRestaurantSettings(): Promise<RestaurantTimingSettings> {
   const defaults: RestaurantTimingSettings = {
     opening_time: "11:00",
-    closing_time: "24:00",
+    closing_time: "23:00",
     status_mode: "auto",
     is_open: true,
     updated_at: new Date().toISOString(),
@@ -55,9 +55,9 @@ async function getRestaurantSettings(): Promise<RestaurantTimingSettings> {
 }
 
 const STATS = [
-  { icon: Star,  value: "4.3?",   label: "Customer Rating"     },
+  { icon: Star,  value: "4.3+",   label: "Customer Rating"     },
   { icon: Users, value: "5,000+", label: "Happy Customers"     },
-  { icon: Award, value: "1+",    label: "Years of Excellence" },
+  { icon: Award, value: "1+",     label: "Years of Excellence" },
   { icon: Leaf,  value: "100%",   label: "Fresh Ingredients"   },
 ];
 
@@ -73,61 +73,65 @@ export default async function HomePage() {
 
       {/* -- HERO -- */}
       <section className="relative min-h-[92vh] flex items-center">
-        {/* Rich charcoal-to-dark-brown gradient � premium restaurant feel */}
         <div className="absolute inset-0"
           style={{ background: "linear-gradient(135deg, #1F2937 0%, #111827 50%, #1a0e04 100%)" }} />
-        {/* Warm amber glow � top right */}
         <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full blur-[130px] pointer-events-none"
           style={{ background: "rgba(251,191,36,0.07)" }} />
-        {/* Soft orange glow � bottom left */}
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full blur-[120px] pointer-events-none"
           style={{ background: "rgba(249,115,22,0.08)" }} />
-        {/* Subtle dot grid overlay */}
         <div className="absolute inset-0 opacity-[0.025]"
           style={{ backgroundImage: "radial-gradient(circle, #fbbf24 1px, transparent 1px)", backgroundSize: "44px 44px" }} />
 
         <div className="relative max-w-6xl mx-auto px-5 sm:px-8 py-20 w-full">
           <div className="max-w-3xl">
-            {/* -- Family Restaurant delivery badge -- */}
+            {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold mb-4"
               style={{ background: "rgba(249,115,22,0.15)", border: "1px solid rgba(249,115,22,0.35)", color: "#FBBF24" }}>
-              ?? Dine In  Takeaway  Home Delivery
+              🍽️ Dine In &nbsp;·&nbsp; 🛍️ Takeaway &nbsp;·&nbsp; 🚚 Home Delivery
             </div>
-            {/* -- Dynamic restaurant status + CTA -- */}
+
+            {/* Dynamic restaurant status + CTA */}
             <HeroStatusWidget initialSettings={restaurantSettings} />
 
             <h1 className="font-black text-5xl sm:text-6xl md:text-7xl leading-[1.05] mb-6 mt-6"
               style={{ fontFamily: "'Outfit', sans-serif", color: "#FFF8F0" }}>
               A Taste of{" "}
-              <span className="block" style={{
+              <span style={{
                 WebkitTextFillColor: "transparent",
                 WebkitBackgroundClip: "text",
                 backgroundClip: "text",
                 backgroundImage: "linear-gradient(135deg, #FBBF24 0%, #F97316 60%, #dc2626 100%)",
               }}>
-                Tradition
+                Kings
               </span>
             </h1>
 
-            <p style={{ color: "#d1bfa8" }} className="text-lg sm:text-xl leading-relaxed mb-8 max-w-xl">
-              Authentic North Indian flavours crafted with love and generations of culinary wisdom.
-              Freshly made, every single day.
+            <p className="text-lg sm:text-xl max-w-xl leading-relaxed mb-8"
+              style={{ color: "#d1bfa8", fontFamily: "'Outfit', sans-serif" }}>
+              Authentic North Indian flavours, crafted fresh every day.
+              Dine with us, pick it up, or get it delivered hot to your door.
             </p>
 
-            <div className="mt-4">
-              <Link href="/about"
+            <div className="flex flex-col sm:flex-row gap-4 mb-12">
+              <Link href="/menu"
+                className="btn-primary inline-flex items-center justify-center gap-2 text-base py-3.5 px-8">
+                🛒 Order Now <ArrowRight size={18} />
+              </Link>
+              <a href="tel:+917379294659"
                 className="inline-flex items-center justify-center gap-2 text-base py-3.5 px-8 rounded-xl font-semibold transition-all hover:bg-white/10"
                 style={{ border: "1px solid rgba(255,255,255,0.2)", color: "#FFF8F0", background: "rgba(255,255,255,0.06)" }}>
-                Our Story
-              </Link>
+                <Phone size={18} /> +91 73792 94659
+              </a>
             </div>
 
-            <div className="flex flex-wrap gap-6 mt-12">
+            {/* Stats */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {STATS.map(({ icon: Icon, value, label }) => (
-                <div key={label} className="flex items-center gap-2">
-                  <Icon size={16} style={{ color: "#FBBF24" }} />
-                  <span className="font-bold" style={{ color: "#FFF8F0" }}>{value}</span>
-                  <span className="text-sm" style={{ color: "#9ca3af" }}>{label}</span>
+                <div key={label} className="text-center p-4 rounded-2xl"
+                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                  <Icon size={18} className="mx-auto mb-2" style={{ color: "#FBBF24" }} />
+                  <p className="font-black text-xl" style={{ color: "#FFF8F0" }}>{value}</p>
+                  <p className="text-xs mt-0.5" style={{ color: "#9ca3af" }}>{label}</p>
                 </div>
               ))}
             </div>
@@ -135,41 +139,28 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* -- STATS BAR -- */}
-      <section style={{ background: "linear-gradient(135deg, #F97316, #dc2626)" }}>
-        <div className="max-w-6xl mx-auto px-5 sm:px-8 py-6">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center text-white">
-            {STATS.map(({ value, label }) => (
-              <div key={label}>
-                <p className="text-2xl sm:text-3xl font-black">{value}</p>
-                <p className="text-sm" style={{ opacity: 0.88 }}>{label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* -- TOP RATED DISHES -- � Warm Cream light section */}
+      {/* -- TOP RATED -- Warm Cream */}
       {topRatedItems.length > 0 && (
         <section style={{ background: "#FFF8F0", borderTop: "1px solid #F5E6D3" }}>
           <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16">
-            <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
+            <div className="flex items-center justify-between mb-8">
               <div>
-                <p className="text-sm font-semibold tracking-widest uppercase mb-1"
-                  style={{ color: "#F97316" }}>Based on Real Reviews</p>
-                <h2 className="font-black text-3xl sm:text-4xl" style={{ fontFamily: "'Outfit', sans-serif", color: "#1F2937" }}>
-                  ? Customer Favorites
+                <p className="text-sm font-semibold tracking-widest uppercase mb-1" style={{ color: "#F97316" }}>
+                  Customer Favourites
+                </p>
+                <h2 className="font-black text-2xl sm:text-3xl" style={{ fontFamily: "'Outfit', sans-serif", color: "#1F2937" }}>
+                  Top Rated Dishes
                 </h2>
               </div>
               <Link href="/menu"
-                className="flex items-center gap-2 text-sm font-semibold transition-colors hover:opacity-80"
+                className="text-sm font-semibold flex items-center gap-1 hover:gap-2 transition-all"
                 style={{ color: "#F97316" }}>
-                View Full Menu <ArrowRight size={16} />
+                See All <ArrowRight size={15} />
               </Link>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-              {topRatedItems.map((item: any) => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {topRatedItems.map((item: { id: string; name: string; image_url?: string; rating: number; review_count: number; price: number; discounted_price?: number; is_veg: boolean }) => (
                 <Link key={item.id} href={`/reviews/${item.id}`}
                   className="group rounded-2xl overflow-hidden transition-all hover:scale-[1.02] hover:shadow-xl"
                   style={{ background: "#FFFFFF", border: "1px solid #F5E6D3", boxShadow: "0 2px 8px rgba(31,41,55,0.06)" }}>
@@ -178,7 +169,7 @@ export default async function HomePage() {
                       <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-4xl"
-                        style={{ background: "rgba(249,115,22,0.08)" }}>???</div>
+                        style={{ background: "rgba(249,115,22,0.08)" }}>🍛</div>
                     )}
                     <div className={`absolute top-2 left-2 w-4 h-4 rounded-sm border-2 flex items-center justify-center ${item.is_veg ? "border-green-600" : "border-red-500"}`}>
                       <div className={`w-2 h-2 rounded-full ${item.is_veg ? "bg-green-600" : "bg-red-500"}`} />
@@ -192,7 +183,7 @@ export default async function HomePage() {
                       <span className="text-[10px]" style={{ color: "#9ca3af" }}>({item.review_count})</span>
                     </div>
                     <p className="text-[10px] transition-colors group-hover:text-orange-500" style={{ color: "#9ca3af" }}>
-                      Tap to view reviews ?
+                      Tap to view reviews →
                     </p>
                   </div>
                 </Link>
@@ -202,26 +193,26 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* -- WHY US -- � Deep Charcoal dark section */}
+      {/* -- WHY US -- Deep Charcoal */}
       <section style={{ background: "#1F2937", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
         <div className="max-w-6xl mx-auto px-5 sm:px-8 py-20">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <p className="text-sm font-semibold tracking-widest uppercase mb-3" style={{ color: "#FBBF24" }}>Our Promise</p>
               <h2 className="font-black text-3xl sm:text-4xl mb-6 leading-tight" style={{ fontFamily: "'Outfit', sans-serif", color: "#FFF8F0" }}>
-                Why Families Choose<br />Chaurasia's Restaurant
+                Why Families Choose<br />Chaurasia&apos;s Restaurant
               </h2>
               <p className="leading-relaxed mb-8" style={{ color: "#9ca3af" }}>
-                For over a decade, we've remained committed to one simple belief: great food
+                We&apos;ve remained committed to one simple belief: great food
                 starts with great ingredients and genuine care. No shortcuts, no compromises.
               </p>
               <ul className="space-y-4">
                 {[
-                  { emoji: "??", title: "Farm-Fresh Ingredients",   desc: "Sourced fresh every morning from local farms and markets." },
-                  { emoji: "?????", title: "Master Chefs",              desc: "2+ years of expertise in authentic North Indian cooking." },
-                  { emoji: "??", title: "Traditional Recipes",      desc: "Original recipes unchanged since our founding in 2025." },
-                  { emoji: "?", title: "Hygienic Kitchen",          desc: "FSSAI certified. Clean, safe, and transparent food preparation." },
-                  { emoji: "??", title: "Famous Shahi Paneer ",      desc: "Our signature Shahi Paneer is freshly prepared every day with authentic flavors and quality ingredients, making it a favorite among students and families." },
+                  { emoji: "🌿", title: "Farm-Fresh Ingredients",  desc: "Sourced fresh every morning from local farms and markets." },
+                  { emoji: "👨‍🍳", title: "Master Chefs",             desc: "2+ years of expertise in authentic North Indian cooking." },
+                  { emoji: "📜", title: "Traditional Recipes",     desc: "Original recipes unchanged since our founding in 2025." },
+                  { emoji: "✅", title: "Hygienic Kitchen",         desc: "FSSAI certified. Clean, safe, and transparent food preparation." },
+                  { emoji: "🍛", title: "Famous Shahi Paneer",     desc: "Our signature Shahi Paneer is freshly prepared every day with authentic flavors and quality ingredients." },
                 ].map(({ emoji, title, desc }) => (
                   <li key={title} className="flex items-start gap-4">
                     <span className="text-2xl shrink-0 mt-0.5">{emoji}</span>
@@ -236,10 +227,10 @@ export default async function HomePage() {
 
             <div className="grid grid-cols-2 gap-4">
               {[
-                { emoji: "???", title: "50+ Menu Items",  desc: "Curated selection of the finest North Indian dishes." },
-                { emoji: "?", title: "30-Min Delivery", desc: "Lightning-fast delivery to your doorstep." },
-                { emoji: "??", title: "Best Value",      desc: "Premium quality food at affordable prices." },
-                { emoji: "?", title: "Real Reviews",    desc: "Transparent customer ratings on every dish." },
+                { emoji: "🍽️", title: "50+ Menu Items",  desc: "Curated selection of the finest North Indian dishes." },
+                { emoji: "⚡", title: "Fast Delivery",    desc: "Lightning-fast delivery to your doorstep." },
+                { emoji: "💰", title: "Best Value",       desc: "Premium quality food at affordable prices." },
+                { emoji: "⭐", title: "Real Reviews",     desc: "Transparent customer ratings on every dish." },
               ].map(({ emoji, title, desc }) => (
                 <div key={title} className="rounded-2xl p-5 transition-all hover:scale-[1.02]"
                   style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(251,191,36,0.15)" }}>
@@ -253,7 +244,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* -- POPULAR CATEGORIES -- � Soft warm white section */}
+      {/* -- POPULAR CATEGORIES -- Soft warm white */}
       <section style={{ background: "#F9FAFB", borderTop: "1px solid #E5E7EB" }}>
         <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16 text-center">
           <p className="text-sm font-semibold tracking-widest uppercase mb-3" style={{ color: "#F97316" }}>Explore</p>
@@ -261,10 +252,10 @@ export default async function HomePage() {
             Something for Everyone
           </h2>
           <p className="max-w-lg mx-auto mb-10" style={{ color: "#6B7280" }}>
-            From sizzling tandoori mains to fresh rotis and indulgent desserts � discover your next favourite.
+            From sizzling tandoori mains to fresh rotis and indulgent desserts — discover your next favourite.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            {["?? Pizza", "?? Burgers", "?? Salads", "?? Curries", "?? Parathas", "?? Desserts"].map((cat) => (
+            {["🍕 Pizza", "🍔 Burgers", "🥗 Salads", "🍛 Curries", "🫓 Parathas", "🍮 Desserts"].map((cat) => (
               <Link key={cat} href="/menu"
                 className="px-5 py-2.5 rounded-full text-sm font-semibold transition-all hover:scale-105"
                 style={{ background: "#FFF8F0", border: "1px solid #F97316", color: "#C2410C" }}>
@@ -280,26 +271,25 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* -- ORDER ONLINE -- � Deep charcoal with warm golden CTA */}
+      {/* -- CTA BOTTOM -- Deep charcoal */}
       <section className="text-center py-20 px-5"
         style={{ background: "linear-gradient(135deg, #1F2937 0%, #111827 60%, #1a0e04 100%)" }}>
         <div className="max-w-2xl mx-auto">
-          <p className="text-5xl mb-4">??</p>
+          <p className="text-5xl mb-4">🍽️</p>
           <h2 className="font-black text-3xl sm:text-4xl mb-4" style={{ fontFamily: "'Outfit', sans-serif", color: "#FFF8F0" }}>
-            Order Online Today
+            Visit Us or Order Online
           </h2>
           <p className="max-w-lg mx-auto mb-2" style={{ color: "#d1bfa8" }}>
-            Chaurasia's Restaurant is a <strong style={{ color: "#FBBF24" }}>Family Restaurant</strong> � we prepare fresh,
-            authentic North Indian food exclusively for <strong style={{ color: "#FBBF24" }}>Home Delivery</strong>.
-            No dine-in, no table booking � just great food delivered to your door.
+            Chaurasia&apos;s Restaurant is a <strong style={{ color: "#FBBF24" }}>Family Restaurant</strong> — come
+            dine with us, take away your order, or get it delivered fresh to your home.
           </p>
           <p className="text-sm mb-8" style={{ color: "#6B7280" }}>
-            ?? Kitchen: Mahewa Khan Chauraha, Near Police Chowki, Prayagraj, UP
+            📍 Mahewa Khan Chauraha, Near Police Chowki, Prayagraj, UP
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/menu"
               className="btn-primary inline-flex items-center justify-center gap-2 text-base py-3.5 px-8">
-              ??? Order Now
+              🛒 Order Now
             </Link>
             <a href="tel:+917379294659"
               className="inline-flex items-center justify-center gap-2 text-base py-3.5 px-8 rounded-xl font-semibold transition-all hover:bg-white/10"
