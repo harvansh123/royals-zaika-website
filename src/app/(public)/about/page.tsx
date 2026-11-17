@@ -3,9 +3,9 @@ import Link from "next/link";
 import { ArrowRight, Phone, MapPin, Clock, Award, Heart, Leaf, Shield } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "About Us | Royals Zaika — Cloud Kitchen, Prayagraj",
+  title: "About Us | Chaurasia's Restaurant � Restaurant, Prayagraj",
   description:
-    "Royals Zaika is a Cloud Kitchen in Prayagraj serving authentic North Indian food exclusively through Home Delivery. Fresh food made daily — order online and get it delivered to your door.",
+    "Chaurasia's Restaurant in Prayagraj serves authentic North Indian food with Dine In, Takeaway, and Home Delivery. Fresh food made daily - visit us or order online.",
 };
 
 
@@ -19,7 +19,7 @@ const VALUES = [
   {
     icon: Heart,
     title: "Cooked with Love",
-    desc: "Our chefs don't just cook — they craft. Every dish carries the warmth and passion of a family kitchen, served with genuine care.",
+    desc: "Our chefs don't just cook � they craft. Every dish carries the warmth and passion of a family kitchen, served with genuine care.",
   },
   {
     icon: Shield,
@@ -34,16 +34,16 @@ const VALUES = [
 ];
 
 const TEAM = [
-  { emoji: "👨‍🍳", name: "Harvansh Chaurasia",  role: "Founder & Owner",    desc: "Passionate about serving fresh, delicious food and creating a great experience for every customer." },
-  { emoji: "👩‍🍳", name: "Sarita Chaurasia",     role: "Kitchen Head",       desc: "The heart of our kitchen, preparing fresh and delicious food with love and care for every customer in Prayagraj." },
-  { emoji: "👩‍💼", name: "Anisha Chaurasia",       role: "Team Member",        desc: "A valued part of our team, helping us serve fresh and delicious food with care and dedication in Prayagraj." },
+  { emoji: "?????", name: "Harvansh Chaurasia",  role: "Founder & Owner",    desc: "Passionate about serving fresh, delicious food and creating a great experience for every customer." },
+  { emoji: "?????", name: "Sarita Chaurasia",     role: "Kitchen Head",       desc: "The heart of our kitchen, preparing fresh and delicious food with love and care for every customer in Prayagraj." },
+  { emoji: "?????", name: "Anisha Chaurasia",       role: "Team Member",        desc: "A valued part of our team, helping us serve fresh and delicious food with care and dedication in Prayagraj." },
 ];
 
 export default function AboutPage() {
   return (
     <div className="overflow-x-hidden">
 
-      {/* ══════════════════ HERO — Deep Charcoal ══════════════════ */}
+      {/* ------------------ HERO � Deep Charcoal ------------------ */}
       <section className="relative py-24 md:py-32">
         <div className="absolute inset-0"
           style={{ background: "linear-gradient(135deg, #1F2937 0%, #111827 55%, #1a0e04 100%)" }} />
@@ -67,33 +67,33 @@ export default function AboutPage() {
             </span>
           </h1>
           <p className="text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed" style={{ color: "#d1bfa8" }}>
-            Royals Zaika was born from a simple belief — that real Indian food tells a story.
-            We are a <strong style={{ color: "#FBBF24" }}>Cloud Kitchen</strong> in Prayagraj,
+            Chaurasia's Restaurant was born from a simple belief � that real Indian food tells a story.
+            We are a <strong style={{ color: "#FBBF24" }}>Family Restaurant</strong> in Prayagraj,
             delivering fresh, authentic North Indian food straight to your doorstep.
           </p>
           {/* Cloud Kitchen badge */}
           <div className="inline-flex items-center gap-2 mt-6 px-5 py-2 rounded-full font-semibold text-sm"
             style={{ background: "rgba(249,115,22,0.15)", border: "1px solid rgba(249,115,22,0.4)", color: "#FBBF24" }}>
-            🚚 Home Delivery Only — No Dine-in
+            ?? Dine In  Takeaway  Home Delivery � No Dine-in
           </div>
         </div>
       </section>
 
 
 
-      {/* ══════════════════ MISSION & VISION — Deep Charcoal ══════════════════ */}
+      {/* ------------------ MISSION & VISION � Deep Charcoal ------------------ */}
       <section style={{ background: "#1F2937", borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16">
           <div className="grid md:grid-cols-2 gap-8">
             {/* Mission */}
             <div className="p-8 rounded-2xl"
               style={{ background: "linear-gradient(135deg, rgba(249,115,22,0.12), rgba(251,191,36,0.06))", border: "1px solid rgba(249,115,22,0.25)" }}>
-              <p className="text-3xl mb-4">🎯</p>
+              <p className="text-3xl mb-4">??</p>
               <h3 className="font-bold text-2xl mb-3" style={{ fontFamily: "'Outfit', sans-serif", color: "#FFF8F0" }}>Our Mission</h3>
               <p className="leading-relaxed" style={{ color: "#d1bfa8" }}>
                 To preserve and celebrate the rich culinary heritage of North India by delivering
                 food that is authentic in taste, honest in ingredients, and generous in spirit.
-                As a cloud kitchen, we focus entirely on what matters most — the quality of food
+                We focus entirely on what matters most � the quality of food
                 that arrives at your door.
               </p>
             </div>
@@ -101,10 +101,10 @@ export default function AboutPage() {
             {/* Vision */}
             <div className="p-8 rounded-2xl"
               style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(251,191,36,0.15)" }}>
-              <p className="text-3xl mb-4">🌟</p>
+              <p className="text-3xl mb-4">??</p>
               <h3 className="font-bold text-2xl mb-3" style={{ fontFamily: "'Outfit', sans-serif", color: "#FFF8F0" }}>Our Vision</h3>
               <p className="leading-relaxed" style={{ color: "#d1bfa8" }}>
-                To be recognized as Prayagraj’s most trusted cloud kitchen — where every online
+                To be recognized as Prayagraj�s most trusted restaurant � where every online
                 order brings the warmth of a home-cooked meal. We keep the timeless art of
                 Indian cooking alive, one delivery at a time.
               </p>
@@ -113,7 +113,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ══════════════════ VALUES — Soft White light section ══════════════════ */}
+      {/* ------------------ VALUES � Soft White light section ------------------ */}
       <section style={{ background: "#F9FAFB", borderTop: "1px solid #E5E7EB" }}>
         <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16">
           <div className="text-center mb-12">
@@ -143,7 +143,7 @@ export default function AboutPage() {
 
 
 
-      {/* ══════════════════ TEAM — Warm Cream light section ══════════════════ */}
+      {/* ------------------ TEAM � Warm Cream light section ------------------ */}
       <section style={{ background: "#FFF8F0", borderTop: "1px solid #F5E6D3" }}>
         <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16">
           <div className="text-center mb-12">
@@ -167,15 +167,15 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ════════════════════ ORDER ONLINE — Deep Charcoal ════════════════════ */}
+      {/* -------------------- ORDER ONLINE � Deep Charcoal -------------------- */}
       <section style={{ background: "#1F2937", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
         <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16">
           <div className="text-center mb-10">
             <h2 className="font-black text-3xl sm:text-4xl mb-3" style={{ fontFamily: "'Outfit', sans-serif", color: "#FFF8F0" }}>
-              🚚 Order Fresh, Delivered to You
+              ?? Order Fresh, Delivered to You
             </h2>
             <p className="max-w-xl mx-auto" style={{ color: "#9ca3af" }}>
-              Royals Zaika is a <strong style={{ color: "#FBBF24" }}>delivery-only cloud kitchen</strong>.
+              Chaurasia's Restaurant is a <strong style={{ color: "#FBBF24" }}>Family Restaurant with Dine In, Takeaway and Home Delivery</strong>.
               We do not offer dine-in or table booking. All orders are placed online and delivered
               fresh to your home within our delivery area.
             </p>
@@ -184,8 +184,8 @@ export default function AboutPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 max-w-3xl mx-auto mb-10">
             {[
               { icon: Phone,  label: "Call Us",         value: "+91 73792 94659"                       },
-              { icon: Clock,  label: "Order Hours",      value: "Daily: 11:00 AM – 12:00 AM"           },
-              { icon: MapPin, label: "Kitchen Location", value: "474 Chak Raghunath, Naini, Prayagraj" },
+              { icon: Clock,  label: "Order Hours",      value: "Daily: 11:00 AM � 12:00 AM"           },
+              { icon: MapPin, label: "Restaurant Location", value: "Mahewa Khan Chauraha, Near Police Chowki, Prayagraj" },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex flex-col items-center text-center p-6 rounded-2xl gap-3"
                 style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(251,191,36,0.15)" }}>
@@ -203,11 +203,11 @@ export default function AboutPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/" className="inline-flex items-center justify-center gap-2 text-sm font-medium py-3 px-8 rounded-xl transition-all hover:bg-white/10"
               style={{ border: "1px solid rgba(255,255,255,0.18)", color: "#FFF8F0", background: "rgba(255,255,255,0.05)" }}>
-              ← Back to Home
+              ? Back to Home
             </Link>
             <Link href="/menu"
               className="btn-primary inline-flex items-center justify-center gap-2 text-sm py-3 px-8">
-              🍽️ Order Now
+              ??? Order Now
               <ArrowRight size={16} />
             </Link>
           </div>
@@ -217,4 +217,5 @@ export default function AboutPage() {
     </div>
   );
 }
+
 

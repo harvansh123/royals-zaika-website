@@ -188,7 +188,7 @@ export default function AuthPage() {
           </div>
           <h1 className="font-bold text-2xl sm:text-3xl mb-2"
             style={{ fontFamily: "'Outfit', sans-serif", color: "var(--text-primary)" }}>
-            Royals Zaika
+            Chaurasia's Restaurant
           </h1>
           <p className="mb-8 sm:mb-10" style={{ color: "var(--text-secondary)" }}>
             Authentic Indian Cuisine — Who are you?

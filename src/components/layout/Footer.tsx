@@ -8,15 +8,15 @@ export function Footer() {
       <div className="max-w-6xl mx-auto px-5 sm:px-8 py-12">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
 
-          {/* ── Brand ── */}
+          {/* -- Brand -- */}
           <div className="sm:col-span-1 space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 gradient-brand rounded-xl flex items-center justify-center text-xl shadow-brand">
-                🍱
+                ??
               </div>
               <div className="leading-none">
                 <p className="font-bold text-white text-lg" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                  Royals Zaika
+                  Chaurasia's Restaurant
                 </p>
                 <p className="text-xs text-orange-400 mt-0.5">Authentic Indian Cuisine</p>
               </div>
@@ -40,7 +40,7 @@ export function Footer() {
             </div>
           </div>
 
-          {/* ── Navigation ── */}
+          {/* -- Navigation -- */}
           <div>
             <h4 className="font-semibold text-white mb-5 text-sm tracking-wide">Navigation</h4>
             <ul className="space-y-3">
@@ -60,13 +60,13 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* ── Contact ── */}
+          {/* -- Contact -- */}
           <div>
             <h4 className="font-semibold text-white mb-5 text-sm tracking-wide">Contact Us</h4>
             <ul className="space-y-4">
               <li className="flex items-start gap-3 text-sm text-gray-500">
                 <MapPin size={15} className="text-orange-400 mt-0.5 shrink-0" />
-                <span>474 Chak Raghunath,<br />Naini Station, Prayagraj</span>
+                <span>Mahewa Khan Chauraha,<br />Near Police Chowki, Prayagraj</span>
               </li>
               <li className="flex items-center gap-3 text-sm text-gray-500">
                 <Phone size={15} className="text-orange-400 shrink-0" />
@@ -76,16 +76,16 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-3 text-sm text-gray-500">
                 <Clock size={15} className="text-orange-400 shrink-0" />
-                <span>Daily: 11:00 AM – 12:00 AM</span>
+                <span>Daily: 11:00 AM - 11:00 PM</span>
               </li>
             </ul>
           </div>
         </div>
 
-        {/* ── Bottom bar ── */}
+        {/* -- Bottom bar -- */}
         <div className="mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600"
           style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-          <p>© {new Date().getFullYear()} Royals Zaika. All rights reserved.</p>
+          <p>� {new Date().getFullYear()} Chaurasia's Restaurant. All rights reserved.</p>
           <div className="flex gap-5">
             <Link href="/privacy" className="hover:text-gray-400 transition-colors">Privacy Policy</Link>
             <Link href="/terms"   className="hover:text-gray-400 transition-colors">Terms of Service</Link>

@@ -395,7 +395,7 @@ export default function CheckoutPage() {
         key:         process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount:      Math.round(finalTotal * 100),
         currency:    "INR",
-        name:        "Royals Zaika",
+        name:        "Chaurasia's Restaurant",
         description: `Order #${order.order_number}`,
         order_id:    json.razorpayOrderId,
         prefill:     { name: user.name, email: user.email ?? "" },

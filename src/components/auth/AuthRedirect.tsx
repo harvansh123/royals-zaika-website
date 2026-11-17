@@ -60,7 +60,7 @@ export function AuthRedirect() {
             letterSpacing: "0.02em",
           }}
         >
-          Royals Zaika
+          Chaurasia's Restaurant
         </p>
         <style>{`@keyframes rz-spin { to { transform: rotate(360deg); } }`}</style>
       </div>

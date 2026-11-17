@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -34,7 +34,7 @@ export function Navbar() {
   // Hide on staff panels
   if (pathname.startsWith("/owner") || pathname.startsWith("/admin") || pathname.startsWith("/delivery")) return null;
 
-  // ── Links depend on auth state ────────────────────────────────────
+  // -- Links depend on auth state ------------------------------------
   const isLoggedIn = mounted && !!user;
 
   return (
@@ -53,11 +53,11 @@ export function Navbar() {
           {/* Logo */}
           <Link href={isLoggedIn ? "/menu" : "/"} className="flex items-center gap-2.5 group shrink-0">
             <div className="w-9 h-9 gradient-brand rounded-xl flex items-center justify-center text-lg shadow-brand group-hover:scale-105 transition-transform duration-200">
-              🍱
+              ??
             </div>
             <div className="leading-none">
               <p className="font-bold text-base" style={{ fontFamily: "'Outfit', sans-serif", color: "var(--text-primary)" }}>
-                Royals Zaika
+                Chaurasia's Restaurant
               </p>
               <p className="text-[10px] text-orange-500">Authentic Indian Cuisine</p>
             </div>
@@ -66,7 +66,7 @@ export function Navbar() {
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-1">
             {isLoggedIn ? (
-              /* ── Logged-in nav: Menu + Cart + Logout ── */
+              /* -- Logged-in nav: Menu + Cart + Logout -- */
               <>
                 <Link href="/menu"
                   className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-all",
@@ -119,7 +119,7 @@ export function Navbar() {
                 </button>
               </>
             ) : (
-              /* ── Guest nav: Home + About + Sign In + Sign Up ── */
+              /* -- Guest nav: Home + About + Sign In + Sign Up -- */
               <>
                 {[{ href: "/", label: "Home" }, { href: "/about", label: "About" }].map(({ href, label }) => (
                   <Link key={href} href={href}
@@ -155,7 +155,7 @@ export function Navbar() {
                 <Link href="/menu" onClick={() => setMenuOpen(false)}
                   className={cn("px-4 py-3 rounded-xl text-sm font-medium",
                     pathname === "/menu" ? "text-orange-500 bg-orange-500/8" : "text-gray-400 hover:bg-white/5")}>
-                  🍽️ Menu
+                  ??? Menu
                 </Link>
                 <Link href="/cart" onClick={() => setMenuOpen(false)}
                   className={cn("px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2",
@@ -170,7 +170,7 @@ export function Navbar() {
                 </Link>
                 <Link href="/profile?tab=orders" onClick={() => setMenuOpen(false)}
                   className="px-4 py-3 rounded-xl text-sm font-medium text-gray-400 hover:bg-white/5">
-                  📦 My Orders
+                  ?? My Orders
                 </Link>
                 <Link href="/refer" onClick={() => setMenuOpen(false)}
                   className={cn("px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2",
@@ -184,7 +184,7 @@ export function Navbar() {
               </div>
             ) : (
               <div className="flex flex-col gap-2">
-                {[{ href: "/", label: "🏠 Home" }, { href: "/about", label: "ℹ️ About" }].map(({ href, label }) => (
+                {[{ href: "/", label: "?? Home" }, { href: "/about", label: "?? About" }].map(({ href, label }) => (
                   <Link key={href} href={href} onClick={() => setMenuOpen(false)}
                     className="px-4 py-3 rounded-xl text-sm font-medium text-gray-400 hover:bg-white/5">
                     {label}

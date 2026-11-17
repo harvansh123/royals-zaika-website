@@ -11,17 +11,17 @@ const GA_ID = "G-20M6RE1KGW";
 
 export const metadata: Metadata = {
   title: {
-    default: "Royals Zaika — Authentic Indian Cuisine",
-    template: "%s | Royals Zaika",
+    default: "Chaurasia's Restaurant — Authentic Indian Cuisine",
+    template: "%s | Chaurasia's Restaurant",
   },
   description:
-    "Order authentic North Indian food online. Fresh thalis, biryanis, dal makhani, and more. Fast delivery from Royals Zaika restaurant.",
-  keywords: ["Indian food", "online food order", "thali", "biryani", "North Indian cuisine", "Royals Zaika"],
+    "Order authentic North Indian food online. Fresh thalis, biryanis, dal makhani, and more. Fast delivery from Chaurasia's Restaurant.",
+  keywords: ["Indian food", "online food order", "thali", "biryani", "North Indian cuisine", "Chaurasia's Restaurant"],
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Royals Zaika",
+    title: "Chaurasia's Restaurant",
   },
   icons: {
     icon: "/icons/icon-192.png",
@@ -30,8 +30,8 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_IN",
-    siteName: "Royals Zaika",
-    title: "Royals Zaika — Authentic Indian Cuisine",
+    siteName: "Chaurasia's Restaurant",
+    title: "Chaurasia's Restaurant — Authentic Indian Cuisine",
     description: "Order authentic North Indian food online with fast delivery.",
   },
   robots: "index, follow",

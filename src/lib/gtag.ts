@@ -1,5 +1,5 @@
 /**
- * GA4 Event Helpers — Royals Zaika
+ * GA4 Event Helpers — Chaurasia's Restaurant
  *
  * Central module for all Google Analytics 4 event tracking.
  * Reuses the existing GA4 tag loaded in layout.tsx (G-20M6RE1KGW).
@@ -108,7 +108,7 @@ export function trackPurchase(params: {
   gtagEvent("purchase", {
     transaction_id: params.orderNumber,          // readable, e.g. "1042"
     order_id:       params.orderId,              // custom: Supabase UUID for cross-ref
-    affiliation:    "Royals Zaika",
+    affiliation:    "Chaurasia's Restaurant",
     currency:       "INR",
     value:          params.value,
     shipping:       params.deliveryFee,

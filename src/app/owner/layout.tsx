@@ -53,7 +53,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 gradient-brand rounded-lg flex items-center justify-center text-lg">👨‍🍳</div>
           <div>
-            <p className="font-bold text-sm leading-none" style={{ color: "var(--text-primary)" }}>Royals Zaika</p>
+            <p className="font-bold text-sm leading-none" style={{ color: "var(--text-primary)" }}>Chaurasia's Restaurant</p>
             <p className="text-[10px] text-orange-500 leading-none">Owner Panel</p>
           </div>
         </div>
